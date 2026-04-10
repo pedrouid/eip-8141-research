@@ -2,7 +2,7 @@
 
 ---
 
-This document summarizes open concerns around EIP-8141 frame transactions as they intersect with statelessness, mempool health, and censorship resistance. The primary source is the ethresear.ch thread ["Frame Transactions Through a Statelessness Lens"](https://ethresear.ch/t/frame-transactions-through-a-statelessness-lens/24538) by CPerezz (March–April 2026).
+This document summarizes open concerns around EIP-8141 frame transactions as they intersect with statelessness, mempool health, and censorship resistance. The primary source is the ethresear.ch thread ["Frame Transactions Through a Statelessness Lens"](https://ethresear.ch/t/frame-transactions-through-a-statelessness-lens/24538) (March–April 2026).
 
 ---
 
@@ -28,11 +28,11 @@ The Validity-Only Partial Statelessness (VOPS) baseline, the minimum viable node
 
 At N=4 storage slots cached per account (64 bytes per slot), full adoption results in an 8x increase from today's VOPS floor. Still below the ~280 GB full state, but a significant regression from the statelessness promise.
 
-The AA-VOPS proposal by Thomas Thiery bounds storage reads to N slots per account but **does not address bytecode availability**: how AA-VOPS nodes obtain delegate bytecodes remains unspecified.
+The [AA-VOPS proposal](https://ethresear.ch/t/a-pragmatic-path-towards-validity-only-partial-statelessness-vops/22236#p-54075-vops-and-native-account-abstraction-aavops-9) bounds storage reads to N slots per account but **does not address bytecode availability**: how AA-VOPS nodes obtain delegate bytecodes remains unspecified.
 
 ## 3. Mempool Health Is Censorship Resistance
 
-CPerezz frames the core issue directly: **"mempool health is censorship resistance."** Nodes that cannot validate certain transaction types cannot:
+The core issue: **"mempool health is censorship resistance."** Nodes that cannot validate certain transaction types cannot:
 - Maintain healthy mempools for those transactions
 - Propagate them across the network
 - Enforce FOCIL inclusion lists covering them
@@ -53,27 +53,25 @@ If majority wallet adoption routes to non-canonical paymasters, those transactio
 - Cannot be picked up by arbitrary builders
 - Cannot be enforced by FOCIL inclusion lists
 
-CPerezz states the requirement plainly: **"we essentially need to make sure that the canonical Paymaster is what wallets want and what gets broad adoption. Otherwise, we will be in trouble."**
-
 This creates a circular dependency: censorship resistance for AA transactions depends on market adoption of a specific design, not on protocol guarantees.
 
 ## 5. Encrypted Mempools Are Incompatible
 
-DanielVF proposed a commit-and-execute model where block inclusion requires only balance, nonce, and a code flag - the transaction pays for actual validation later. This would decouple inclusion from state access.
+One proposed mitigation is a commit-and-execute model where block inclusion requires only balance, nonce, and a code flag. The transaction pays for actual validation later, decoupling inclusion from state access.
 
-CPerezz identified a fundamental conflict: **encrypted mempools** (like the LUCID protocol for distributed payload propagation) break this approach entirely. If transaction contents are encrypted before inclusion, nodes cannot check even the minimal fields needed for DOS prevention.
+However, **encrypted mempools** (like the LUCID protocol for distributed payload propagation) break this approach entirely. If transaction contents are encrypted before inclusion, nodes cannot check even the minimal fields needed for DOS prevention.
 
-The deeper tension: **"it's super hard for me to see how to have private txs, when we have to pay for DOS prevention work."** Reconciling frame transactions with encrypted mempools, account abstraction, and statelessness remains an open research problem.
+The deeper tension: reconciling frame transactions with encrypted mempools, account abstraction, and statelessness remains an open research problem. Private transactions require hiding content, but DOS prevention requires inspecting it.
 
 ## 6. Transaction Propagation Fragility
 
-ParthSinghPS raised the propagation fragility concern: if canonical paymaster instances proliferate (multiple deployments, multiple configurations), how are propagation and inclusion guarantees preserved? Transactions that never reach a broad enough subset of the network cannot be picked up by builders or enforced via FOCIL.
+If canonical paymaster instances proliferate (multiple deployments, multiple configurations), how are propagation and inclusion guarantees preserved? Transactions that never reach a broad enough subset of the network cannot be picked up by builders or enforced via FOCIL.
 
-CPerezz confirmed that propagation success depends on **"the vast majority of the most minimal nodes"** being able to validate and relay. Any fragmentation in what those nodes can process directly narrows the set of transactions that have censorship resistance guarantees.
+Propagation success depends on the vast majority of minimal nodes being able to validate and relay. Any fragmentation in what those nodes can process directly narrows the set of transactions that have censorship resistance guarantees.
 
 ## 7. The "Choose 2 of 3" Trilemma
 
-A recurring concern in internal discussions frames the design space as a trilemma between three goals:
+A recurring concern frames the design space as a trilemma between three goals:
 
 1. **Frames / Native AA**
 2. **Public Mempool / FOCIL**
@@ -83,7 +81,7 @@ The argument: current designs cannot deliver all three simultaneously. Adopting 
 
 ### Counterpoint: The Trilemma Is Solvable
 
-EIP-8141 co-author Derek Chiang argues that all three goals are achievable, provided "native AA" is understood as "native AA with bounded state access during validation" rather than "native AA with arbitrary state access."
+EIP-8141 co-authors argue that all three goals are achievable, provided "native AA" is understood as "native AA with bounded state access during validation" rather than "native AA with arbitrary state access."
 
 The key insight: the mempool already constrains validation to bounded state access (storage reads restricted to `tx.sender`, gas capped at 100k). FOCIL compatibility has been [explicitly addressed](https://ethereum-magicians.org/t/focil-native-account-abstraction/27999), and VOPS compatibility is achievable by extending VOPS to cover the first N storage slots per account, as described in the [AA-VOPS proposal](https://ethresear.ch/t/a-pragmatic-path-towards-validity-only-partial-statelessness-vops/22236#p-54075-vops-and-native-account-abstraction-aavops-9).
 
@@ -91,7 +89,7 @@ Frame transactions give developers a choice: if censorship resistance matters, b
 
 ## 8. Witness-Based FOCIL Compatibility - Possible but Complex
 
-One proposed mitigation for the VOPS/FOCIL tension comes from an earlier Vitalik proposal: for every storage slot accessed outside the VOPS (balance, nonce, code, storage slots 0–15), transactions must include a **witness proving the value**, rooted in a recent state root (e.g., last 256 slots). FOCIL-participating nodes would also store state deltas from the last hour to resolve current state from stale witnesses.
+One proposed mitigation for the VOPS/FOCIL tension: for every storage slot accessed outside the VOPS (balance, nonce, code, storage slots 0–15), transactions must include a **witness proving the value**, rooted in a recent state root (e.g., last 256 slots). FOCIL-participating nodes would also store state deltas from the last hour to resolve current state from stale witnesses.
 
 The code paths for this already exist in clients (needed for syncing), and RPC methods exist for users to obtain witnesses. The extra data cost is ~4 kB per storage slot outside the VOPS (due to MPT inefficiency; a binary tree would reduce this to ~1 kB).
 
