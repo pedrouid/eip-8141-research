@@ -39,6 +39,8 @@ export default defineConfig({
         ],
       },
       { text: "Appendix", link: "/07-appendix" },
+      { text: "Pending Concerns", link: "/08-pending-concerns" },
+      { text: "FAQ", link: "/09-faq" },
     ],
     sidebar: [
       {
@@ -51,6 +53,8 @@ export default defineConfig({
           { text: "Original vs Latest", link: "/05-original-vs-latest" },
           { text: "Competing Standards", link: "/06-competing-standards" },
           { text: "Appendix", link: "/07-appendix" },
+          { text: "Pending Concerns", link: "/08-pending-concerns" },
+          { text: "FAQ", link: "/09-faq" },
         ],
       },
     ],
