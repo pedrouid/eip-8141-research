@@ -1,0 +1,4 @@
+.vp-doc table th:first-child,
+.vp-doc table td:first-child {
+  white-space: nowrap;
+}
