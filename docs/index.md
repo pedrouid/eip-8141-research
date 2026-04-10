@@ -93,9 +93,3 @@ EIP-8141 introduces four new opcodes that give frame transactions their power:
 | `FRAMEDATACOPY` | Copies frame data to memory — bulk version of `FRAMEDATALOAD` for larger payloads |
 
 `APPROVE` is the central innovation: it's how account code tells the protocol "I've verified this transaction — proceed." The other three opcodes give frame code access to the transaction and frame context it needs to make that decision.
-
-## Sources
-
-- [EIP-8141 Spec](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8141.md)
-- [All Related PRs](https://github.com/ethereum/EIPs/pulls?q=is%3Apr+8141)
-- [Ethereum Magicians Discussion (136 posts)](https://ethereum-magicians.org/t/frame-transaction/27617)

@@ -2,6 +2,14 @@
 
 ---
 
+## Sources
+
+- [EIP-8141 Spec](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8141.md)
+- [All Related PRs](https://github.com/ethereum/EIPs/pulls?q=is%3Apr+8141)
+- [Ethereum Magicians Discussion (136 posts)](https://ethereum-magicians.org/t/frame-transaction/27617)
+
+---
+
 ## Complete PR Timeline
 
 ### Merged
