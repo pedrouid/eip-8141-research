@@ -40,15 +40,16 @@ No bundler, no EntryPoint contract, no off-chain infrastructure. The protocol ha
 
 EOAs benefit directly without EIP-7702. The protocol has built-in fallback behavior for codeless accounts: VERIFY frames verify signatures (ECDSA or P256) and call `APPROVE` natively, while SENDER frames decode frame data as a list of calls and execute them with `msg.sender = tx.sender`. No code is ever deployed to the EOA. The account stays codeless before, during, and after the transaction.
 
-### Example A: Gas Sponsorship with ERC-20 Fees
+### Example A: Gasless Approve + Swap
 
 | Frame | Mode | Target | What it does |
 |---|---|---|---|
 | 0 | VERIFY | sender | Verify sender signature, approve execution |
 | 1 | VERIFY | sponsor | Verify sponsor, approve payment |
-| 2 | SENDER | ERC-20 | Transfer fee tokens to sponsor |
-| 3 | SENDER | target | Execute user's intended call |
-| 4 | DEFAULT | sponsor | Post-op: refund overcharged fees |
+| 2 | SENDER | ERC-20 | `approve(DEX, amount)` - allow DEX to spend tokens |
+| 3 | SENDER | DEX | `swap(...)` - execute the swap |
+| 4 | SENDER | USDC | `transfer(sponsor, fee)` - pay sponsor in USDC |
+| 5 | DEFAULT | sponsor | Post-op: refund overcharged fees |
 
 ### Example B: Gasless Uniswap LP Management (EOA)
 
