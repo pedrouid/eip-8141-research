@@ -92,12 +92,13 @@
 - [PoC Writeup](https://hackmd.io/@TB5b8ghoQyChOtUKB0RsOg/B1PhyMK_be)
 - [BundleBear EIP-7702 Metrics](https://www.bundlebear.com/eip7702-overview/ethereum)
 - [Account Abstraction Link Tree (matt)](https://hackmd.io/@matt/aa-link-tree)
+- [Biconomy: Native AA State-of-Art Q1/26](https://blog.biconomy.io/native-account-abstraction-state-of-art-and-pending-proposals-q1-26/)
+- [Openfort: What EIP-8141 Means for Developers](https://www.openfort.io/blog/eip-8141-means-for-developers)
 
 ## Competing Standards
 
 - [EIP-8130: Account Abstraction by Account Configuration](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8130.md) — [Magicians thread](https://ethereum-magicians.org/t/eip-8130-account-abstraction-by-account-configurations/25952)
-- [ERC-8221: Wallet Title Deeds](https://github.com/ethereum/ERCs/pull/1658) — [Magicians thread](https://ethereum-magicians.org/t/erc-8221-wallet-title-deeds/28182)
-- [EIP-8175: Composable Transaction](https://github.com/ethereum/EIPs/pull/11355) — Simpler alternative, no new opcodes
-- [Biconomy: Native AA State-of-Art Q1/26](https://blog.biconomy.io/native-account-abstraction-state-of-art-and-pending-proposals-q1-26/)
-- [Openfort: What EIP-8141 Means for Developers](https://www.openfort.io/blog/eip-8141-means-for-developers)
+- [EIP-8175: Composable Transaction](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8175.md) — [Magicians thread](https://ethereum-magicians.org/t/eip-8175-composable-transaction/27850)
+- [EIP-8202: Schemed Transaction](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8202.md) — [Magicians thread](https://ethereum-magicians.org/t/eip-8202-schemed-transaction/28044)
+- [Frame Transactions vs. SchemedTransactions (comparison thread)](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056)
 
