@@ -22,7 +22,6 @@ export default defineConfig({
 
       { text: "FAQ", link: "/08-faq" },
       { text: "Demo", link: "https://demo.eip-8141.ethrex.xyz/" },
-      { text: "Appendix", link: "/00-appendix" },
     ],
     sidebar: [
       {
