@@ -95,6 +95,8 @@
 - [Account Abstraction Link Tree (matt)](https://hackmd.io/@matt/aa-link-tree)
 - [Biconomy: Native AA State-of-Art Q1/26](https://blog.biconomy.io/native-account-abstraction-state-of-art-and-pending-proposals-q1-26/)
 - [Openfort: What EIP-8141 Means for Developers](https://www.openfort.io/blog/eip-8141-means-for-developers)
+- [FOCIL + Native Account Abstraction](https://ethereum-magicians.org/t/focil-native-account-abstraction/27999)
+- [AA-VOPS: A Pragmatic Path Towards Validity-Only Partial Statelessness](https://ethresear.ch/t/a-pragmatic-path-towards-validity-only-partial-statelessness-vops/22236#p-54075-vops-and-native-account-abstraction-aavops-9)
 
 ## Competing Standards
 

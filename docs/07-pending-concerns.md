@@ -81,6 +81,14 @@ A recurring concern in internal discussions frames the design space as a trilemm
 
 The argument: current designs cannot deliver all three simultaneously. Adopting native AA with frame transactions forces tradeoffs against either public mempool health (and thus censorship resistance via FOCIL) or statelessness goals. There is additional worry that undiscovered conflicts exist - that native AA may close doors to future protocol possibilities that haven't yet been fully articulated.
 
+### Counterpoint: The Trilemma Is Solvable
+
+EIP-8141 co-author Derek Chiang argues that all three goals are achievable, provided "native AA" is understood as "native AA with bounded state access during validation" rather than "native AA with arbitrary state access."
+
+The key insight: the mempool already constrains validation to bounded state access (storage reads restricted to `tx.sender`, gas capped at 100k). FOCIL compatibility has been [explicitly addressed](https://ethereum-magicians.org/t/focil-native-account-abstraction/27999), and VOPS compatibility is achievable by extending VOPS to cover the first N storage slots per account, as described in the [AA-VOPS proposal](https://ethresear.ch/t/a-pragmatic-path-towards-validity-only-partial-statelessness-vops/22236#p-54075-vops-and-native-account-abstraction-aavops-9).
+
+Frame transactions give developers a choice: if censorship resistance matters, build accounts that are FOCIL/VOPS-compatible by using only the first N slots during validation. If censorship resistance is not a priority, use private pools and do arbitrarily advanced things in the validation phase, including arbitrary state access. This optionality is what makes frames the most flexible approach, and is aligned with Ethereum's philosophy of giving users and developers choice rather than imposing constraints.
+
 ## 8. Witness-Based FOCIL Compatibility - Possible but Complex
 
 One proposed mitigation for the VOPS/FOCIL tension comes from an earlier Vitalik proposal: for every storage slot accessed outside the VOPS (balance, nonce, code, storage slots 0–15), transactions must include a **witness proving the value**, rooted in a recent state root (e.g., last 256 slots). FOCIL-participating nodes would also store state deltas from the last hour to resolve current state from stale witnesses.
@@ -107,7 +115,7 @@ Frame transactions are already a contributing factor to Glamsterdam delays. Whil
 | Encrypted mempool compatibility | Fundamental conflict, no solution proposed |
 | Non-canonical paymaster censorship resistance | None under current design |
 | Propagation guarantees under paymaster fragmentation | Open question |
-| Frames + Public Mempool + Statelessness trilemma | Choose 2 of 3 under current designs |
+| Frames + Public Mempool + Statelessness trilemma | Disputed: solvable if validation uses bounded state access |
 | Witness-based FOCIL compatibility | Theoretically possible, high complexity |
 | Implementation complexity and Glamsterdam impact | Contributing to delays, compounds other concerns |
 
