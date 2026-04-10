@@ -6,7 +6,7 @@ hero:
   tagline: Native account abstraction and post-quantum readiness for Ethereum - one transaction type, multiple frames, programmable validation
   actions:
     - theme: brand
-      text: Read the Spec Overview
+      text: Read the Overview
       link: /01-current-spec
     - theme: alt
       text: Try the Demo
