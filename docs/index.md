@@ -51,7 +51,7 @@ EOAs benefit directly without EIP-7702. The protocol has built-in fallback behav
 | 4 | SENDER | USDC | `transfer(sponsor, fee)` - pay sponsor in USDC |
 | 5 | DEFAULT | sponsor | Post-op: refund overcharged fees |
 
-### Example B: Gasless Uniswap LP Management (EOA)
+### Example B: Gasless Liquidity Rebalance
 
 An EOA at address A rebalances a Uniswap v4 liquidity position without paying gas:
 
