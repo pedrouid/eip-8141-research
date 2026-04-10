@@ -1,7 +1,7 @@
 import { defineConfig } from "vitepress";
 
 export default defineConfig({
-  title: "EIP-8141 Standard",
+  title: "EIP-8141 Proposal",
   description:
     "Comprehensive analysis of EIP-8141 (Frame Transaction) - origin, evolution, and current state",
   themeConfig: {
