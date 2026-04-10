@@ -32,9 +32,9 @@ A frame transaction (`0x06`) consists of multiple **frames**, each with a mode t
 
 | Mode | Name | Purpose |
 |---|---|---|
+| `DEFAULT` | Deployment | Deploy accounts, run post-operation hooks |
 | `VERIFY` | Verification | Authenticate the sender, authorize payment — read-only, must call `APPROVE` |
 | `SENDER` | Execution | Execute the user's intended operations (calls, transfers, contract interactions) |
-| `DEFAULT` | Deployment | Deploy accounts, run post-operation hooks |
 
 ### Example: Gas Sponsorship with ERC-20 Fees
 
@@ -73,10 +73,11 @@ An EOA at address A holds a Uniswap v4 liquidity position. The user wants to reb
 | 3 | SENDER | Position Manager | `collect(...)` — collect tokens |
 | 4 | SENDER | USDC | `transfer(sponsor, fee)` — pay sponsor in USDC |
 | 5 | SENDER | Position Manager | `increaseLiquidity(...)` — add to new range |
+| 6 | DEFAULT | sponsor | Post-op: refund overcharged gas fees |
 
 Every SENDER frame executes with `msg.sender = A`. Uniswap sees the EOA as the caller — existing token approvals, NFT position ownership, and LP state all work as-is. The sponsor pays gas, the user compensates in USDC, and the EOA never changes. No delegation, no contract deployment, no migration.
 
-With bit 11 (atomic batch flag) set on frames 2-4, those frames become all-or-nothing — if the collect or USDC transfer fails, the `decreaseLiquidity` reverts too, protecting the user from partial execution.
+With bit 11 (atomic batch flag) set on frames 2-5, those frames become all-or-nothing — if the collect or USDC transfer fails, the `decreaseLiquidity` reverts too, protecting the user from partial execution.
 
 ## New Opcodes
 
