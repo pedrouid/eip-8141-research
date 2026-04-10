@@ -9,9 +9,6 @@ hero:
       text: Read the Spec Overview
       link: /01-current-spec
     - theme: alt
-      text: Competing Standards
-      link: /06-competing-standards
-    - theme: alt
       text: View on GitHub
       link: https://github.com/pedrouid/eip-8141-research
 features:
