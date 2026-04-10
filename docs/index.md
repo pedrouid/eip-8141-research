@@ -36,7 +36,11 @@ A frame transaction (`0x06`) consists of multiple **frames**, each with a mode t
 | `VERIFY` | Verification | Authenticate the sender, authorize payment - read-only, must call `APPROVE` |
 | `SENDER` | Execution | Execute the user's intended operations (calls, transfers, contract interactions) |
 
-### Example: Gas Sponsorship with ERC-20 Fees
+No bundler, no EntryPoint contract, no off-chain infrastructure. The protocol handles validation, gas payment, and execution natively through frames.
+
+EOAs benefit directly without EIP-7702. The protocol has built-in fallback behavior for codeless accounts: VERIFY frames verify signatures (ECDSA or P256) and call `APPROVE` natively, while SENDER frames decode frame data as a list of calls and execute them with `msg.sender = tx.sender`. No code is ever deployed to the EOA. The account stays codeless before, during, and after the transaction.
+
+### Example A: Gas Sponsorship with ERC-20 Fees
 
 | Frame | Mode | Target | What it does |
 |---|---|---|---|
@@ -46,24 +50,9 @@ A frame transaction (`0x06`) consists of multiple **frames**, each with a mode t
 | 3 | SENDER | target | Execute user's intended call |
 | 4 | DEFAULT | sponsor | Post-op: refund overcharged fees |
 
-No bundler, no EntryPoint contract, no off-chain infrastructure. The protocol handles it natively.
+### Example B: Gasless Uniswap LP Management (EOA)
 
-## EOAs Get Native Account Abstraction
-
-One of EIP-8141's most significant properties: **EOAs don't need EIP-7702 to benefit from native account abstraction.**
-
-With EIP-7702, an EOA must permanently delegate to a smart contract - a state change that persists on-chain, requires trusting the delegate contract's code, and introduces complexity around delegation management. With EIP-8141, none of that is needed.
-
-The protocol has **built-in fallback behavior** for accounts with no code. When a frame targets a codeless account:
-
-- **VERIFY frames**: The protocol verifies the signature (ECDSA or P256) and calls `APPROVE` - natively, without any deployed code
-- **SENDER frames**: The protocol decodes the frame data as a list of calls and executes them with `msg.sender = tx.sender`
-
-No code is ever deployed to the EOA - not temporarily, not permanently. The EOA stays codeless before, during, and after the transaction. There's truly zero state change to the account itself.
-
-### Example: Gasless Uniswap LP Management
-
-An EOA at address A holds a Uniswap v4 liquidity position. The user wants to rebalance their position range without paying gas:
+An EOA at address A rebalances a Uniswap v4 liquidity position without paying gas:
 
 | Frame | Mode | Target | What it does |
 |---|---|---|---|
@@ -75,9 +64,7 @@ An EOA at address A holds a Uniswap v4 liquidity position. The user wants to reb
 | 5 | SENDER | Position Manager | `increaseLiquidity(...)` - add to new range |
 | 6 | DEFAULT | sponsor | Post-op: refund overcharged gas fees |
 
-Every SENDER frame executes with `msg.sender = A`. Uniswap sees the EOA as the caller - existing token approvals, NFT position ownership, and LP state all work as-is. The sponsor pays gas, the user compensates in USDC, and the EOA never changes. No delegation, no contract deployment, no migration.
-
-With bit 11 (atomic batch flag) set on frames 2-5, those frames become all-or-nothing - if the collect or USDC transfer fails, the `decreaseLiquidity` reverts too, protecting the user from partial execution.
+Every SENDER frame executes with `msg.sender = A`. Uniswap sees the EOA as the caller - existing token approvals, NFT ownership, and LP state all work as-is. With bit 11 (atomic batch flag) set on frames 2-5, those frames become all-or-nothing, protecting the user from partial execution.
 
 ## New Opcodes
 
