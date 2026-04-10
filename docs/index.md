@@ -9,6 +9,9 @@ hero:
       text: Read the Spec Overview
       link: /01-current-spec
     - theme: alt
+      text: Try the Demo
+      link: https://demo.eip-8141.ethrex.xyz/
+    - theme: alt
       text: View on GitHub
       link: https://github.com/pedrouid/eip-8141-research
 features:

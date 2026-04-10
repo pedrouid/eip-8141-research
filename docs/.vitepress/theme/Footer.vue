@@ -69,6 +69,14 @@
           </li>
           <li>
             <a
+              href="https://demo.eip-8141.ethrex.xyz/"
+              target="_blank"
+              rel="noopener"
+              >Live Demo</a
+            >
+          </li>
+          <li>
+            <a
               href="https://github.com/pedrouid/eip-8141-research"
               target="_blank"
               rel="noopener"

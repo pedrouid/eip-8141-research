@@ -86,6 +86,7 @@
 
 ## External Resources
 
+- [Live Demo](https://demo.eip-8141.ethrex.xyz/)
 - [EIP-8141 Latest Spec](https://eips.ethereum.org/EIPS/eip-8141)
 - [Ethereum Magicians Discussion (136 posts)](https://ethereum-magicians.org/t/frame-transaction/27617)
 - [PoC Implementation by sm-stack](https://github.com/sm-stack/eip8141-poc)
