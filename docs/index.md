@@ -42,6 +42,8 @@ EOAs benefit directly without EIP-7702. The protocol has built-in fallback behav
 
 ### Example A: Gasless Approve + Swap
 
+A user approves and swaps tokens in a single atomic transaction without paying gas:
+
 | Frame | Mode | Target | What it does |
 |---|---|---|---|
 | 0 | VERIFY | sender | Verify sender signature, approve execution |
