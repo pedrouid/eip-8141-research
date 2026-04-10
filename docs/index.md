@@ -20,7 +20,7 @@ features:
     details: Group multiple operations into atomic batches that succeed or revert together, natively at the protocol level
   - title: Post-Quantum Ready
     details: No ECDSA dependency in the transaction format. Accounts choose their own cryptographic scheme with signature aggregation built in.
-  - title: EOA Native
+  - title: EOA Compatible
     details: Built-in behavior for codeless accounts. EOAs get native AA without delegations, contract deployments, or state changes.
   - title: Dual Model Design
     details: The execution model allows arbitrary validation. The mempool model constrains it to propagatable shapes.
