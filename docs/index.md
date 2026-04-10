@@ -14,7 +14,7 @@ hero:
 features:
   - title: Programmable Validation
     details: Accounts define their own signature verification (ECDSA, P256/passkeys, post-quantum) using the APPROVE opcode in VERIFY frames
-  - title: Native Gas Sponsorship
+  - title: Gas Sponsorship
     details: Third parties pay gas through sponsor VERIFY frames and canonical paymasters. No bundlers or relayers needed.
   - title: Atomic Batching
     details: Group multiple operations into atomic batches that succeed or revert together, natively at the protocol level
