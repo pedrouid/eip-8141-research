@@ -36,9 +36,9 @@ A frame transaction (`0x06`) consists of multiple **frames**, each with a mode t
 | `VERIFY` | Verification | Authenticate the sender, authorize payment - read-only, must call `APPROVE` |
 | `SENDER` | Execution | Execute the user's intended operations (calls, transfers, contract interactions) |
 
-No bundler, no EntryPoint contract, no off-chain infrastructure. The protocol handles validation, gas payment, and execution natively through frames.
+No bundler, no EntryPoint contract, no off-chain infrastructure. The protocol handles validation, gas payment, and execution natively through frames. SENDER frames execute with `msg.sender = tx.sender`, so existing contracts see the original account as the caller - token approvals, NFT ownership, and all on-chain state work as-is.
 
-EOAs benefit directly without EIP-7702. The protocol has built-in fallback behavior for codeless accounts: VERIFY frames verify signatures (ECDSA or P256) and call `APPROVE` natively, while SENDER frames decode frame data as a list of calls and execute them with `msg.sender = tx.sender`. No code is ever deployed to the EOA. The account stays codeless before, during, and after the transaction.
+EOAs benefit directly without EIP-7702. The protocol has built-in fallback behavior for codeless accounts: VERIFY frames verify signatures (ECDSA or P256) and call `APPROVE` natively, while SENDER frames decode frame data as a list of calls. No code is ever deployed to the EOA. With bit 11 (atomic batch flag) set on consecutive SENDER frames, they become all-or-nothing, protecting users from partial execution.
 
 ### Example A: Gasless Approve + Swap
 
@@ -66,8 +66,6 @@ An EOA at address A rebalances a Uniswap v4 liquidity position without paying ga
 | 4 | SENDER | USDC | `transfer(sponsor, fee)` - pay sponsor in USDC |
 | 5 | SENDER | Position Manager | `increaseLiquidity(...)` - add to new range |
 | 6 | DEFAULT | sponsor | Post-op: refund overcharged gas fees |
-
-Every SENDER frame executes with `msg.sender = A`. Uniswap sees the EOA as the caller - existing token approvals, NFT ownership, and LP state all work as-is. With bit 11 (atomic batch flag) set on frames 2-5, those frames become all-or-nothing, protecting the user from partial execution.
 
 ## New Opcodes
 
