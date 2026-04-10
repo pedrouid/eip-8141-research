@@ -18,19 +18,19 @@
           <li>
             <a
               href="/06-competing-standards#eip-8130-account-abstraction-by-account-configuration"
-              >EIP-8130 - Account Configuration</a
+              >EIP-8130 — Account Configuration</a
             >
           </li>
           <li>
             <a
               href="/06-competing-standards#eip-8202-scheme-agile-transactions-schemed-transactions"
-              >EIP-8202 - Schemed Transactions</a
+              >EIP-8202 — Schemed Transactions</a
             >
           </li>
           <li>
             <a
               href="/06-competing-standards#eip-xxxx-tempo-like-transactions"
-              >EIP-XXXX - Tempo-like Transactions</a
+              >EIP-XXXX — Tempo-like Transactions</a
             >
           </li>
           <li>

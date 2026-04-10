@@ -3,7 +3,7 @@ layout: home
 hero:
   name: EIP-8141
   text: Frame Transaction
-  tagline: Native account abstraction and post-quantum readiness for Ethereum - one transaction type, multiple frames, programmable validation
+  tagline: Native account abstraction and post-quantum readiness for Ethereum. One transaction type, multiple frames, programmable validation.
   actions:
     - theme: brand
       text: Read the Overview
@@ -33,10 +33,10 @@ A frame transaction (`0x06`) consists of multiple **frames**, each with a mode t
 | Mode | Name | Purpose |
 |---|---|---|
 | `DEFAULT` | Deployment | Deploy accounts, run post-operation hooks |
-| `VERIFY` | Verification | Authenticate the sender, authorize payment - read-only, must call `APPROVE` |
+| `VERIFY` | Verification | Authenticate the sender, authorize payment. Read-only, must call `APPROVE`. |
 | `SENDER` | Execution | Execute the user's intended operations (calls, transfers, contract interactions) |
 
-No bundler, no EntryPoint contract, no off-chain infrastructure. The protocol handles validation, gas payment, and execution natively through frames. SENDER frames execute with `msg.sender = tx.sender`, so existing contracts see the original account as the caller - token approvals, NFT ownership, and all on-chain state work as-is.
+No bundler, no EntryPoint contract, no off-chain infrastructure. The protocol handles validation, gas payment, and execution natively through frames. SENDER frames execute with `msg.sender = tx.sender`, so existing contracts see the original account as the caller. Token approvals, NFT ownership, and all on-chain state work as-is.
 
 EOAs benefit directly without EIP-7702. The protocol has built-in fallback behavior for codeless accounts: VERIFY frames verify signatures (ECDSA or P256) and call `APPROVE` natively, while SENDER frames decode frame data as a list of calls. No code is ever deployed to the EOA. With bit 11 (atomic batch flag) set on consecutive SENDER frames, they become all-or-nothing, protecting users from partial execution.
 
@@ -48,9 +48,9 @@ A user approves and swaps tokens in a single atomic transaction without paying g
 |---|---|---|---|
 | 0 | VERIFY | sender | Verify sender signature, approve execution |
 | 1 | VERIFY | sponsor | Verify sponsor, approve payment |
-| 2 | SENDER | ERC-20 | `approve(DEX, amount)` - allow DEX to spend tokens |
-| 3 | SENDER | DEX | `swap(...)` - execute the swap |
-| 4 | SENDER | USDC | `transfer(sponsor, fee)` - pay sponsor in USDC |
+| 2 | SENDER | ERC-20 | `approve(DEX, amount)` — allow DEX to spend tokens |
+| 3 | SENDER | DEX | `swap(...)` — execute the swap |
+| 4 | SENDER | USDC | `transfer(sponsor, fee)` — pay sponsor in USDC |
 | 5 | DEFAULT | sponsor | Post-op: refund overcharged fees |
 
 ### Example B: Gasless Liquidity Rebalance
@@ -61,10 +61,10 @@ An EOA at address A rebalances a Uniswap v4 liquidity position without paying ga
 |---|---|---|---|
 | 0 | VERIFY | A | Protocol verifies ECDSA signature, approves execution |
 | 1 | VERIFY | sponsor | Sponsor authorizes gas payment |
-| 2 | SENDER | Position Manager | `decreaseLiquidity(...)` - remove from old range |
-| 3 | SENDER | Position Manager | `collect(...)` - collect tokens |
-| 4 | SENDER | USDC | `transfer(sponsor, fee)` - pay sponsor in USDC |
-| 5 | SENDER | Position Manager | `increaseLiquidity(...)` - add to new range |
+| 2 | SENDER | Position Manager | `decreaseLiquidity(...)` — remove from old range |
+| 3 | SENDER | Position Manager | `collect(...)` — collect tokens |
+| 4 | SENDER | USDC | `transfer(sponsor, fee)` — pay sponsor in USDC |
+| 5 | SENDER | Position Manager | `increaseLiquidity(...)` — add to new range |
 | 6 | DEFAULT | sponsor | Post-op: refund overcharged gas fees |
 
 ## New Opcodes
@@ -73,9 +73,9 @@ EIP-8141 introduces four new opcodes that give frame transactions their power:
 
 | Opcode | Purpose |
 |---|---|
-| `APPROVE` | Terminates a VERIFY frame and sets transaction-scoped approval flags - scope `0x1` approves execution, `0x2` approves payment, `0x3` approves both |
-| `TXPARAM` | Reads transaction parameters (sender, nonce, fees) from inside a frame - replaces `ORIGIN` for introspection |
-| `FRAMEDATALOAD` | Loads 32 bytes from the current frame's `data` field - how account code reads signatures and calldata passed to a frame |
-| `FRAMEDATACOPY` | Copies frame data to memory - bulk version of `FRAMEDATALOAD` for larger payloads |
+| `APPROVE` | Terminates a VERIFY frame and sets transaction-scoped approval flags. Scope `0x1` approves execution, `0x2` approves payment, `0x3` approves both. |
+| `TXPARAM` | Reads transaction parameters (sender, nonce, fees) from inside a frame. Replaces `ORIGIN` for introspection. |
+| `FRAMEDATALOAD` | Loads 32 bytes from the current frame's `data` field. How account code reads signatures and calldata passed to a frame. |
+| `FRAMEDATACOPY` | Copies frame data to memory. Bulk version of `FRAMEDATALOAD` for larger payloads. |
 
-`APPROVE` is the central innovation: it's how account code tells the protocol "I've verified this transaction - proceed." The other three opcodes give frame code access to the transaction and frame context it needs to make that decision.
+`APPROVE` is the central innovation: it's how account code tells the protocol "I've verified this transaction, proceed." The other three opcodes give frame code access to the transaction and frame context it needs to make that decision.

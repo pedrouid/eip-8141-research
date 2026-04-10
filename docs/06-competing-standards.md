@@ -22,11 +22,11 @@ EIP-8130 introduces a new EIP-2718 transaction type and an onchain Account Confi
 **Account Configuration Contract**: A system contract where accounts register owners. Each owner is identified by an `ownerId` (32-byte identifier derived by the verifier from public key material) and associated with a verifier contract and a scope byte (permission bitmask).
 
 **Verifiers**: Contracts that implement `verify(hash, data)` via STATICCALL. The protocol routes by verifier address:
-- `ECRECOVER_VERIFIER` (`address(1)`) - native secp256k1, no EVM execution needed
-- Any other address - call the verifier contract
+- `ECRECOVER_VERIFIER` (`address(1)`) — native secp256k1, no EVM execution needed
+- Any other address — call the verifier contract
 - Nodes maintain an **allowlist** of trusted verifiers with known gas bounds
 
-**Implicit EOA Authorization**: Every existing EOA can send AA transactions immediately - no registration needed. If the `owner_config` slot is empty and `ownerId == bytes32(bytes20(account))`, it's implicitly authorized.
+**Implicit EOA Authorization**: Every existing EOA can send AA transactions immediately, no registration needed. If the `owner_config` slot is empty and `ownerId == bytes32(bytes20(account))`, it's implicitly authorized.
 
 **Transaction Format**:
 ```
@@ -42,7 +42,7 @@ AA_TX_TYPE || rlp([
 
 **2D Nonce System**: `nonce_key` selects the channel, `nonce_sequence` is the sequence within it. `NONCE_KEY_MAX` enables nonce-free mode with expiry-only replay protection.
 
-**Account Changes**: A single transaction can create an account (CREATE2), modify owner configuration, and set EIP-7702-style delegation - all before call execution.
+**Account Changes**: A single transaction can create an account (CREATE2), modify owner configuration, and set EIP-7702-style delegation, all before call execution.
 
 **Gas Sponsorship**: `payer` field declares the sponsor, `payer_auth` authenticates them using the same verifier infrastructure. The payer is charged for all gas.
 
@@ -77,7 +77,7 @@ Nodes maintain a verifier allowlist. For allowlisted verifiers with known gas bo
 
 ### Activity
 
-- **14 PRs** (12 merged, 1 open, 1 closed) - active iteration from January through April 2026
+- **14 PRs** (12 merged, 1 open, 1 closed), active iteration from January through April 2026
 - **9 EthMagicians posts** at [ethereum-magicians.org/t/eip-8130-account-abstraction-by-account-configurations/25952](https://ethereum-magicians.org/t/eip-8130-account-abstraction-by-account-configurations/25952)
 - Key participants: chunter (author), rmeissner (Safe), Helkomine
 
@@ -93,7 +93,7 @@ Nodes maintain a verifier allowlist. For allowlisted verifiers with known gas bo
 
 - **Limited validation expressiveness**: Verifiers are pure functions (`verify(hash, data) → ownerId`). Complex validation logic (e.g., time-based policies, state-dependent authorization) can't be expressed.
 - **Node coordination**: Nodes must independently decide which verifiers to accept. A fragmented allowlist ecosystem could limit transaction propagation.
-- **No value in calls**: Calls carry no ETH value - ETH transfers require going through wallet bytecode.
+- **No value in calls**: Calls carry no ETH value; ETH transfers require going through wallet bytecode.
 - **System contract dependency**: The Account Configuration Contract and Nonce Manager are new system-level infrastructure.
 
 ---
@@ -115,17 +115,17 @@ The core thesis is the opposite of EIP-8141's frame model: **flat composition, n
 
 **Single Execution Payload**: Every transaction has exactly one `(to, value, data)` call/create. There are no frames, no multiple execution contexts, no mode flags.
 
-**Authorization System**: The `authorizations` list contains typed `[role_id, scheme_id, witness]` tuples. Currently only `ROLE_SENDER` is defined. Each scheme registers a witness format, verification logic, address derivation, and gas surcharge. New signature schemes are added by registering a new `scheme_id` - no envelope changes needed.
+**Authorization System**: The `authorizations` list contains typed `[role_id, scheme_id, witness]` tuples. Currently only `ROLE_SENDER` is defined. Each scheme registers a witness format, verification logic, address derivation, and gas surcharge. New signature schemes are added by registering a new `scheme_id`, with no envelope changes needed.
 
 **Two Initial Schemes**:
 
-- `SCHEME_SECP256K1` (`0x00`): Standard ECDSA. Same address derivation as legacy Ethereum - existing EOAs can use the new tx format without address change.
-- `SCHEME_EPHEMERAL_K1` (`0x01`): Quantum-safe one-time ECDSA keys. The user pre-generates 2^20 key pairs from a BIP-39 seed, commits to them via a Merkle tree, and embeds the root in the sender address. Each transaction uses key `i` at nonce `i` with a Merkle proof. After use, a quantum attacker recovering `sk_i` can't forge the next transaction because that requires inverting `keccak256(pk_{i+1})` - a Keccak-256 preimage attack (128-bit security against Grover's).
+- `SCHEME_SECP256K1` (`0x00`): Standard ECDSA. Same address derivation as legacy Ethereum, so existing EOAs can use the new tx format without address change.
+- `SCHEME_EPHEMERAL_K1` (`0x01`): Quantum-safe one-time ECDSA keys. The user pre-generates 2^20 key pairs from a BIP-39 seed, commits to them via a Merkle tree, and embeds the root in the sender address. Each transaction uses key `i` at nonce `i` with a Merkle proof. After use, a quantum attacker recovering `sk_i` can't forge the next transaction because that requires inverting `keccak256(pk_{i+1})`, a Keccak-256 preimage attack (128-bit security against Grover's).
 
 **Extension System**: The `extensions` list contains typed `[extension_id, extension_payload]` entries, unique by ID. Two initial extensions:
 
 - `EXT_BLOB` (`0x01`): Carries EIP-4844 blob fields (`max_fee_per_blob_gas`, `blob_versioned_hashes`)
-- `EXT_SET_CODE` (`0x02`): Carries EIP-7702 set-code authorizations, but with `(scheme_id, witness)` replacing `(y_parity, r, s)` - making delegation itself scheme-agile
+- `EXT_SET_CODE` (`0x02`): Carries EIP-7702 set-code authorizations, but with `(scheme_id, witness)` replacing `(y_parity, r, s)`, making delegation itself scheme-agile
 
 **Transaction Envelope**:
 ```
@@ -137,7 +137,7 @@ The core thesis is the opposite of EIP-8141's frame model: **flat composition, n
 ])
 ```
 
-**No Access List**: Deliberately omitted - transaction-level access lists are being deprecated (EIP-7928 block-level, EIP-7981 cost increase).
+**No Access List**: Deliberately omitted; transaction-level access lists are being deprecated (EIP-7928 block-level, EIP-7981 cost increase).
 
 **Composability Without New Types**:
 - Plain secp256k1 tx = base + sender auth(k1)
@@ -150,7 +150,7 @@ The core thesis is the opposite of EIP-8141's frame model: **flat composition, n
 
 EIP-8202's mempool model is close to today's transaction processing:
 
-- **secp256k1**: Identical to current - ecrecover the sender, check nonce and balance. No EVM execution.
+- **secp256k1**: Identical to current: ecrecover the sender, check nonce and balance. No EVM execution.
 - **Ephemeral secp256k1**: ecrecover + Merkle proof verification (20 Keccak-256 hashes). No EVM execution, no contract calls. Deterministic cost.
 
 Because there are no frames and no arbitrary EVM validation, the mempool doesn't need banned opcode lists, validation gas caps, or prefix simulation. Validation is purely cryptographic.
@@ -164,9 +164,9 @@ The spec explicitly notes: "This EIP allows multiple orthogonal capabilities, bu
 | **Composition model** | Flat: one execution payload + typed extensions | Recursive: multiple frames with modes |
 | **New opcodes** | None | 4 (`APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`) |
 | **Tx type** | `0x05` | `0x06` |
-| **Signature agility** | `scheme_id` in authorization - scheme as a capability | Account code calls `APPROVE` - scheme as EVM logic |
+| **Signature agility** | `scheme_id` in authorization — scheme as a capability | Account code calls `APPROVE` — scheme as EVM logic |
 | **PQ strategy** | Ephemeral secp256k1 (Merkle-committed one-time keys) | Arbitrary sig schemes in VERIFY frames |
-| **Validation model** | Cryptographic only - no EVM during validation | Programmable EVM in VERIFY frames |
+| **Validation model** | Cryptographic only — no EVM during validation | Programmable EVM in VERIFY frames |
 | **Mempool complexity** | Minimal: ecrecover + Merkle proof, deterministic cost | High: validation prefix, banned opcodes, gas caps |
 | **Atomic batching** | Not supported (single execution payload) | Mode flag bit 11 on consecutive SENDER frames |
 | **Gas sponsorship** | `ROLE_PAYER` reserved but not yet defined | VERIFY frame for sponsor, canonical paymaster |
@@ -179,7 +179,7 @@ The spec explicitly notes: "This EIP allows multiple orthogonal capabilities, bu
 
 ### Activity
 
-- **1 PR** ([ethereum/EIPs#11438](https://github.com/ethereum/EIPs/pull/11438)) - opened by Giulio2002, currently open
+- **1 PR** ([ethereum/EIPs#11438](https://github.com/ethereum/EIPs/pull/11438)), opened by Giulio2002, currently open
 - **6 EthMagicians posts** at [ethereum-magicians.org/t/eip-8202-schemed-transaction/28044](https://ethereum-magicians.org/t/eip-8202-schemed-transaction/28044)
 - Key participants: Giulio2002 (author), SirSpudlington (raised duplication concerns with EIP-7932/8197), bbjubjub (noted EIP-7702 interop gap for new EOAs), shemnon (EIP-8197 author, argued EIP-8202 lacks flexible tx bodies and signature substitution protection)
 
@@ -187,7 +187,7 @@ The spec explicitly notes: "This EIP allows multiple orthogonal capabilities, bu
 
 - **Stops type proliferation**: One envelope that composes features instead of minting new tx types for every combination. Blobs + set-code + new sig scheme = same type `0x05`.
 - **Immediately deployable PQ path**: Ephemeral secp256k1 uses only existing ECDSA infrastructure and Keccak-256. No new crypto primitives, no contract deployment, no on-chain registration.
-- **Minimal mempool disruption**: Validation is purely cryptographic - deterministic cost, no EVM execution, no banned opcode lists. Compatible with async execution models.
+- **Minimal mempool disruption**: Validation is purely cryptographic: deterministic cost, no EVM execution, no banned opcode lists. Compatible with async execution models.
 - **Clean EIP-7702 upgrade**: Set-code authorizations become scheme-agile, so delegations can use non-ECDSA schemes.
 - **No EVM changes**: No new opcodes, no changes to the execution environment.
 - **Backward-compatible secp256k1**: Existing EOAs keep their address when switching to the new tx format.
@@ -215,27 +215,27 @@ The spec explicitly notes: "This EIP allows multiple orthogonal capabilities, bu
 
 EIP-8175 introduces a new EIP-2718 transaction type (`0x05`) called `ComposableTransaction`. Instead of EIP-8141's frame modes and recursive execution, it defines a flat list of typed **capabilities** (CALL, CREATE) with a separated **signatures** list and an optional **fee_auth** field for programmable gas sponsorship.
 
-The spec initially positioned itself as "a simpler alternative to EIP-8141 - no new opcodes, no execution frames, no per-frame gas accounting." It has since evolved to include 4 new opcodes and programmable fee_auth execution, narrowing the complexity gap with EIP-8141 while maintaining the flat composition philosophy.
+The spec initially positioned itself as "a simpler alternative to EIP-8141, with no new opcodes, no execution frames, no per-frame gas accounting." It has since evolved to include 4 new opcodes and programmable fee_auth execution, narrowing the complexity gap with EIP-8141 while maintaining the flat composition philosophy.
 
 ### Core Design
 
 **Typed Capabilities**: The `capabilities` field is an RLP list of typed entries. Two types are defined:
 
-- `CALL (0x01)`: `[cap_type, to, value, data]` - message call
-- `CREATE (0x02)`: `[cap_type, value, data]` - contract creation
+- `CALL (0x01)`: `[cap_type, to, value, data]` — message call
+- `CREATE (0x02)`: `[cap_type, value, data]` — contract creation
 
 Multiple capabilities execute sequentially within one transaction. If any capability reverts, remaining capabilities are skipped.
 
 **Separated Signatures**: The `signatures` field contains typed `[signature_type, role, ...]` tuples. Two signature schemes are defined:
 
 - `SECP256K1 (0x01)`: Standard ECDSA `(y_parity, r, s)`
-- `ED25519 (0x02)`: RFC 8032 pure Ed25519 `(public_key, signature)` - address = `keccak256(public_key)[12:]`
+- `ED25519 (0x02)`: RFC 8032 pure Ed25519 `(public_key, signature)` — address = `keccak256(public_key)[12:]`
 
 Each signature has a **role**: `ROLE_SENDER (0x00)` or `ROLE_PAYER (0x01)`.
 
 An open PR from Giulio2002 proposes adding **Falcon-512 (0x03)** as a post-quantum scheme.
 
-**Programmable Fee Delegation (fee_auth)**: When the `fee_auth` field contains an address, that account sponsors the transaction. The protocol executes a **prelude call** to the fee_auth contract before capabilities execute. The fee_auth code must use the `RETURNETH` opcode to credit ETH to a transaction-scoped fee escrow. State changes during fee_auth persist even if the main transaction reverts - enabling sponsors to maintain independent accounting (nonces, rate limits).
+**Programmable Fee Delegation (fee_auth)**: When the `fee_auth` field contains an address, that account sponsors the transaction. The protocol executes a **prelude call** to the fee_auth contract before capabilities execute. The fee_auth code must use the `RETURNETH` opcode to credit ETH to a transaction-scoped fee escrow. State changes during fee_auth persist even if the main transaction reverts, enabling sponsors to maintain independent accounting (nonces, rate limits).
 
 **Signing Hash**: Two-stage domain-separated computation. The signatures array is blinded (emptied) before hashing, then `signature_type` and `role` are mixed in. This permits independent signing and prevents cross-scheme/cross-role confusion.
 
@@ -261,7 +261,7 @@ These enable fee_auth contracts to introspect signatures and compute escrow amou
 
 ### Mempool Strategy
 
-Sender authentication is purely cryptographic - ecrecover or Ed25519 verification, no EVM execution. However, the fee_auth prelude does execute EVM code, introducing some mempool simulation complexity (though less than EIP-8141's arbitrary VERIFY frames since fee_auth is a single designated contract).
+Sender authentication is purely cryptographic: ecrecover or Ed25519 verification, no EVM execution. However, the fee_auth prelude does execute EVM code, introducing some mempool simulation complexity (though less than EIP-8141's arbitrary VERIFY frames since fee_auth is a single designated contract).
 
 ### Key Differences from EIP-8141
 
@@ -278,14 +278,14 @@ Sender authentication is purely cryptographic - ecrecover or Ed25519 verificatio
 | **Atomic batching** | Sequential capabilities, break on revert | Mode flag bit 11 on consecutive SENDER frames |
 | **PQ strategy** | Ed25519 native, Falcon-512 proposed | Arbitrary sig schemes in VERIFY frames |
 | **Hybrid classical+PQ** | Not natively supported | Trivial: two VERIFY frames with different schemes |
-| **Programmable validation** | No - fixed signature scheme set for sender | Yes - arbitrary EVM logic |
+| **Programmable validation** | No — fixed signature scheme set for sender | Yes — arbitrary EVM logic |
 | **Async execution** | Partially compatible (fee_auth still needs EVM) | Incompatible |
 | **EOA support** | SECP256K1 EOAs work natively; Ed25519 creates new addresses | Protocol-native default code for codeless accounts |
 | **EIP-7702 integration** | Not addressed | No authorization list (PQ incompatible) |
 
 ### Activity
 
-- **4 PRs** (3 merged, 1 open) - active iteration from February through April 2026
+- **4 PRs** (3 merged, 1 open), active iteration from February through April 2026
 - **12 EthMagicians posts** at [ethereum-magicians.org/t/eip-8175-composable-transaction/27850](https://ethereum-magicians.org/t/eip-8175-composable-transaction/27850)
 - **39 posts** in the related comparison thread [Frame Transactions vs. SchemedTransactions](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056)
 - Key participants: rakita (author), Giulio2002 (Falcon-512 PR, cross-pollination with EIP-8202), Helkomine, DanielVF
@@ -294,11 +294,11 @@ Sender authentication is purely cryptographic - ecrecover or Ed25519 verificatio
 
 The spec evolved significantly from its initial framing:
 
-1. **Feb 26**: Initial submission - "no new opcodes, no execution frames." Static payer co-signature for sponsorship.
-2. **Apr 6**: Major restructure - moves `to`/`value`/`data` into typed CALL/CREATE capabilities, adds programmable fee_auth with RETURNETH/SIG/SIGHASH opcodes.
+1. **Feb 26**: Initial submission, "no new opcodes, no execution frames." Static payer co-signature for sponsorship.
+2. **Apr 6**: Major restructure, moves `to`/`value`/`data` into typed CALL/CREATE capabilities, adds programmable fee_auth with RETURNETH/SIG/SIGHASH opcodes.
 3. **Apr 9**: Adds TX_GAS_LIMIT opcode.
 
-The move from "no new opcodes" to 4 new opcodes is notable - it narrows the complexity gap with EIP-8141 while maintaining the flat composition philosophy.
+The move from "no new opcodes" to 4 new opcodes is notable; it narrows the complexity gap with EIP-8141 while maintaining the flat composition philosophy.
 
 ### Strengths
 
@@ -314,8 +314,8 @@ The move from "no new opcodes" to 4 new opcodes is notable - it narrows the comp
 - **No longer "simpler"**: The spec now has 4 new opcodes (same count as EIP-8141), programmable EVM execution in fee_auth, and growing complexity. The original simplicity pitch has eroded.
 - **fee_auth needs mempool simulation**: The programmable fee_auth prelude introduces mempool validation complexity, though less than EIP-8141's VERIFY frames.
 - **No programmable sender validation**: Sender authentication is limited to fixed signature schemes. Adding new schemes requires a hard fork.
-- **Existing account migration unclear**: Ed25519 addresses derive from public keys - new addresses, not existing EOAs. Users must migrate assets.
-- **No hybrid classical+PQ**: Cannot require both ECDSA and a PQ signature simultaneously (NIST-recommended transition approach) - trivial in EIP-8141, impossible here.
+- **Existing account migration unclear**: Ed25519 addresses derive from public keys, producing new addresses, not existing EOAs. Users must migrate assets.
+- **No hybrid classical+PQ**: Cannot require both ECDSA and a PQ signature simultaneously (NIST-recommended transition approach), which is trivial in EIP-8141 but impossible here.
 - **Tx type conflict**: Competes with EIP-8202 for the `0x05` tx type number.
 - **Rapid evolution**: Major design changes from v1 (no opcodes, static payer) to v3 (4 opcodes, programmable fee_auth) in 6 weeks raises maturity concerns.
 
@@ -331,15 +331,15 @@ The move from "no new opcodes" to 4 new opcodes is notable - it narrows the comp
 
 This proposal introduces a new EIP-2718 transaction type (`0x76`) that bundles a **constrained set of wallet UX primitives** into a single transaction format: atomic batching, validity windows, gas sponsorship, parallelizable nonces, passkey signatures (P-256 and WebAuthn), and protocol-enforced access keys.
 
-The philosophy is explicit: **constrained scope over general framework**. The spec deliberately does not attempt to replace ERC-4337, provide arbitrary validation logic, or introduce new opcodes. Instead, it standardizes the specific features that most wallets need today - batching, sponsorship, passkeys, scheduled execution - at the protocol level where they can be statically reasoned about.
+The philosophy is explicit: **constrained scope over general framework**. The spec deliberately does not attempt to replace ERC-4337, provide arbitrary validation logic, or introduce new opcodes. Instead, it standardizes the specific features that most wallets need today (batching, sponsorship, passkeys, scheduled execution) at the protocol level where they can be statically reasoned about.
 
 ### Core Design
 
-**Atomic Call Batching**: The `calls` field is a list of `[to, value, input]` tuples executed sequentially. If any call reverts, the entire transaction reverts. Unlike EIP-8141's frame architecture, there's no concept of modes or frame-level gas isolation - it's a flat list of calls, all-or-nothing.
+**Atomic Call Batching**: The `calls` field is a list of `[to, value, input]` tuples executed sequentially. If any call reverts, the entire transaction reverts. Unlike EIP-8141's frame architecture, there's no concept of modes or frame-level gas isolation; it's a flat list of calls, all-or-nothing.
 
 **Validity Windows**: `valid_after` and `valid_before` fields provide time-bounded execution. A transaction is valid only when `block.timestamp` falls within the window. This enables scheduled transactions and automatic expiry without off-chain infrastructure.
 
-**Gas Sponsorship**: An optional `fee_payer_signature` field. If present, the recovered fee payer address pays all gas. The fee payer signs a domain-separated hash (`0x78` prefix) covering the full transaction including the sender's address. Fee payer signatures must be secp256k1. The spec explicitly does not define ERC-20 fee payment - sponsors wanting token reimbursement must only co-sign transactions that include explicit compensating calls.
+**Gas Sponsorship**: An optional `fee_payer_signature` field. If present, the recovered fee payer address pays all gas. The fee payer signs a domain-separated hash (`0x78` prefix) covering the full transaction including the sender's address. Fee payer signatures must be secp256k1. The spec explicitly does not define ERC-20 fee payment; sponsors wanting token reimbursement must only co-sign transactions that include explicit compensating calls.
 
 **2D Nonces**: `nonce_key` selects a nonce stream, `nonce` is the sequence within it. `nonce_key == 0` uses the standard protocol nonce. `nonce_key > 0` uses independent parallel streams. This enables concurrent pending transactions without blocking.
 
@@ -352,11 +352,11 @@ The philosophy is explicit: **constrained scope over general framework**. The sp
 | WebAuthn | First byte `0x02`, variable (max 2,049 bytes) | Full passkey flow with authenticatorData + clientDataJSON, +5,000 gas |
 | Keychain wrapper | First byte `0x03` | Wraps inner signature with `user_address` for access key delegation |
 
-**Address Derivation**: For P-256/WebAuthn, the signer address is `keccak256(pub_key_x || pub_key_y)[12:]` - new addresses, not existing EOAs.
+**Address Derivation**: For P-256/WebAuthn, the signer address is `keccak256(pub_key_x || pub_key_y)[12:]`, which produces new addresses, not existing EOAs.
 
 **EIP-7702 Interop**: An optional `authorization_list` field processed with standard EIP-7702 semantics. Authorizations are not reverted if call execution reverts (matching 7702 behavior).
 
-**Access Keys**: Deferred to a companion EIP. The Keychain wrapper signature scheme provides the hook - an access key signs on behalf of a root account, validated against protocol-enforced rules (expiry, spending limits).
+**Access Keys**: Deferred to a companion EIP. The Keychain wrapper signature scheme provides the hook: an access key signs on behalf of a root account, validated against protocol-enforced rules (expiry, spending limits).
 
 **Transaction Envelope**:
 ```
@@ -376,7 +376,7 @@ The philosophy is explicit: **constrained scope over general framework**. The sp
 
 ### Mempool Strategy
 
-Validation is purely cryptographic - no EVM execution during signature verification. The mempool requirements are well-specified:
+Validation is purely cryptographic, with no EVM execution during signature verification. The mempool requirements are well-specified:
 
 - Reject malformed signatures, expired transactions, and insufficient balances
 - Defer future-valid transactions (`valid_after` in the future)
@@ -396,7 +396,7 @@ The bounded signature sizes (`MAX_WEBAUTHN_SIG_SIZE = 2,049 bytes`) and determin
 | **Tx type** | `0x76` | `0x06` |
 | **Composition model** | Flat call list, all-or-nothing | Recursive frames with modes and per-frame gas |
 | **Signature schemes** | Fixed set: secp256k1, P-256, WebAuthn | Arbitrary via account code + `APPROVE` |
-| **Validation model** | Cryptographic only - fixed scheme detection | Programmable EVM in VERIFY frames |
+| **Validation model** | Cryptographic only — fixed scheme detection | Programmable EVM in VERIFY frames |
 | **Atomic batching** | Native: `calls` list, entire tx reverts on failure | Mode flag bit 11 on consecutive SENDER frames |
 | **Gas sponsorship** | `fee_payer_signature` field (secp256k1 only) | VERIFY frame for sponsor, canonical paymaster |
 | **Validity windows** | Native: `valid_after` / `valid_before` | Not addressed |
@@ -406,8 +406,8 @@ The bounded signature sizes (`MAX_WEBAUTHN_SIG_SIZE = 2,049 bytes`) and determin
 | **EIP-7702 interop** | `authorization_list` field | No authorization list (PQ incompatible) |
 | **Per-call receipts** | Native: each call gets `success`, `gas_used`, `logs` | Single receipt for entire tx |
 | **Mempool complexity** | Low: deterministic crypto verification, bounded sizes | High: validation prefix, banned opcodes, gas caps |
-| **PQ readiness** | Not addressed - P-256/WebAuthn are not PQ-safe | Native: arbitrary sig schemes in VERIFY frames |
-| **Programmable validation** | No - fixed scheme set | Yes - arbitrary EVM logic |
+| **PQ readiness** | Not addressed; P-256/WebAuthn are not PQ-safe | Native: arbitrary sig schemes in VERIFY frames |
+| **Programmable validation** | No — fixed scheme set | Yes — arbitrary EVM logic |
 | **Async execution** | Compatible (no EVM in validation) | Incompatible with async models |
 | **Account creation** | Not addressed | DEFAULT frame to deployer contract |
 | **EOA default behavior** | Requires 7702 for non-secp256k1 EOAs | Protocol-native default code for codeless accounts |
@@ -416,23 +416,23 @@ The bounded signature sizes (`MAX_WEBAUTHN_SIG_SIZE = 2,049 bytes`) and determin
 
 - **Pre-draft gist** by gakonst (Georgios Konstantopoulos, Paradigm/Reth)
 - No EIP number assigned, no PR to ethereum/EIPs, no EthMagicians thread yet
-- Very early stage - published as a design exploration
+- Very early stage, published as a design exploration
 
 ### Strengths
 
-- **Immediate UX wins**: Batching, sponsorship, passkeys, validity windows, and 2D nonces - the features wallets actually need today - in a single tx type. No smart contract wrappers or off-chain infrastructure.
+- **Immediate UX wins**: Batching, sponsorship, passkeys, validity windows, and 2D nonces, the features wallets actually need today, in a single tx type. No smart contract wrappers or off-chain infrastructure.
 - **Passkeys at L1**: P-256 and WebAuthn signatures are first-class at the transaction layer. Users can sign with biometrics directly, without bundlers or relayers.
 - **Simple mempool**: No EVM during validation, bounded signature sizes, deterministic verification costs. Compatible with async execution models.
-- **Per-call receipts**: Applications can pinpoint which call in a batch failed - better debugging and UX than all-or-nothing with no granularity.
+- **Per-call receipts**: Applications can pinpoint which call in a batch failed, enabling better debugging and UX than all-or-nothing with no granularity.
 - **No EVM changes**: No new opcodes, no changes to the execution environment. Simpler client implementation.
 - **EIP-7702 compatibility**: Existing 7702 delegation works within the new tx format.
-- **Validity windows**: Scheduled and expiring transactions natively - useful for limit orders, time-locked operations, and stale transaction cleanup.
+- **Validity windows**: Scheduled and expiring transactions natively, useful for limit orders, time-locked operations, and stale transaction cleanup.
 
 ### Weaknesses
 
 - **No programmable validation**: The signature scheme set is fixed at the protocol level. Adding a new scheme requires a hard fork. Complex validation policies (multisig, social recovery, state-dependent rules) can't be expressed.
 - **No PQ strategy**: P-256 and WebAuthn are both vulnerable to quantum computers. No ephemeral key scheme or arbitrary-scheme extensibility. The spec would need future hard forks to add PQ-safe schemes.
-- **Fee payer limited to secp256k1**: Sponsors must use ECDSA - can't sponsor with passkeys or other schemes.
+- **Fee payer limited to secp256k1**: Sponsors must use ECDSA and can't sponsor with passkeys or other schemes.
 - **No per-call gas isolation**: All calls share a single gas limit. One expensive call can starve subsequent calls. No per-frame gas budgeting like EIP-8141.
 - **P-256/WebAuthn create new addresses**: Address derivation from P-256 keys produces new addresses, not existing EOA addresses. Users need to migrate assets or use 7702 delegation.
 - **Access keys deferred**: The Keychain wrapper is defined but the actual access key rules (expiry, spending limits, revocation) are punted to a companion EIP.
@@ -456,15 +456,15 @@ More General                                                                More
   frames)                       code)
 ```
 
-**EIP-8141** gives maximum flexibility - any account code can define any validation logic, multiple execution frames per transaction, atomic batching. The cost is mempool complexity (banned opcodes, gas caps, validation prefixes) and async execution incompatibility.
+**EIP-8141** gives maximum flexibility: any account code can define any validation logic, multiple execution frames per transaction, atomic batching. The cost is mempool complexity (banned opcodes, gas caps, validation prefixes) and async execution incompatibility.
 
 **EIP-8175** provides flat capability composition with programmable gas sponsorship via fee_auth, but limits sender validation to fixed signature schemes. It started as "simpler than 8141" but evolved to include 4 new opcodes and EVM execution in the fee_auth prelude.
 
-**EIP-8130** trades some flexibility for predictable validation - verifiers are pure functions, nodes know the computational cost upfront. The cost is that complex validation logic can't be expressed at the protocol level.
+**EIP-8130** trades some flexibility for predictable validation; verifiers are pure functions, nodes know the computational cost upfront. The cost is that complex validation logic can't be expressed at the protocol level.
 
-**EIP-8202** takes a different angle entirely - it doesn't try to be an AA system. Instead, it solves signature agility and feature composition at the transaction envelope level. One execution payload, flat typed extensions, no new opcodes. The cost is no batching, no programmable validation, and no gas sponsorship (yet).
+**EIP-8202** takes a different angle entirely; it doesn't try to be an AA system. Instead, it solves signature agility and feature composition at the transaction envelope level. One execution payload, flat typed extensions, no new opcodes. The cost is no batching, no programmable validation, and no gas sponsorship (yet).
 
-**EIP-XXXX (Tempo-like)** takes the most constrained approach - it bundles the specific UX features wallets need today (batching, sponsorship, passkeys, validity windows, 2D nonces) into a single tx type with no new opcodes and no programmable validation. The cost is a fixed feature set that requires hard forks to extend, and no PQ strategy.
+**EIP-XXXX (Tempo-like)** takes the most constrained approach, bundling the specific UX features wallets need today (batching, sponsorship, passkeys, validity windows, 2D nonces) into a single tx type with no new opcodes and no programmable validation. The cost is a fixed feature set that requires hard forks to extend, and no PQ strategy.
 
 ### PQ Readiness
 
@@ -473,8 +473,8 @@ More General                                                                More
 | **EIP-8141** | Native: write account code with any sig scheme. Signature aggregation designed in (VERIFY frame elision, signatures list proposal PR #11481). Most complete PQ path. Hybrid classical+PQ trivial via two VERIFY frames. |
 | **EIP-8175** | Ed25519 native, Falcon-512 proposed (PR #11431). New schemes require hard fork. Cannot do hybrid classical+PQ (NIST-recommended transition). |
 | **EIP-8130** | Deploy PQ verifier contract, nodes add to allowlist. Good path but requires node coordination for adoption. |
-| **EIP-8202** | Ephemeral secp256k1: one-time ECDSA keys with Merkle-committed rotation. Immediately deployable, no new crypto primitives - relies on Keccak-256 preimage resistance. Future PQ schemes added as new `scheme_id` values. Lightest-weight migration but users get a new address. |
-| **EIP-XXXX** | Not addressed. Supports secp256k1, P-256, and WebAuthn - all quantum-vulnerable. Adding PQ schemes requires a hard fork to define a new signature encoding. |
+| **EIP-8202** | Ephemeral secp256k1: one-time ECDSA keys with Merkle-committed rotation. Immediately deployable, no new crypto primitives, relying on Keccak-256 preimage resistance. Future PQ schemes added as new `scheme_id` values. Lightest-weight migration but users get a new address. |
+| **EIP-XXXX** | Not addressed. Supports secp256k1, P-256, and WebAuthn, all quantum-vulnerable. Adding PQ schemes requires a hard fork to define a new signature encoding. |
 
 ### Mempool & Performance
 
@@ -488,18 +488,18 @@ More General                                                                More
 
 ### What EIP-8175's Ecosystem Says About EIP-8141
 
-From the [Frame Transactions vs. SchemedTransactions comparison thread](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056), Giulio2002 argues that frame transactions impose a "smart wallet tax" of ~30,000-48,000 gas for contract dispatch, storage reads, and EVM context - making PQ verification via VERIFY frames (~63,000 gas) roughly 2x more expensive than direct SchemedTransaction verification (~29,500 gas for Falcon).
+From the [Frame Transactions vs. SchemedTransactions comparison thread](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056), Giulio2002 argues that frame transactions impose a "smart wallet tax" of ~30,000-48,000 gas for contract dispatch, storage reads, and EVM context, making PQ verification via VERIFY frames (~63,000 gas) roughly 2x more expensive than direct SchemedTransaction verification (~29,500 gas for Falcon).
 
 The deeper argument: every real signature scheme ends up needing a precompile anyway (P256 → RIP-7212, Falcon → EIP-8052, Dilithium → EIP-8051). Frames become "an unnecessary indirection" over precompiles that were going to be needed regardless.
 
-EIP-8141 defenders counter that: (1) the gas comparison conflates ERC-4337 EntryPoint overhead with frame transaction overhead, (2) existing EOAs cannot use new crypto schemes under SchemedTransactions without changing addresses - *"an almost certain guarantee that there will be very little adoption"* (matt), and (3) NIST-recommended hybrid classical+PQ signing is trivial in VERIFY frames but impossible in flat signature schemes.
+EIP-8141 defenders counter that: (1) the gas comparison conflates ERC-4337 EntryPoint overhead with frame transaction overhead, (2) existing EOAs cannot use new crypto schemes under SchemedTransactions without changing addresses, *"an almost certain guarantee that there will be very little adoption"* (matt), and (3) NIST-recommended hybrid classical+PQ signing is trivial in VERIFY frames but impossible in flat signature schemes.
 
 EIP-8175 and EIP-8202 share the same author ecosystem (rakita and Giulio2002 cross-pollinate) and form an allied front pushing "flat composition, not recursive" against EIP-8141's frame model.
 
 ### What EIP-8130's Author Says About EIP-8141
 
 From the Biconomy blog analysis:
-> "Base's position: 'We can heavily optimize this and build out performant mempool/block builder implementations' - something they can't do with EIP-8141's arbitrary validation frames."
+> "Base's position: 'We can heavily optimize this and build out performant mempool/block builder implementations,' something they can't do with EIP-8141's arbitrary validation frames."
 
 The core disagreement: EIP-8130 advocates say EIP-8141's arbitrary EVM validation creates DoS vulnerabilities. EIP-8141 supporters counter that EIP-8130 can be built atop EIP-8141 (verifiers are a subset of what VERIFY frames can do) but not vice versa.
 
@@ -514,7 +514,7 @@ And from the security considerations:
 However, EIP-8202 explicitly acknowledges EIP-8141 as a potential extension:
 > "An EIP-8141-style frame extension could attach nested execution frames to the same transaction envelope without requiring a new top-level transaction type."
 
-The positioning is complementary-but-skeptical: EIP-8202 solves the envelope and signature agility problem first, and frames could be layered on top later as an extension - but the authors are clearly concerned about the mempool complexity that frame execution introduces.
+The positioning is complementary-but-skeptical: EIP-8202 solves the envelope and signature agility problem first, and frames could be layered on top later as an extension, but the authors are clearly concerned about the mempool complexity that frame execution introduces.
 
 ### Adoption Positioning
 

@@ -6,7 +6,7 @@
 
 **1.1. What is EIP-8141?**
 
-A new transaction type (`0x06`) that splits a transaction into multiple frames - each with a purpose (verify, execute, deploy) - giving every account programmable validation and native batching at the protocol level. [Read the spec overview →](/01-current-spec)
+A new transaction type (`0x06`) that splits a transaction into multiple frames - each with a purpose (verify, execute, deploy), giving every account programmable validation and native batching at the protocol level. [Read the spec overview →](/01-current-spec)
 
 **1.2. What problem does it solve?**
 
@@ -30,7 +30,7 @@ Four: `APPROVE` (authorize execution/payment), `TXPARAM` (read tx parameters), `
 
 **2.1. Does EIP-8141 replace ERC-4337?**
 
-Yes. EIP-8141 is the native protocol successor to ERC-4337 - it moves account abstraction into the transaction layer, eliminating the need for bundlers, the EntryPoint contract, and off-chain UserOperation infrastructure entirely.
+Yes. EIP-8141 is the native protocol successor to ERC-4337. It moves account abstraction into the transaction layer, eliminating the need for bundlers, the EntryPoint contract, and off-chain UserOperation infrastructure entirely.
 
 **2.2. Why are bundlers no longer needed?**
 
@@ -54,7 +54,7 @@ The bundler role is absorbed by the protocol and standard block builders. There 
 
 **3.1. Does EIP-8141 replace EIP-7702?**
 
-For most use cases, yes. EIP-7702 requires EOAs to permanently delegate to a smart contract - a persistent on-chain state change. EIP-8141 gives EOAs native AA without any delegation, code deployment, or state change. [See EOA default code →](/01-current-spec#eoa-default-code)
+For most use cases, yes. EIP-7702 requires EOAs to permanently delegate to a smart contract, a persistent on-chain state change. EIP-8141 gives EOAs native AA without any delegation, code deployment, or state change. [See EOA default code →](/01-current-spec#eoa-default-code)
 
 **3.2. Can 7702-delegated accounts still use EIP-8141?**
 
@@ -166,7 +166,7 @@ The observation that current designs cannot simultaneously deliver Frames/Native
 
 **8.3. Is there a workaround for VOPS compatibility?**
 
-A witness-based approach (transactions carry proofs for state accessed outside VOPS) has been proposed, but it adds significant complexity - ~4 kB per extra storage slot. [See concern #8 →](/07-pending-concerns#8-witness-based-focil-compatibility--possible-but-complex)
+A witness-based approach (transactions carry proofs for state accessed outside VOPS) has been proposed, but it adds significant complexity, ~4 kB per extra storage slot. [See concern #8 →](/07-pending-concerns#8-witness-based-focil-compatibility--possible-but-complex)
 
 **8.4. What about encrypted mempools?**
 

@@ -8,7 +8,7 @@ EIP-8141 was submitted as PR [#11202](https://github.com/ethereum/EIPs/pull/1120
 
 The EIP was born from a long history of account abstraction work on Ethereum. Previous attempts included:
 
-- **EIP-2938** (2020): An earlier native AA proposal that failed due to lack of protocol-level introspection - it was too simple and made it hard to build safe mempool/p2p rules around arbitrary validation logic.
+- **EIP-2938** (2020): An earlier native AA proposal that failed due to lack of protocol-level introspection. It was too simple and made it hard to build safe mempool/p2p rules around arbitrary validation logic.
 - **ERC-4337** (2021): A user-level AA system that worked without protocol changes but was "kludgy" when trying to integrate into clients like geth, required intermediaries (bundlers), and had adoption friction.
 - **EIP-7702** (2024): Allowed EOAs to delegate to smart contracts, but saw limited initial adoption due to wallet fragmentation and the requirement for users to trust smart contract code.
 
@@ -22,7 +22,7 @@ A key design choice was visible from day one: **generic primitive over hard-code
 
 > Frames are required to support introspection *by the protocol*. It's not about supporting multiple calls at the EVM layer. It's about allowing end users to flexibly define the way their transactions should be handled. The protocol can in turn, use the modes we're introducing to reason about the transaction and safely bound the resources needed to validate and propagate abstract transactions over p2p.
 
-This philosophy directly descended from the EIP-2938 failure. That earlier proposal was *too* generic - it allowed arbitrary validation logic but gave the protocol no structured way to introspect it, making safe mempool relay impossible. EIP-8141's frames and modes were the answer: enough structure for the protocol to reason about, enough flexibility for users to define their own validation and payment logic. Matt explicitly linked the two (post #13):
+This philosophy directly descended from the EIP-2938 failure. That earlier proposal was *too* generic: it allowed arbitrary validation logic but gave the protocol no structured way to introspect it, making safe mempool relay impossible. EIP-8141's frames and modes were the answer: enough structure for the protocol to reason about, enough flexibility for users to define their own validation and payment logic. Matt explicitly linked the two (post #13):
 
 > We have already attempted a simpler proposal than EIP-8141 when we proposed EIP-2938. It was simpler and allowed you very arbitrarily define the smart contract system to determine the validity, PAYGAS, and execute calls. But it failed due to the lack of protocol-level introspection. It was complicated to build a p2p tx pool ruleset around it. The frame transaction is a direct response to this.
 
@@ -72,7 +72,7 @@ frames = [[mode, target, gas_limit, data], ...]
 - No approval bits in mode field
 - No `FRAMEDATALOAD` / `FRAMEDATACOPY` opcodes
 - No P256 signature support
-- VERIFY frame data was NOT elided from signature hash (bug - fixed same day)
+- VERIFY frame data was NOT elided from signature hash (bug, fixed same day)
 
 ## Original Examples
 

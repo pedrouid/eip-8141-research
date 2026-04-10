@@ -45,7 +45,7 @@ The original spec had a brief "Security Considerations" section with general war
 
 ### 3. From Top-Level APPROVE to Transaction-Scoped APPROVE
 
-Originally, approval status was determined by the return code of the top-level frame - similar to how `RETURN` works but with extended codes (2, 3, 4). This had several problems:
+Originally, approval status was determined by the return code of the top-level frame, similar to how `RETURN` works but with extended codes (2, 3, 4). This had several problems:
 - Proxy-based accounts couldn't adopt it (proxy returns 0 or 1)
 - APPROVE in nested calls required awkward propagation
 - Return codes >1 from `CALL` broke backwards compatibility assumptions
@@ -62,11 +62,11 @@ This is more gas-efficient and easier to reason about.
 
 ### 5. From No Batching Control to Explicit Atomicity
 
-The original spec had no mechanism for atomic multi-call. The latest provides fine-grained control via bit 11 of the mode field, allowing users to specify exactly which SENDER frames must succeed together. This was a response to the universal expectation from developers that "if I'm batching operations, they should be atomic" - while preserving the non-atomic default needed for paymaster patterns.
+The original spec had no mechanism for atomic multi-call. The latest provides fine-grained control via bit 11 of the mode field, allowing users to specify exactly which SENDER frames must succeed together. This was a response to the universal expectation from developers that "if I'm batching operations, they should be atomic," while preserving the non-atomic default needed for paymaster patterns.
 
 ### 6. Signature Hash Now Handles Mode Flags
 
-A subtle but important change: the original spec simply checked `mode == VERIFY` to decide whether to elide frame data from the signature hash. Now that `mode` carries upper-bit flags (approval scope, atomic batch), the signature hash function uses `(frame.mode & 0xFF) == VERIFY` - masking out the flags to check only the execution mode. Without this, adding flags to a VERIFY frame would change the signature hash, breaking the entire verification model. This is a small detail with large consequences.
+A subtle but important change: the original spec simply checked `mode == VERIFY` to decide whether to elide frame data from the signature hash. Now that `mode` carries upper-bit flags (approval scope, atomic batch), the signature hash function uses `(frame.mode & 0xFF) == VERIFY`, masking out the flags to check only the execution mode. Without this, adding flags to a VERIFY frame would change the signature hash, breaking the entire verification model. This is a small detail with large consequences.
 
 ---
 
@@ -76,7 +76,7 @@ As of April 9, 2026, several open PRs propose changes that would extend this com
 
 | Proposal | PR | Impact |
 |---|---|---|
-| **Signatures list in outer tx** | [#11481](https://github.com/ethereum/EIPs/pull/11481) | Would add a `signatures` field to the transaction format - a new top-level field for PQ aggregation forward-compatibility |
+| **Signatures list in outer tx** | [#11481](https://github.com/ethereum/EIPs/pull/11481) | Would add a `signatures` field to the transaction format, a new top-level field for PQ aggregation forward-compatibility |
 | **Precompile-based VERIFY** | [#11482](https://github.com/ethereum/EIPs/pull/11482) | Would allow VERIFY frames to target signature precompiles directly, changing the verification model |
 | **VALUE in SENDER frames** | Under discussion (posts #124-134) | Strong consensus to add a `value` field to frames, no PR yet |
 | **VERIFY frame count constraint** | [#11488](https://github.com/ethereum/EIPs/pull/11488) | Would add explicit `<= 2` VERIFY frame limit to static constraints |

@@ -66,7 +66,7 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 - Links between docs: use root-relative paths (`/01-current-spec`, not `./01-current-spec.md`)
 - Links to external sites: use full URLs with `target="_blank"` in Vue templates
 - No emojis in any file
-- Never use em dashes (the `—` character). Use regular hyphens (`-`) instead.
+- Never use em dashes (`—`) in the middle of sentences as parenthetical separators. Rewrite the sentence using commas, periods, or colons instead. Em dashes ARE allowed in lists and tables to separate a topic from its description (e.g., `EIP-8130 — Account Configuration`).
 - Keep answers in FAQ to 1-2 lines, always with question and answer on separate lines
 
 ---

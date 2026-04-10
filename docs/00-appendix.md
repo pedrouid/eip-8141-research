@@ -47,9 +47,9 @@
 
 | Date | PR | Author | Description | Reason |
 |---|---|---|---|---|
-| Feb 13 | [#11310](https://github.com/ethereum/EIPs/pull/11310) | marukai67 | Fix link to ERC-7562 | "It's not broken" - lightclient |
-| Feb 14 | [#11314](https://github.com/ethereum/EIPs/pull/11314) | marukai67 | Fix link to EIP-2718 | "Not broken, thanks though" - lightclient |
-| Feb 15 | [#11321](https://github.com/ethereum/EIPs/pull/11321) | marukai67 | Fix links | "They aren't broken" - lightclient |
+| Feb 13 | [#11310](https://github.com/ethereum/EIPs/pull/11310) | marukai67 | Fix link to ERC-7562 | "It's not broken" — lightclient |
+| Feb 14 | [#11314](https://github.com/ethereum/EIPs/pull/11314) | marukai67 | Fix link to EIP-2718 | "Not broken, thanks though" — lightclient |
+| Feb 15 | [#11321](https://github.com/ethereum/EIPs/pull/11321) | marukai67 | Fix links | "They aren't broken" — lightclient |
 | Feb 25 | [#11352](https://github.com/ethereum/EIPs/pull/11352) | lucemans | Accidental PR | Self-closed |
 | Mar 13 | [#11404](https://github.com/ethereum/EIPs/pull/11404) | derekchiang | Simplify approval bits | Superseded by #11401 |
 | Mar 14 | [#11408](https://github.com/ethereum/EIPs/pull/11408) | SirSpudlington | Migrate default code to EIP-7932 | Rejected: authors want to keep custom behavior |
@@ -98,8 +98,8 @@
 
 ## Competing Standards
 
-- [EIP-8130: Account Abstraction by Account Configuration](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8130.md) - [Magicians thread](https://ethereum-magicians.org/t/eip-8130-account-abstraction-by-account-configurations/25952)
-- [EIP-8175: Composable Transaction](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8175.md) - [Magicians thread](https://ethereum-magicians.org/t/eip-8175-composable-transaction/27850)
-- [EIP-8202: Schemed Transaction](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8202.md) - [Magicians thread](https://ethereum-magicians.org/t/eip-8202-schemed-transaction/28044)
+- [EIP-8130: Account Abstraction by Account Configuration](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8130.md) — [Magicians thread](https://ethereum-magicians.org/t/eip-8130-account-abstraction-by-account-configurations/25952)
+- [EIP-8175: Composable Transaction](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8175.md) — [Magicians thread](https://ethereum-magicians.org/t/eip-8175-composable-transaction/27850)
+- [EIP-8202: Schemed Transaction](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8202.md) — [Magicians thread](https://ethereum-magicians.org/t/eip-8202-schemed-transaction/28044)
 - [Frame Transactions vs. SchemedTransactions (comparison thread)](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056)
 
