@@ -15,32 +15,13 @@ export default defineConfig({
           { text: "Original Spec", link: "/03-original-spec" },
           { text: "Merged Changes", link: "/04-merged-changes" },
           { text: "Original vs Latest", link: "/05-original-vs-latest" },
+          { text: "Competing Standards", link: "/06-competing-standards" },
+          { text: "Pending Concerns", link: "/08-pending-concerns" },
         ],
       },
-      {
-        text: "Competing Standards",
-        items: [
-          {
-            text: "Overview",
-            link: "/06-competing-standards",
-          },
-          {
-            text: "EIP-8130 — Account Configuration",
-            link: "/06-competing-standards#eip-8130-account-abstraction-by-account-configuration",
-          },
-          {
-            text: "EIP-8202 — Schemed Transactions",
-            link: "/06-competing-standards#eip-8202-scheme-agile-transactions-schemed-transactions",
-          },
-          {
-            text: "EIP-XXXX — Tempo-like Transactions",
-            link: "/06-competing-standards#eip-xxxx-tempo-like-transactions",
-          },
-        ],
-      },
-      { text: "Appendix", link: "/07-appendix" },
-      { text: "Pending Concerns", link: "/08-pending-concerns" },
+
       { text: "FAQ", link: "/09-faq" },
+      { text: "Appendix", link: "/07-appendix" },
     ],
     sidebar: [
       {
@@ -52,9 +33,9 @@ export default defineConfig({
           { text: "Merged Changes", link: "/04-merged-changes" },
           { text: "Original vs Latest", link: "/05-original-vs-latest" },
           { text: "Competing Standards", link: "/06-competing-standards" },
-          { text: "Appendix", link: "/07-appendix" },
           { text: "Pending Concerns", link: "/08-pending-concerns" },
           { text: "FAQ", link: "/09-faq" },
+          { text: "Appendix", link: "/07-appendix" },
         ],
       },
     ],
