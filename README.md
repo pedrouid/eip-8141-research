@@ -2,7 +2,7 @@
 
 A comprehensive analysis of [EIP-8141](https://eips.ethereum.org/EIPS/eip-8141) (Frame Transaction), covering its origin, evolution through community feedback, and current state.
 
-**Last updated**: April 9, 2026 — covers 16 merged PRs, 5 open PRs, 136 EthMagicians posts.
+**Last updated**: April 10, 2026 — covers 16 merged PRs, 5 open PRs, 136 EthMagicians posts.
 
 ## Documents
 

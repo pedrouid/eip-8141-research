@@ -230,13 +230,13 @@ If the swap reverts, the ERC-20 approval is also reverted.
 | EIP-7997 | Deterministic deployer — used for account deployment frames |
 | EIP-7392 | Signature registry — PR #11455 proposes making default code interoperable |
 
-## Pending Proposals (as of April 9, 2026)
+## Pending Proposals (as of April 10, 2026)
 
 Four significant proposals are under active discussion that would change the spec:
 
 ### 1. Signatures List in Outer Transaction (PR #11481)
 
-lightclient proposes adding a `signatures` field to the outer transaction for PQ signature aggregation forward-compatibility. Signatures would be verified before frame execution, enabling future block-level aggregation that elides individual signatures. This would change the transaction format.
+lightclient proposes adding a `signatures` field to the outer transaction for PQ signature aggregation forward-compatibility. Signatures would be verified before frame execution, enabling future block-level aggregation that elides individual signatures. This would change the transaction format. All reviewers approved, but derekchiang raised an open concern (Apr 9): smart contracts can't know which index their signature is at in the list, forcing default code to loop through all entries — a gas and ergonomic weakness.
 
 ### 2. Precompile-Based VERIFY Frames (PR #11482)
 

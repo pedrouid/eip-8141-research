@@ -227,3 +227,15 @@ chiranjeev13 followed up with PR #11488 fixing multiple spec inconsistencies:
 - Fix stale APPROVE scope values in the structural rules
 - Remove `frame.target != tx.sender` check from default VERIFY code to allow any EOA as paymaster
 
+### Signature Index Discovery Problem
+
+*derekchiang — PR #11481 comment, Apr 9*
+
+derekchiang raised a practical concern with lightclient's signatures list proposal (PR #11481): smart contracts leveraging outer signatures have no way to know which index their signature occupies in the list. Since a transaction may have any number of signatures in arbitrary order, a contract can't hardcode an index. The updated default code has to loop through the entire signature list to find the relevant entry — an ergonomic and gas-efficiency weakness that may need addressing before the proposal can be finalized.
+
+### EIP-3607 Compatibility Status Update
+
+*lightclient — PR #11272, Apr 8*
+
+lightclient's earlier review on the EIP-3607 compatibility PR (#11272, disabling the EIP-3607 check for frame transactions) was dismissed on Apr 8. The PR remains open without resolution — the interaction between EIP-3607's sender-has-code rejection and frame transactions for smart accounts is still an unresolved design question.
+

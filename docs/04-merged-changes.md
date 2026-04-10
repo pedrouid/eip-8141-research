@@ -204,7 +204,7 @@ These PRs represent active design proposals that may change the spec in the near
 **Author**: Thegaram
 
 - **Why**: EIP-3607 rejects transactions from senders with deployed code, which would block frame transactions for smart accounts.
-- Still open. No recent activity.
+- Still open. lightclient's earlier review was dismissed on Apr 8 — the PR remains unresolved.
 
 ### PR #11455: Small tweaks to default code for EIP-7392 compatibility (open since Mar 26)
 
@@ -221,6 +221,7 @@ These PRs represent active design proposals that may change the spec in the near
 - **Why**: Forward-compatibility with PQ signature aggregation. PQ signatures are large, and aggregating them will be critical.
 - **Proposed change**: Add a new `signatures` field to the outer transaction object, containing signature objects with algorithm metadata, message, and signer. Signatures are verified before frame execution.
 - **Significance**: This is the most structurally significant open proposal — it would change the transaction format itself. In the future, block-level aggregated witnesses could elide individual signatures.
+- **All reviewers approved**, but derekchiang raised a practical concern (Apr 9): smart contracts leveraging outer signatures don't know which index their signature is at. The contract can't hardcode an index because the transaction may have any number of signatures in arbitrary order — the default code has to loop through the entire list to find the relevant entry. This is an ergonomic and gas-efficiency weakness that needs addressing.
 
 From lightclient's PR description:
 
