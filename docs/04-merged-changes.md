@@ -1,7 +1,5 @@
 # Changes Merged Over Time and Why
 
-[< Back to Index](../README.md)
-
 ---
 
 ## Day 0 Fixes — January 29, 2026
@@ -157,6 +155,19 @@ From lightclient's PR description:
 
 ---
 
+## Header Metadata Fix — April 8, 2026
+
+### PR #11251: Add EIP-1559 to requires header
+
+**Author**: BonyHanter83 | **Merged**: Apr 8 (opened Feb 4)
+
+- **Why**: The spec uses EIP-1559's `max_priority_fee_per_gas` and `max_fee_per_gas` fields and explicitly states that `effective_gas_price` is calculated per EIP-1559, but the header didn't list it as a dependency.
+- **Change**: Added `1559` to the `requires` header field alongside `2718` and `4844`.
+- Approved by lightclient.
+- This PR was open for over two months before being merged — a simple metadata fix that had no controversy.
+
+---
+
 ## Rejected/Closed PRs
 
 ### PR #11404: Simplify approval bits (closed Mar 26)
@@ -174,6 +185,67 @@ From lightclient's PR description:
 - Proposed using EIP-7932's signature registry for default code, citing P256 malleability fixes
 - lightclient rejected: "We want to reserve the ability to define custom behavior in 8141 default contract and we don't want to rely on another EIP/precompile like this."
 
+### PRs #11310, #11314, #11321: Fix broken links (all closed)
+
+**Author**: marukai67
+
+- Three separate PRs attempting to fix allegedly broken links in the spec (to ERC-7562, EIP-2718, and other references)
+- All rejected by lightclient with variants of "It's not broken" / "Not broken, thanks though"
+- The links use relative paths that work in the EIPs rendering system but may look broken locally
+
 ---
 
-[< Previous: Feedback Evolution](./02-feedback-evolution.md) | [Next: Original vs Latest >](./04-original-vs-latest.md)
+## Active Open PRs (as of April 9, 2026)
+
+These PRs represent active design proposals that may change the spec in the near future.
+
+### PR #11272: Disable EIP-3607 check for frame transactions (open since Feb 6)
+
+**Author**: Thegaram
+
+- **Why**: EIP-3607 rejects transactions from senders with deployed code, which would block frame transactions for smart accounts.
+- Still open. No recent activity.
+
+### PR #11455: Small tweaks to default code for EIP-7392 compatibility (open since Mar 26)
+
+**Author**: SirSpudlington
+
+- Spiritual successor to the closed PR #11408
+- Makes the default code values interoperable with EIP-7392 without introducing a dependency
+- No reviews yet from core authors
+
+### PR #11481: Add signatures list to outer tx (open since Apr 2)
+
+**Author**: lightclient
+
+- **Why**: Forward-compatibility with PQ signature aggregation. PQ signatures are large, and aggregating them will be critical.
+- **Proposed change**: Add a new `signatures` field to the outer transaction object, containing signature objects with algorithm metadata, message, and signer. Signatures are verified before frame execution.
+- **Significance**: This is the most structurally significant open proposal — it would change the transaction format itself. In the future, block-level aggregated witnesses could elide individual signatures.
+
+From lightclient's PR description:
+
+> Any important goal of 8141 is to be forward compatible with signature aggregation techniques, especially with respect to PQ signatures. As those signatures are quite large, aggregating them may become very important as many users begin migrating.
+
+### PR #11482: Allow using precompiles for VERIFY frames (open since Apr 2)
+
+**Author**: derekchiang
+
+- **Why**: Allow both EOAs and contract accounts to use precompiles for verification, enabling key rotation and shared verification logic.
+- **Proposed change**: Designate "signature precompiles" that VERIFY frames can target natively. The precompile reads the public key commitment from storage.
+- Still being worked on. Extends the verification model significantly.
+
+From derekchiang's PR description:
+
+> This will allow a contract account to use precompiles for verification, while still having code that serves other purpose (e.g. for execution). As a side benefit, this also enables key rotation, since the precompile reads the public key commitment from storage.
+
+### PR #11488: Fix spec inconsistencies (open since Apr 6)
+
+**Author**: chiranjeev13
+
+- **Proposed changes**:
+  - Add static VERIFY frame count check (`<= 2`) to constraints, since `sender_approved` and `payer_approved` are one-shot flags
+  - Fix stale APPROVE scope values in structural rules: `self_verify` → `APPROVE(0x3)`, `only_verify` → `APPROVE(0x1)`, `pay` → `APPROVE(0x2)`
+  - Remove `frame.target != tx.sender` check from default VERIFY code to allow any EOA as paymaster
+- Inspired by node.cm's observations on the EthMagicians thread (posts #135-136)
+- No reviews yet from core authors
+

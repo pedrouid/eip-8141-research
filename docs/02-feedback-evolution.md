@@ -1,7 +1,5 @@
 # How Feedback Evolved Over Time
 
-[< Back to Index](../README.md)
-
 ---
 
 The feedback on EIP-8141 arrived in distinct waves, each pushing the spec along a clear trajectory: **from expressive abstraction toward deployability, compatibility, and mempool safety**. The early drafts prioritized flexibility; the later drafts are about making that flexibility survivable for clients, wallets, and the p2p network.
@@ -154,4 +152,78 @@ Several alternative/competing proposals emerged:
 
 ---
 
-[< Previous: Original Spec](./01-original-spec.md) | [Next: Changes Merged Over Time >](./03-merged-changes.md)
+## Phase 5: Value, Precompiles, and Signature Aggregation (Mar 26 – Apr 9)
+
+### VALUE in SENDER Frames
+
+*rmeissner, DanielVF, frangio, 0xrcinus, derek, matt — posts #124-134*
+
+rmeissner (Safe team) identified a gap: SENDER frames have no `value` property, preventing native ETH transfers without custom execute methods in smart accounts. This sparked strong consensus among participants.
+
+DanielVF argued that without value, frames become "dumb message pipes" requiring full-featured smart contract wallets for basic operations. frangio agreed, noting it enables accounts to focus purely on verification. 0xrcinus called the value-in-frame approach "more intuitive."
+
+Two approaches were proposed:
+- **Option A**: Add a `value` field to frames + use the atomic flag for safety (preferred by Safe/rmeissner, 0xrcinus, and majority)
+- **Option B**: Allow SENDER frames to `DELEGATECALL` a precompile implementing execute functionality
+
+Key quote from rmeissner (post #130):
+
+> Safe's preference is for removing DELEGATECALLs entirely, favoring value field with atomic flag instead. Formal verification is easier and stronger security guarantees.
+
+Key quote from DanielVF (post #132):
+
+> Value in SENDER frames enables clean separation between what the transaction does and authorization/payment. Removing value limits frames to "dumb message pipes," harming adoption and requiring full-featured smart contract wallets.
+
+matt (post #134) confirmed the authors support including value in frames now that atomic batching exists, noting the previous hesitation was that value only works in SENDER frames, creating field mismatches. This is a strong signal that a value field will be added.
+
+### Signature Aggregation Forward-Compatibility
+
+*lightclient — PR #11481, April 2*
+
+lightclient proposed adding a `signatures` field to the outer transaction object. The motivation is PQ forward-compatibility: PQ signatures are large, and aggregation will be critical as users migrate. The proposed design:
+
+- A new `signatures` list in the outer transaction, each containing the signature, algorithm metadata, message, and signer
+- Signatures are verified *before* frame execution, so frames can assume validity and just check authority
+- In the future, block-level aggregated witnesses could elide individual signatures entirely
+
+From lightclient's PR description:
+
+> Any important goal of 8141 is to be forward compatible with signature aggregation techniques, especially with respect to PQ signatures. As those signatures are quite large, aggregating them may become very important as many users begin migrating.
+
+This is the most structurally significant open proposal — it would change the transaction format itself.
+
+### Precompile-Based Verification
+
+*derekchiang — PR #11482, April 2*
+
+derek proposed allowing VERIFY frames to target precompiles directly. This extends the default-code verification logic to contract accounts, enabling:
+
+- Contract accounts to use precompiles for verification while having code for other purposes
+- Key rotation (the precompile reads the public key commitment from storage)
+- Shared verification logic between EOAs and contract accounts
+
+This PR is still being worked on but represents a meaningful expansion of the verification model.
+
+### EOA + EIP-7702 Delegation Compatibility
+
+*DanielVF — posts #120, #122*
+
+DanielVF identified that accounts with EIP-7702 delegated code cannot use signature-based authorization with frame transactions. When an EOA has delegated its code to a smart contract, the default code path isn't invoked, but the delegated contract may not implement `APPROVE`. This is a gap that needs addressing.
+
+### Async Execution Compatibility (Continued)
+
+*DanielVF, derek — posts #121-123*
+
+The async execution thread continued. DanielVF pointed derek to ethresearch threads and EIP-7886, mentioning an upcoming EthCC talk. derek asked for more resources to ensure frame transactions remain compatible with Ethereum's potential move toward async execution.
+
+### Spec Consistency Fixes
+
+*node.cm, chiranjeev13 — posts #135-136, PR #11488*
+
+node.cm (new participant) identified that VERIFY frames are implicitly capped at 2 per transaction, since only two approval flags exist (`sender_approved` and `payer_approved`) and each can only be set once. They recommended making this explicit in the Constraints section.
+
+chiranjeev13 followed up with PR #11488 fixing multiple spec inconsistencies:
+- Add static VERIFY frame count check (`<= 2`) to constraints
+- Fix stale APPROVE scope values in the structural rules
+- Remove `frame.target != tx.sender` check from default VERIFY code to allow any EOA as paymaster
+

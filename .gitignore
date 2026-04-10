@@ -1,9 +1,9 @@
 # dependencies
 node_modules/
 
-# next.js
-.next/
-out/
+# vitepress
+docs/.vitepress/cache
+docs/.vitepress/dist
 
 # build
 dist/

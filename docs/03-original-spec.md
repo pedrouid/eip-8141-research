@@ -1,7 +1,5 @@
 # The Original Spec (January 29, 2026)
 
-[< Back to Index](../README.md)
-
 ---
 
 ## Context & Motivation
@@ -84,6 +82,3 @@ The original spec included four examples:
 3. **Account deployment**: DEFAULT (deploy via factory) → VERIFY → SENDER
 4. **Sponsored tx (ERC-20 fees)**: VERIFY (sender) → VERIFY (sponsor) → SENDER (token transfer) → SENDER (user call) → DEFAULT (post-op)
 
----
-
-[Next: How Feedback Evolved >](./02-feedback-evolution.md)

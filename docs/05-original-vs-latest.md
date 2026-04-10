@@ -1,12 +1,10 @@
 # What Changed From Original to Latest
 
-[< Back to Index](../README.md)
-
 ---
 
 ## Structural Comparison
 
-| Aspect | Original (Jan 29) | Latest (Mar 26) |
+| Aspect | Original (Jan 29) | Latest (Apr 9) |
 |---|---|---|
 | **Opcodes** | `APPROVE`, `TXPARAMLOAD`, `TXPARAMSIZE`, `TXPARAMCOPY` | `APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY` |
 | **APPROVE mechanism** | Return codes 0-4 at top-level frame | Transaction-scoped with scope operand (0x1, 0x2, 0x3), callable at any depth |
@@ -18,6 +16,7 @@
 | **EOA support** | None | Full default code: ECDSA + P256 verification, RLP-encoded call batching |
 | **Signature hash** | VERIFY data NOT elided (bug) | VERIFY data properly elided |
 | **Mempool policy** | Not defined (just "Security Considerations" section) | Comprehensive: validation prefixes, canonical paymaster, banned opcodes, MAX_VERIFY_GAS |
+| **Requires header** | `2718, 4844` | `1559, 2718, 4844` |
 | **Authors** | 7 co-authors | 8 co-authors (derekchiang added) |
 | **Receipt** | Not specified in detail | Includes `payer` field and per-frame `[status, gas_used, logs]` |
 | **SENDER frame requirements** | Could execute without prior approval | Requires `sender_approved == true` |
@@ -71,4 +70,14 @@ A subtle but important change: the original spec simply checked `mode == VERIFY`
 
 ---
 
-[< Previous: Merged Changes](./03-merged-changes.md) | [Next: Current Spec Overview >](./05-current-spec.md)
+## Active Proposals That May Change the Comparison
+
+As of April 9, 2026, several open PRs propose changes that would extend this comparison table:
+
+| Proposal | PR | Impact |
+|---|---|---|
+| **Signatures list in outer tx** | [#11481](https://github.com/ethereum/EIPs/pull/11481) | Would add a `signatures` field to the transaction format — a new top-level field for PQ aggregation forward-compatibility |
+| **Precompile-based VERIFY** | [#11482](https://github.com/ethereum/EIPs/pull/11482) | Would allow VERIFY frames to target signature precompiles directly, changing the verification model |
+| **VALUE in SENDER frames** | Under discussion (posts #124-134) | Strong consensus to add a `value` field to frames, no PR yet |
+| **VERIFY frame count constraint** | [#11488](https://github.com/ethereum/EIPs/pull/11488) | Would add explicit `<= 2` VERIFY frame limit to static constraints |
+

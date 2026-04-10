@@ -1,7 +1,5 @@
 # What EIP-8141 Can Do Today and How It Works
 
-[< Back to Index](../README.md)
-
 ---
 
 ## Core Concept
@@ -214,22 +212,41 @@ If the swap reverts, the ERC-20 approval is also reverted.
 
 - **No authorization list**: Unlike EIP-7702, doesn't rely on ECDSA for delegation. Compatible with PQ crypto.
 - **No access list**: Future optimizations covered by block-level access lists (EIP-7928).
-- **No value field in frames**: Account code handles value transfers — keeps frame structure minimal.
+- **No value field in frames**: Account code handles value transfers — keeps frame structure minimal. (Note: strong community consensus to add `value` to SENDER frames — see Pending Proposals below.)
 - **ORIGIN returns frame caller**: Changed from traditional tx.origin behavior (precedent set by EIP-7702).
 - **Transient storage cleared between frames**: TSTORE/TLOAD state doesn't persist across frames.
 - **Warm/cold state shared across frames**: Gas accounting for storage access is shared.
+- **Requires**: EIP-1559, EIP-2718, EIP-4844.
 
 ## Relationship to Other Proposals
 
 | Proposal | Relationship |
 |---|---|
 | ERC-4337 | 8141 is the native protocol successor — removes bundler intermediary |
-| EIP-7702 | Complementary — 7702 accounts can also use frame transactions |
+| EIP-7702 | Complementary — 7702 accounts can also use frame transactions. Note: 7702-delegated accounts cannot currently use default code signature verification (gap identified by DanielVF) |
 | ERC-7562 | 8141's mempool rules are inspired by but simpler than 7562 (no staking/reputation) |
 | EIP-8175 | Competing simpler alternative — no new opcodes, no per-frame gas |
-| EIP-8130 | Base's alternative — structured phases with verifiers, designed for performance |
+| EIP-8130 | Coinbase/Base's alternative — declared verifiers (no wallet code exec), 14 PRs, active development. See [Competing Standards](./06-competing-standards) |
 | EIP-7997 | Deterministic deployer — used for account deployment frames |
+| EIP-7392 | Signature registry — PR #11455 proposes making default code interoperable |
 
----
+## Pending Proposals (as of April 9, 2026)
 
-[< Previous: Original vs Latest](./04-original-vs-latest.md) | [Next: Appendix >](./06-appendix.md)
+Four significant proposals are under active discussion that would change the spec:
+
+### 1. Signatures List in Outer Transaction (PR #11481)
+
+lightclient proposes adding a `signatures` field to the outer transaction for PQ signature aggregation forward-compatibility. Signatures would be verified before frame execution, enabling future block-level aggregation that elides individual signatures. This would change the transaction format.
+
+### 2. Precompile-Based VERIFY Frames (PR #11482)
+
+derekchiang proposes allowing VERIFY frames to target designated "signature precompiles" directly. This enables contract accounts to use precompiles for verification (previously only available via EOA default code) and enables key rotation via storage-based public key commitments. Still in progress.
+
+### 3. VALUE in SENDER Frames (Discussion, no PR yet)
+
+Strong consensus from rmeissner (Safe), DanielVF, frangio, 0xrcinus, derek, and matt that SENDER frames should support native ETH value transfers. matt confirmed the authors support this now that atomic batching exists. The preferred approach is adding a `value` field to frames rather than using DELEGATECALL to a precompile.
+
+### 4. Spec Consistency Fixes (PR #11488)
+
+chiranjeev13 proposes: explicit VERIFY frame count check (`<= 2`), fixing stale APPROVE scope values in structural rules, and allowing any EOA as paymaster by removing the `frame.target != tx.sender` check from default VERIFY code.
+
