@@ -13,7 +13,7 @@ A comprehensive analysis of [EIP-8141](https://eips.ethereum.org/EIPS/eip-8141) 
 | 3 | [Original Spec](./docs/03-original-spec.md) | How EIP-8141 started — the Jan 29 submission, its motivation (PQ + native AA), the original technical design with 4 opcodes and 3 frame modes, and what it didn't yet have |
 | 4 | [Merged Changes](./docs/04-merged-changes.md) | Every PR (merged, rejected, and open), in chronological order with rationale — from day-0 bug fixes through mempool policy, plus 5 active open proposals |
 | 5 | [Original vs Latest](./docs/05-original-vs-latest.md) | Side-by-side comparison table of every structural change, 6 philosophical shifts, and pending proposals that may further change the spec |
-| 6 | [Competing Standards](./docs/06-competing-standards.md) | EIP-8130 (Base/Coinbase, declared verifiers) and EIP-8202 (Schemed Transactions, flat composition + PQ) — design, tradeoffs, and comparative analysis against EIP-8141 |
+| 6 | [Competing Standards](./docs/06-competing-standards.md) | EIP-8130 (declared verifiers), EIP-8202 (Schemed Transactions), and EIP-XXXX (Tempo-like, constrained UX primitives) — design, tradeoffs, and comparative analysis against EIP-8141 |
 | 7 | [Appendix](./docs/07-appendix.md) | Complete PR timeline (27 PRs), key contributors (19 people), and external resources |
 
 ## Synthesis: Four Patterns in the Spec's Evolution
