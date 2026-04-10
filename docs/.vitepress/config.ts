@@ -16,12 +16,12 @@ export default defineConfig({
           { text: "Merged Changes", link: "/04-merged-changes" },
           { text: "Original vs Latest", link: "/05-original-vs-latest" },
           { text: "Competing Standards", link: "/06-competing-standards" },
-          { text: "Pending Concerns", link: "/08-pending-concerns" },
+          { text: "Pending Concerns", link: "/07-pending-concerns" },
         ],
       },
 
-      { text: "FAQ", link: "/09-faq" },
-      { text: "Appendix", link: "/07-appendix" },
+      { text: "FAQ", link: "/08-faq" },
+      { text: "Appendix", link: "/00-appendix" },
     ],
     sidebar: [
       {
@@ -33,9 +33,9 @@ export default defineConfig({
           { text: "Merged Changes", link: "/04-merged-changes" },
           { text: "Original vs Latest", link: "/05-original-vs-latest" },
           { text: "Competing Standards", link: "/06-competing-standards" },
-          { text: "Pending Concerns", link: "/08-pending-concerns" },
-          { text: "FAQ", link: "/09-faq" },
-          { text: "Appendix", link: "/07-appendix" },
+          { text: "Pending Concerns", link: "/07-pending-concerns" },
+          { text: "FAQ", link: "/08-faq" },
+          { text: "Appendix", link: "/00-appendix" },
         ],
       },
     ],

@@ -14,7 +14,9 @@ A comprehensive analysis of [EIP-8141](https://eips.ethereum.org/EIPS/eip-8141) 
 | 4 | [Merged Changes](./docs/04-merged-changes.md) | Every PR (merged, rejected, and open), in chronological order with rationale — from day-0 bug fixes through mempool policy, plus 5 active open proposals |
 | 5 | [Original vs Latest](./docs/05-original-vs-latest.md) | Side-by-side comparison table of every structural change, 6 philosophical shifts, and pending proposals that may further change the spec |
 | 6 | [Competing Standards](./docs/06-competing-standards.md) | EIP-8130 (declared verifiers), EIP-8202 (Schemed Transactions), and EIP-XXXX (Tempo-like, constrained UX primitives) — design, tradeoffs, and comparative analysis against EIP-8141 |
-| 7 | [Appendix](./docs/07-appendix.md) | Complete PR timeline (27 PRs), key contributors (19 people), and external resources |
+| 7 | [Pending Concerns](./docs/07-pending-concerns.md) | Open concerns around statelessness, mempool health, censorship resistance, the "choose 2 of 3" trilemma, and implementation complexity |
+| 8 | [FAQ](./docs/08-faq.md) | Common questions about EIP-8141 — what it replaces (ERC-4337, EIP-7702), user and wallet developer benefits, and links to pending concerns |
+| 0 | [Appendix](./docs/00-appendix.md) | Complete PR timeline (27 PRs), key contributors (19 people), and external resources |
 
 ## Synthesis: Four Patterns in the Spec's Evolution
 

@@ -9,9 +9,9 @@
           <li><a href="/03-original-spec">Original Spec</a></li>
           <li><a href="/04-merged-changes">Merged Changes</a></li>
           <li><a href="/05-original-vs-latest">Original vs Latest</a></li>
-          <li><a href="/08-pending-concerns">Pending Concerns</a></li>
-          <li><a href="/09-faq">FAQ</a></li>
-          <li><a href="/07-appendix">Appendix</a></li>
+          <li><a href="/07-pending-concerns">Pending Concerns</a></li>
+          <li><a href="/08-faq">FAQ</a></li>
+          <li><a href="/00-appendix">Appendix</a></li>
         </ul>
       </div>
       <div class="footer-col">

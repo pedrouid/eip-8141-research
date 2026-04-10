@@ -97,7 +97,17 @@ Side-by-side comparison of every structural change between the original submissi
 #### Document 6 — Competing Standards (`06-competing-standards.md`)
 - Design, tradeoffs, and comparative analysis of competing proposals against EIP-8141
 
-#### Document 7 — Appendix (`07-appendix.md`)
+#### Document 7 — Pending Concerns (`07-pending-concerns.md`)
+- Open concerns around statelessness, mempool health, and censorship resistance
+- The "choose 2 of 3" trilemma and witness-based FOCIL compatibility
+- Implementation complexity and Glamsterdam impact
+
+#### Document 8 — FAQ (`08-faq.md`)
+- Common questions about EIP-8141 with short answers
+- Coverage of ERC-4337 replacement, EIP-7702 obsolescence, user and wallet developer benefits
+- Cross-references to pending concerns and external links
+
+#### Document 0 — Appendix (`00-appendix.md`)
 - Complete PR timeline table
 - Key contributors and their roles
 - External resources (PoC implementations, metrics dashboards, related EIPs)

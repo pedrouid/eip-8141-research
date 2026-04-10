@@ -116,29 +116,29 @@ Nodes execute the VERIFY frames and check that `APPROVE` is called. The [mempool
 A standardized paymaster contract recognized by mempool policy. Nodes verify it by runtime code match and track reserved balances for pending transactions. [Spec details →](/01-current-spec#mempool-policy)
 
 **What if wallets don't adopt the canonical paymaster?**
-Transactions using non-canonical paymasters cannot propagate through the public mempool or be enforced by FOCIL inclusion lists — degrading censorship resistance for those users. [See concern #4 →](/08-pending-concerns#4-the-canonical-paymaster-adoption-risk)
+Transactions using non-canonical paymasters cannot propagate through the public mempool or be enforced by FOCIL inclusion lists — degrading censorship resistance for those users. [See concern #4 →](/07-pending-concerns#4-the-canonical-paymaster-adoption-risk)
 
 **Does this affect censorship resistance?**
-Potentially. Mempool health is censorship resistance — if minimal nodes can't validate certain frame transactions, those transactions lose public propagation guarantees. [See concern #3 →](/08-pending-concerns#3-mempool-health-is-censorship-resistance)
+Potentially. Mempool health is censorship resistance — if minimal nodes can't validate certain frame transactions, those transactions lose public propagation guarantees. [See concern #3 →](/07-pending-concerns#3-mempool-health-is-censorship-resistance)
 
 ---
 
 ## Statelessness & Scalability
 
 **How does EIP-8141 interact with statelessness goals?**
-Frame transaction validation requires more state access than legacy transactions (~100k gas vs ~3k gas). This tensions with VOPS (Validity-Only Partial Statelessness) nodes that carry minimal state. [See concern #1 →](/08-pending-concerns#1-stateless-validation-is-fundamentally-harder-for-frame-transactions)
+Frame transaction validation requires more state access than legacy transactions (~100k gas vs ~3k gas). This tensions with VOPS (Validity-Only Partial Statelessness) nodes that carry minimal state. [See concern #1 →](/07-pending-concerns#1-stateless-validation-is-fundamentally-harder-for-frame-transactions)
 
 **What is the "choose 2 of 3" trilemma?**
-The observation that current designs cannot simultaneously deliver Frames/Native AA, Public Mempool/FOCIL, and Statelessness/VOPS — you can have at most two. [See concern #7 →](/08-pending-concerns#7-the-choose-2-of-3-trilemma)
+The observation that current designs cannot simultaneously deliver Frames/Native AA, Public Mempool/FOCIL, and Statelessness/VOPS — you can have at most two. [See concern #7 →](/07-pending-concerns#7-the-choose-2-of-3-trilemma)
 
 **Is there a workaround for VOPS compatibility?**
-A witness-based approach (transactions carry proofs for state accessed outside VOPS) has been proposed, but it adds significant complexity — ~4 kB per extra storage slot. [See concern #8 →](/08-pending-concerns#8-witness-based-focil-compatibility--possible-but-complex)
+A witness-based approach (transactions carry proofs for state accessed outside VOPS) has been proposed, but it adds significant complexity — ~4 kB per extra storage slot. [See concern #8 →](/07-pending-concerns#8-witness-based-focil-compatibility--possible-but-complex)
 
 **What about encrypted mempools?**
-Encrypted mempools (e.g., LUCID protocol) are fundamentally incompatible with frame transaction validation — nodes can't check fields needed for DOS prevention if contents are encrypted. [See concern #5 →](/08-pending-concerns#5-encrypted-mempools-are-incompatible)
+Encrypted mempools (e.g., LUCID protocol) are fundamentally incompatible with frame transaction validation — nodes can't check fields needed for DOS prevention if contents are encrypted. [See concern #5 →](/07-pending-concerns#5-encrypted-mempools-are-incompatible)
 
 **How much extra state do nodes need?**
-At full AA adoption with 4 cached storage slots per account, VOPS nodes would need ~72 GB total — an 8x increase from today's ~10 GB floor. [See concern #2 →](/08-pending-concerns#2-vops-nodes-and-the-state-growth-problem)
+At full AA adoption with 4 cached storage slots per account, VOPS nodes would need ~72 GB total — an 8x increase from today's ~10 GB floor. [See concern #2 →](/07-pending-concerns#2-vops-nodes-and-the-state-growth-problem)
 
 ---
 
@@ -158,7 +158,7 @@ Yes — declared verifiers are a subset of what VERIFY frames can do. The revers
 ## Implementation & Timeline
 
 **Is implementation complexity a concern?**
-Yes. Frame transactions touch consensus, mempool policy, p2p propagation, client state management, and wallet infrastructure simultaneously. This breadth is a contributing factor to Glamsterdam delays. [See concern #9 →](/08-pending-concerns#9-implementation-complexity-and-scope)
+Yes. Frame transactions touch consensus, mempool policy, p2p propagation, client state management, and wallet infrastructure simultaneously. This breadth is a contributing factor to Glamsterdam delays. [See concern #9 →](/07-pending-concerns#9-implementation-complexity-and-scope)
 
 **Where can I follow the spec development?**
 - [EIP-8141 spec on GitHub](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8141.md)
@@ -168,4 +168,4 @@ Yes. Frame transactions touch consensus, mempool policy, p2p propagation, client
 
 ---
 
-*For the full list of open concerns, see [Pending Concerns →](/08-pending-concerns)*
+*For the full list of open concerns, see [Pending Concerns →](/07-pending-concerns)*
