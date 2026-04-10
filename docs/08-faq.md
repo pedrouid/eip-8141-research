@@ -6,7 +6,7 @@
 
 **1.1. What is EIP-8141?**
 
-A new transaction type (`0x06`) that splits a transaction into multiple frames — each with a purpose (verify, execute, deploy) — giving every account programmable validation and native batching at the protocol level. [Read the spec overview →](/01-current-spec)
+A new transaction type (`0x06`) that splits a transaction into multiple frames - each with a purpose (verify, execute, deploy) - giving every account programmable validation and native batching at the protocol level. [Read the spec overview →](/01-current-spec)
 
 **1.2. What problem does it solve?**
 
@@ -14,7 +14,7 @@ Today, advanced transaction features (gas sponsorship, batching, custom signatur
 
 **1.3. What are frames?**
 
-Ordered steps within a single transaction. Each frame has a mode — `VERIFY` (authenticate), `SENDER` (execute), or `DEFAULT` (deploy/post-op) — that tells the protocol what the frame does. [See frame modes →](/01-current-spec#frame-modes)
+Ordered steps within a single transaction. Each frame has a mode - `VERIFY` (authenticate), `SENDER` (execute), or `DEFAULT` (deploy/post-op) - that tells the protocol what the frame does. [See frame modes →](/01-current-spec#frame-modes)
 
 **1.4. Is EIP-8141 live on mainnet?**
 
@@ -30,15 +30,15 @@ Four: `APPROVE` (authorize execution/payment), `TXPARAM` (read tx parameters), `
 
 **2.1. Does EIP-8141 replace ERC-4337?**
 
-Yes. EIP-8141 is the native protocol successor to ERC-4337 — it moves account abstraction into the transaction layer, eliminating the need for bundlers, the EntryPoint contract, and off-chain UserOperation infrastructure entirely.
+Yes. EIP-8141 is the native protocol successor to ERC-4337 - it moves account abstraction into the transaction layer, eliminating the need for bundlers, the EntryPoint contract, and off-chain UserOperation infrastructure entirely.
 
 **2.2. Why are bundlers no longer needed?**
 
-The protocol itself handles validation, gas payment, and execution ordering through frames. There is no separate UserOperation mempool — frame transactions use the standard public mempool.
+The protocol itself handles validation, gas payment, and execution ordering through frames. There is no separate UserOperation mempool - frame transactions use the standard public mempool.
 
 **2.3. What about existing ERC-4337 wallets?**
 
-Smart accounts built for ERC-4337 can migrate their validation logic into VERIFY frames. The core verification code (signature checks, access policies) is reusable — what changes is how it's invoked.
+Smart accounts built for ERC-4337 can migrate their validation logic into VERIFY frames. The core verification code (signature checks, access policies) is reusable - what changes is how it's invoked.
 
 **2.4. Does this affect ERC-4337 paymaster contracts?**
 
@@ -54,15 +54,15 @@ The bundler role is absorbed by the protocol and standard block builders. There 
 
 **3.1. Does EIP-8141 replace EIP-7702?**
 
-For most use cases, yes. EIP-7702 requires EOAs to permanently delegate to a smart contract — a persistent on-chain state change. EIP-8141 gives EOAs native AA without any delegation, code deployment, or state change. [See EOA default code →](/01-current-spec#eoa-default-code)
+For most use cases, yes. EIP-7702 requires EOAs to permanently delegate to a smart contract - a persistent on-chain state change. EIP-8141 gives EOAs native AA without any delegation, code deployment, or state change. [See EOA default code →](/01-current-spec#eoa-default-code)
 
 **3.2. Can 7702-delegated accounts still use EIP-8141?**
 
-Yes. EIP-7702 accounts can send frame transactions — the two are complementary. However, 7702 delegation is no longer necessary for EOAs to access batching, sponsorship, or custom signatures.
+Yes. EIP-7702 accounts can send frame transactions - the two are complementary. However, 7702 delegation is no longer necessary for EOAs to access batching, sponsorship, or custom signatures.
 
 **3.3. Why is removing the 7702 dependency important?**
 
-EIP-7702 relies on ECDSA for its authorization list, making it incompatible with post-quantum signature schemes. EIP-8141 has no authorization list — accounts choose their own cryptography. [See competing standards →](/06-competing-standards#key-differences-from-eip-8141)
+EIP-7702 relies on ECDSA for its authorization list, making it incompatible with post-quantum signature schemes. EIP-8141 has no authorization list - accounts choose their own cryptography. [See competing standards →](/06-competing-standards#key-differences-from-eip-8141)
 
 ---
 
@@ -74,11 +74,11 @@ Users get gas sponsorship, atomic batching, and passkey/biometric signing withou
 
 **4.2. Can I keep my existing EOA address?**
 
-Yes. EOAs work natively with frame transactions — no code deployment, no delegation, no address change. Your account stays codeless before, during, and after the transaction.
+Yes. EOAs work natively with frame transactions - no code deployment, no delegation, no address change. Your account stays codeless before, during, and after the transaction.
 
 **4.3. Can I pay gas in ERC-20 tokens?**
 
-Yes. A sponsor pays ETH gas on your behalf, and a SENDER frame transfers ERC-20 tokens to compensate them — all within one atomic transaction. [Example →](/01-current-spec#practical-use-cases)
+Yes. A sponsor pays ETH gas on your behalf, and a SENDER frame transfers ERC-20 tokens to compensate them - all within one atomic transaction. [Example →](/01-current-spec#practical-use-cases)
 
 **4.4. Can I batch multiple actions in one transaction?**
 
@@ -86,7 +86,7 @@ Yes. Multiple SENDER frames execute sequentially, and consecutive frames with th
 
 **4.5. Do I need a smart contract wallet to use this?**
 
-No. The protocol has built-in default behavior for codeless accounts — ECDSA and P256 signature verification, and multi-call decoding in SENDER frames. [Details →](/01-current-spec#eoa-default-code)
+No. The protocol has built-in default behavior for codeless accounts - ECDSA and P256 signature verification, and multi-call decoding in SENDER frames. [Details →](/01-current-spec#eoa-default-code)
 
 **4.6. Is this compatible with passkeys / biometrics?**
 
@@ -106,7 +106,7 @@ No. Frame transactions enter the public mempool like any other transaction. No s
 
 **5.3. Does this reduce vendor dependency?**
 
-Yes. Today, wallets depend on bundler providers (Pimlico, Alchemy, etc.) for AA functionality. With EIP-8141, the protocol is the infrastructure — any Ethereum node can validate and propagate frame transactions.
+Yes. Today, wallets depend on bundler providers (Pimlico, Alchemy, etc.) for AA functionality. With EIP-8141, the protocol is the infrastructure - any Ethereum node can validate and propagate frame transactions.
 
 **5.4. What about gas sponsorship infrastructure?**
 
@@ -114,7 +114,7 @@ Wallets interact with the canonical paymaster directly at the protocol level. No
 
 **5.5. Can wallets still build custom validation logic?**
 
-Yes. VERIFY frames execute arbitrary account code — wallets can implement multisig, social recovery, session keys, or any scheme. The [mempool policy](/01-current-spec#mempool-policy) constrains what's publicly relayable, but custom logic is valid on-chain.
+Yes. VERIFY frames execute arbitrary account code - wallets can implement multisig, social recovery, session keys, or any scheme. The [mempool policy](/01-current-spec#mempool-policy) constrains what's publicly relayable, but custom logic is valid on-chain.
 
 **5.6. What's the migration path from ERC-4337?**
 
@@ -126,7 +126,7 @@ Move validation logic from `validateUserOp` into VERIFY frame code that calls `A
 
 **6.1. Is EIP-8141 post-quantum safe?**
 
-The transaction format itself has no ECDSA dependency. Accounts choose their own signature scheme in VERIFY frames — any PQ algorithm can be used without protocol changes.
+The transaction format itself has no ECDSA dependency. Accounts choose their own signature scheme in VERIFY frames - any PQ algorithm can be used without protocol changes.
 
 **6.2. How does this compare to other proposals?**
 
@@ -146,11 +146,11 @@ A standardized paymaster contract recognized by mempool policy. Nodes verify it 
 
 **7.3. What if wallets don't adopt the canonical paymaster?**
 
-Transactions using non-canonical paymasters cannot propagate through the public mempool or be enforced by FOCIL inclusion lists — degrading censorship resistance for those users. [See concern #4 →](/07-pending-concerns#4-the-canonical-paymaster-adoption-risk)
+Transactions using non-canonical paymasters cannot propagate through the public mempool or be enforced by FOCIL inclusion lists - degrading censorship resistance for those users. [See concern #4 →](/07-pending-concerns#4-the-canonical-paymaster-adoption-risk)
 
 **7.4. Does this affect censorship resistance?**
 
-Potentially. Mempool health is censorship resistance — if minimal nodes can't validate certain frame transactions, those transactions lose public propagation guarantees. [See concern #3 →](/07-pending-concerns#3-mempool-health-is-censorship-resistance)
+Potentially. Mempool health is censorship resistance - if minimal nodes can't validate certain frame transactions, those transactions lose public propagation guarantees. [See concern #3 →](/07-pending-concerns#3-mempool-health-is-censorship-resistance)
 
 ---
 
@@ -162,19 +162,19 @@ Frame transaction validation requires more state access than legacy transactions
 
 **8.2. What is the "choose 2 of 3" trilemma?**
 
-The observation that current designs cannot simultaneously deliver Frames/Native AA, Public Mempool/FOCIL, and Statelessness/VOPS — you can have at most two. [See concern #7 →](/07-pending-concerns#7-the-choose-2-of-3-trilemma)
+The observation that current designs cannot simultaneously deliver Frames/Native AA, Public Mempool/FOCIL, and Statelessness/VOPS - you can have at most two. [See concern #7 →](/07-pending-concerns#7-the-choose-2-of-3-trilemma)
 
 **8.3. Is there a workaround for VOPS compatibility?**
 
-A witness-based approach (transactions carry proofs for state accessed outside VOPS) has been proposed, but it adds significant complexity — ~4 kB per extra storage slot. [See concern #8 →](/07-pending-concerns#8-witness-based-focil-compatibility--possible-but-complex)
+A witness-based approach (transactions carry proofs for state accessed outside VOPS) has been proposed, but it adds significant complexity - ~4 kB per extra storage slot. [See concern #8 →](/07-pending-concerns#8-witness-based-focil-compatibility--possible-but-complex)
 
 **8.4. What about encrypted mempools?**
 
-Encrypted mempools (e.g., LUCID protocol) are fundamentally incompatible with frame transaction validation — nodes can't check fields needed for DOS prevention if contents are encrypted. [See concern #5 →](/07-pending-concerns#5-encrypted-mempools-are-incompatible)
+Encrypted mempools (e.g., LUCID protocol) are fundamentally incompatible with frame transaction validation - nodes can't check fields needed for DOS prevention if contents are encrypted. [See concern #5 →](/07-pending-concerns#5-encrypted-mempools-are-incompatible)
 
 **8.5. How much extra state do nodes need?**
 
-At full AA adoption with 4 cached storage slots per account, VOPS nodes would need ~72 GB total — an 8x increase from today's ~10 GB floor. [See concern #2 →](/07-pending-concerns#2-vops-nodes-and-the-state-growth-problem)
+At full AA adoption with 4 cached storage slots per account, VOPS nodes would need ~72 GB total - an 8x increase from today's ~10 GB floor. [See concern #2 →](/07-pending-concerns#2-vops-nodes-and-the-state-growth-problem)
 
 ---
 
@@ -190,7 +190,7 @@ Unclear. EIP-8141 is the most comprehensive but also the most complex. EIP-8130 
 
 **9.3. Can EIP-8130 be built on top of EIP-8141?**
 
-Yes — declared verifiers are a subset of what VERIFY frames can do. The reverse is not true. This is a key argument from EIP-8141 proponents.
+Yes - declared verifiers are a subset of what VERIFY frames can do. The reverse is not true. This is a key argument from EIP-8141 proponents.
 
 ---
 

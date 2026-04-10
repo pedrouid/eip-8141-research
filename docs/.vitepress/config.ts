@@ -3,7 +3,7 @@ import { defineConfig } from "vitepress";
 export default defineConfig({
   title: "EIP-8141 Research",
   description:
-    "Comprehensive analysis of EIP-8141 (Frame Transaction) — origin, evolution, and current state",
+    "Comprehensive analysis of EIP-8141 (Frame Transaction) - origin, evolution, and current state",
   themeConfig: {
     nav: [
       { text: "Home", link: "/" },

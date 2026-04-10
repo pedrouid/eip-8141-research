@@ -2,14 +2,14 @@
 
 ---
 
-## Day 0 Fixes — January 29, 2026
+## Day 0 Fixes - January 29, 2026
 
 ### PR #11205: Add missing elision of VERIFY frame data from signature hash
 
 **Author**: fjl | **Merged**: Jan 29
 
 - Bug: the original spec did not elide `frame.data` of VERIFY frames when computing the canonical signature hash
-- This was critical because VERIFY frames contain the signature itself — by definition it cannot be part of the signature hash
+- This was critical because VERIFY frames contain the signature itself - by definition it cannot be part of the signature hash
 - Merged same day
 
 ### PR #11209: Fix status field number
@@ -21,14 +21,14 @@
 
 ---
 
-## APPROVE Relaxation — February 10, 2026
+## APPROVE Relaxation - February 10, 2026
 
 ### PR #11297: Relax requirement that APPROVE must be called by top level call frame
 
 **Author**: lightclient | **Merged**: Feb 10
 
 - **Why**: Existing smart accounts (especially proxy-based ones like Safe) can change their implementation code but NOT their outer proxy contract. The outer proxy uses `RETURN`, not `APPROVE`. Requiring top-level `APPROVE` made adoption impossible for these accounts.
-- **Change**: `APPROVE` became transaction-scoped — it can be called from any depth and updates `sender_approved`/`payer_approved` directly, rather than requiring the top-level frame to exit with a special return code.
+- **Change**: `APPROVE` became transaction-scoped - it can be called from any depth and updates `sender_approved`/`payer_approved` directly, rather than requiring the top-level frame to exit with a special return code.
 
 From lightclient's PR description:
 
@@ -36,35 +36,35 @@ From lightclient's PR description:
 
 ---
 
-## Bug Fixes & Clarifications — February-March 2026
+## Bug Fixes & Clarifications - February-March 2026
 
 ### PR #11344: Fix some issues with EIP-8141
 
 **Author**: derekchiang | **Merged**: Mar 2
 
-- **Fixed CALLER vs ADDRESS**: Changed `CALLER == frame.target` to `ADDRESS == frame.target` for APPROVE. In VERIFY frames, CALLER is ENTRY_POINT, not frame.target — this was a bug introduced during refactoring.
+- **Fixed CALLER vs ADDRESS**: Changed `CALLER == frame.target` to `ADDRESS == frame.target` for APPROVE. In VERIFY frames, CALLER is ENTRY_POINT, not frame.target - this was a bug introduced during refactoring.
 - **Removed APPROVE restriction to VERIFY frames**: lightclient wanted APPROVE available in any mode for private pool use cases (stateful approvals).
 - **Clarified frame reverts**: Made explicit that a frame revert discards that frame's state changes but doesn't affect other frames.
-- Notable discussion: nlordell asked about the TXPARAM numbering jump from 0x09 to 0x10 — lightclient confirmed it was intentional to separate tx-level vs frame-level queries.
+- Notable discussion: nlordell asked about the TXPARAM numbering jump from 0x09 to 0x10 - lightclient confirmed it was intentional to separate tx-level vs frame-level queries.
 
 ---
 
-## EOA Support — March 5-10, 2026
+## EOA Support - March 5-10, 2026
 
 ### PR #11379: Add EOA support
 
 **Author**: derekchiang | **Merged**: Mar 10
 
-- **Why**: The biggest driver was adoption — if most users are on EOAs, frame transactions need to work for them natively, without requiring smart contract deployment.
+- **Why**: The biggest driver was adoption - if most users are on EOAs, frame transactions need to work for them natively, without requiring smart contract deployment.
 - **What changed**: Added "default code" behavior for EOAs:
   - In VERIFY mode: reads `frame.data` as a signature, supports SECP256K1 (0x0) and P256 (0x1) types, calls `APPROVE(scope)`
   - In SENDER mode: reads `frame.data` as RLP-encoded calls `[[target, value, data], ...]` and executes them
   - In DEFAULT mode: reverts
-- Also initially added a `value` field to frames (later removed — the default code handles value via call encoding)
+- Also initially added a `value` field to frames (later removed - the default code handles value via call encoding)
 
 ---
 
-## Opcode Redesign — March 12, 2026
+## Opcode Redesign - March 12, 2026
 
 ### PR #11400: Clean up frame access opcodes
 
@@ -79,13 +79,13 @@ From fjl's PR description:
 
 ---
 
-## Approval Bits — March 12-13, 2026
+## Approval Bits - March 12-13, 2026
 
 ### PR #11401: Add approval bits to frame mode
 
 **Author**: fjl | **Merged**: Mar 12
 
-- **Why**: Users needed a way to specify their intended approval scope **in the signed transaction data** so that smart accounts don't have to extract scope from `frame.data` (which is elided from the signature hash). Without this, accounts would need to compute `keccak(sighash | scope)` — repetitive logic every account must implement.
+- **Why**: Users needed a way to specify their intended approval scope **in the signed transaction data** so that smart accounts don't have to extract scope from `frame.data` (which is elided from the signature hash). Without this, accounts would need to compute `keccak(sighash | scope)` - repetitive logic every account must implement.
 - **Change**: Added bits 9-10 of `frame.mode` as approval scope constraints. These constrain which `APPROVE` scopes are valid for that frame.
 - Also shifted APPROVE scope values from 0-indexed (0x0, 0x1, 0x2) to 1-indexed (0x1, 0x2, 0x3) so that the mode bits can directly encode the constraint.
 
@@ -101,7 +101,7 @@ From fjl's PR description:
 
 ---
 
-## Atomic Batching — March 11-25, 2026
+## Atomic Batching - March 11-25, 2026
 
 ### PR #11395: Add support for atomic batching
 
@@ -122,7 +122,7 @@ From derekchiang's PR description:
 
 ---
 
-## Mempool Policy — March 16-25, 2026
+## Mempool Policy - March 16-25, 2026
 
 ### PR #11415: Add mempool policy
 
@@ -144,18 +144,18 @@ From lightclient's PR description:
 
 ---
 
-## Default Code Update — March 26, 2026
+## Default Code Update - March 26, 2026
 
 ### PR #11448: Update default code to match latest spec
 
 **Author**: derekchiang | **Merged**: Mar 26
 
-- **Why**: The approval bits addition meant the default code could be simplified — the scope is now read from the mode bits instead of being encoded separately.
+- **Why**: The approval bits addition meant the default code could be simplified - the scope is now read from the mode bits instead of being encoded separately.
 - Updated the default code Python reference implementation to match all recent spec changes.
 
 ---
 
-## Header Metadata Fix — April 8, 2026
+## Header Metadata Fix - April 8, 2026
 
 ### PR #11251: Add EIP-1559 to requires header
 
@@ -164,7 +164,7 @@ From lightclient's PR description:
 - **Why**: The spec uses EIP-1559's `max_priority_fee_per_gas` and `max_fee_per_gas` fields and explicitly states that `effective_gas_price` is calculated per EIP-1559, but the header didn't list it as a dependency.
 - **Change**: Added `1559` to the `requires` header field alongside `2718` and `4844`.
 - Approved by lightclient.
-- This PR was open for over two months before being merged — a simple metadata fix that had no controversy.
+- This PR was open for over two months before being merged - a simple metadata fix that had no controversy.
 
 ---
 
@@ -204,7 +204,7 @@ These PRs represent active design proposals that may change the spec in the near
 **Author**: Thegaram
 
 - **Why**: EIP-3607 rejects transactions from senders with deployed code, which would block frame transactions for smart accounts.
-- Still open. lightclient's earlier review was dismissed on Apr 8 — the PR remains unresolved.
+- Still open. lightclient's earlier review was dismissed on Apr 8 - the PR remains unresolved.
 
 ### PR #11455: Small tweaks to default code for EIP-7392 compatibility (open since Mar 26)
 
@@ -220,8 +220,8 @@ These PRs represent active design proposals that may change the spec in the near
 
 - **Why**: Forward-compatibility with PQ signature aggregation. PQ signatures are large, and aggregating them will be critical.
 - **Proposed change**: Add a new `signatures` field to the outer transaction object, containing signature objects with algorithm metadata, message, and signer. Signatures are verified before frame execution.
-- **Significance**: This is the most structurally significant open proposal — it would change the transaction format itself. In the future, block-level aggregated witnesses could elide individual signatures.
-- **All reviewers approved**, but derekchiang raised a practical concern (Apr 9): smart contracts leveraging outer signatures don't know which index their signature is at. The contract can't hardcode an index because the transaction may have any number of signatures in arbitrary order — the default code has to loop through the entire list to find the relevant entry. This is an ergonomic and gas-efficiency weakness that needs addressing.
+- **Significance**: This is the most structurally significant open proposal - it would change the transaction format itself. In the future, block-level aggregated witnesses could elide individual signatures.
+- **All reviewers approved**, but derekchiang raised a practical concern (Apr 9): smart contracts leveraging outer signatures don't know which index their signature is at. The contract can't hardcode an index because the transaction may have any number of signatures in arbitrary order - the default code has to loop through the entire list to find the relevant entry. This is an ergonomic and gas-efficiency weakness that needs addressing.
 
 From lightclient's PR description:
 

@@ -10,7 +10,7 @@ The feedback on EIP-8141 arrived in distinct waves, each pushing the spec along 
 
 ### APPROVE Propagation Debate
 
-*nlordell, frangio, fjl — EthMagicians posts #16-32*
+*nlordell, frangio, fjl - EthMagicians posts #16-32*
 
 The first major discussion was about how `APPROVE` interacts with nested call frames. Key questions:
 - Does `APPROVE` auto-propagate through `RETURN`?
@@ -21,9 +21,9 @@ Resolution: The authors decided **against** auto-propagation. `APPROVE` is trans
 
 ### "Why Not Simpler Alternatives?"
 
-*Helkomine — posts #6-14*
+*Helkomine - posts #6-14*
 
-Helkomine argued that command-oriented architectures like Uniswap's UniversalRouter could achieve the same functionality. Matt (lightclient) explained: frames exist for **protocol-level introspection** — allowing the p2p layer to reason about transaction validity bounds. The previous attempt (EIP-2938) had failed precisely because it lacked this structured introspection, making safe mempool relay rules impossible.
+Helkomine argued that command-oriented architectures like Uniswap's UniversalRouter could achieve the same functionality. Matt (lightclient) explained: frames exist for **protocol-level introspection** - allowing the p2p layer to reason about transaction validity bounds. The previous attempt (EIP-2938) had failed precisely because it lacked this structured introspection, making safe mempool relay rules impossible.
 
 Key quote from matt (post #9):
 
@@ -31,15 +31,15 @@ Key quote from matt (post #9):
 
 ### EIP-3607 Compatibility
 
-*thegaram33 — post #26, PR #11272*
+*thegaram33 - post #26, PR #11272*
 
 Peter Garamvölgyi identified that EIP-3607 (which rejects transactions from senders with deployed code) would block 8141's `SENDER` frames for smart accounts. He submitted PR #11272 to disable this check for frame transactions. This PR remains open.
 
 ### APPROVE Security in Non-Account Contracts
 
-*thegaram33 — posts #37-41*
+*thegaram33 - posts #37-41*
 
-thegaram33 raised the concern that any contract containing the `APPROVE` opcode could potentially be used as a frame target, creating an alternative authorization pathway. fjl responded that `APPROVE` is literally just `RETURN` with extra semantics — and execution approval only works when `frame.target == tx.sender`. This concern actually **reinforced** the design decision to restrict `APPROVE` to `frame.target`.
+thegaram33 raised the concern that any contract containing the `APPROVE` opcode could potentially be used as a frame target, creating an alternative authorization pathway. fjl responded that `APPROVE` is literally just `RETURN` with extra semantics - and execution approval only works when `frame.target == tx.sender`. This concern actually **reinforced** the design decision to restrict `APPROVE` to `frame.target`.
 
 ---
 
@@ -47,16 +47,16 @@ thegaram33 raised the concern that any contract containing the `APPROVE` opcode 
 
 ### EIP-7702 Adoption Data Battle
 
-*DanielVF vs matt — posts #64-71*
+*DanielVF vs matt - posts #64-71*
 
-DanielVF (from Monad) presented data showing only ~0.28% of transactions in 1000 blocks were EIP-7702. Matt countered that this metric was wrong — most 7702 usage goes through entrypoint contracts and "relayed actions" not direct transactions. BundleBear data showed 4M+ operations/week from 7702-enabled accounts. The disagreement highlighted a key insight: **measuring AA adoption requires looking at operations, not raw transaction counts**.
+DanielVF (from Monad) presented data showing only ~0.28% of transactions in 1000 blocks were EIP-7702. Matt countered that this metric was wrong - most 7702 usage goes through entrypoint contracts and "relayed actions" not direct transactions. BundleBear data showed 4M+ operations/week from 7702-enabled accounts. The disagreement highlighted a key insight: **measuring AA adoption requires looking at operations, not raw transaction counts**.
 
 ### The Adoption Critique
 
-*DanielVF — post #64*
+*DanielVF - post #64*
 
 DanielVF made a comprehensive argument across three posts:
-1. Smart contracts as asset owners is the "adoption killer" — wallets are expensive/dangerous to build, users get locked into vendors, no interoperability
+1. Smart contracts as asset owners is the "adoption killer" - wallets are expensive/dangerous to build, users get locked into vendors, no interoperability
 2. EIP-1559 succeeded because it was simple and standardized; 4337/7702 failed because they required each wallet to build custom, dangerous smart contracts
 3. If 99%+ of frame txns will be from EOAs, why not just build a simpler tx type?
 
@@ -68,7 +68,7 @@ This argument directly influenced the spec's evolution toward EOA support.
 
 ### Derek Chiang's Response and EOA Support
 
-*derek — posts #60, #65*
+*derek - posts #60, #65*
 
 Derek Chiang, who had 3 years of commercial AA experience, largely agreed with DanielVF's adoption concerns and proposed EOA support for 8141. His argument:
 - EOAs can enjoy AA benefits (gas abstraction, sponsorship) without smart contract risks
@@ -88,7 +88,7 @@ This led to PR #11379 (merged Mar 10), a pivotal change.
 
 ### Async Execution Incompatibility
 
-*DanielVF, pdobacz — posts #53, #79, #119-123*
+*DanielVF, pdobacz - posts #53, #79, #119-123*
 
 The most structural criticism: frame transactions require EVM execution to determine transaction inclusion validity, which is fundamentally incompatible with async execution models (Monad, and potentially future Ethereum via EIP-7886). Traditional transactions only need 3 state reads (balance, nonce, code) for inclusion checks.
 
@@ -101,7 +101,7 @@ However, the authors argued this is manageable: FOCIL provides censorship resist
 
 ### Atomic Batching Debate
 
-*pedrouid, 0xrcinus, derekchiang, frangio — posts #72-89, PR #11395*
+*pedrouid, 0xrcinus, derekchiang, frangio - posts #72-89, PR #11395*
 
 pedrouid argued SENDER frames should always be atomic. derekchiang explained why non-atomic is the better default:
 - Non-atomicity is more general (OR logic) while atomicity is more specific (AND logic)
@@ -112,13 +112,13 @@ Key quote from frangio (post #73, PR #11395 comment):
 
 > The main use case I've heard for non-atomic frames is using ERC-20 for gas payment. The payer needs the guarantee that once it has accepted payment, the next frame will do an ERC-20 transfer and not revert.
 
-0xrcinus proposed a GROUP-based approach (explicit group IDs). The final design used bit flags in the mode field — a consecutive run of SENDER frames with the atomic batch flag (bit 11) set forms an atomic batch.
+0xrcinus proposed a GROUP-based approach (explicit group IDs). The final design used bit flags in the mode field - a consecutive run of SENDER frames with the atomic batch flag (bit 11) set forms an atomic batch.
 
 ### P256 Scope Creep
 
-*shemnon, frangio — posts #78, #94-99*
+*shemnon, frangio - posts #78, #94-99*
 
-Danno Ferrin flagged the addition of P256 signature support in the default code as "significant scope creep." frangio noted P256 accounts (via passkeys) don't support key rotation, undermining one of AA's motivations. The authors decided to keep P256 in the default code but acknowledged the tradeoff — it provides immediate utility for passkey users but creates accounts that can't be migrated to PQ-secure schemes without additional EIPs.
+Danno Ferrin flagged the addition of P256 signature support in the default code as "significant scope creep." frangio noted P256 accounts (via passkeys) don't support key rotation, undermining one of AA's motivations. The authors decided to keep P256 in the default code but acknowledged the tradeoff - it provides immediate utility for passkey users but creates accounts that can't be migrated to PQ-secure schemes without additional EIPs.
 
 Key quote from shemnon (post #99):
 
@@ -126,16 +126,16 @@ Key quote from shemnon (post #99):
 
 ### PQ Signature Aggregation Path
 
-*fjl — post #23*
+*fjl - post #23*
 
-A less discussed but strategically important point: fjl noted that the VERIFY frame design deliberately enables future **signature aggregation**. Because VERIFY frames cannot change execution outcomes and their data is elided from the signature hash, a block builder could theoretically strip all VERIFY frames from transactions and replace them with a single succinct proof of validity. This is a key part of the long-term PQ strategy — PQ signatures are large, and aggregation could dramatically reduce their on-chain cost. The precise mechanism isn't worked out yet, but the frame architecture was designed to keep this path open.
+A less discussed but strategically important point: fjl noted that the VERIFY frame design deliberately enables future **signature aggregation**. Because VERIFY frames cannot change execution outcomes and their data is elided from the signature hash, a block builder could theoretically strip all VERIFY frames from transactions and replace them with a single succinct proof of validity. This is a key part of the long-term PQ strategy - PQ signatures are large, and aggregation could dramatically reduce their on-chain cost. The precise mechanism isn't worked out yet, but the frame architecture was designed to keep this path open.
 
 ### Mempool Rules as Turning Point
 
-*lightclient — post #112, PR #11415*
+*lightclient - post #112, PR #11415*
 
 lightclient's mempool policy PR was a turning point. DanielVF called it "a big big step forwards" (post #114). Key innovations:
-- **Canonical paymaster**: removes complex reputation/staking from ERC-7562 — a standardized paymaster contract that nodes verify by code match
+- **Canonical paymaster**: removes complex reputation/staking from ERC-7562 - a standardized paymaster contract that nodes verify by code match
 - **Validation prefix**: only the frames up to `payer_approved = true` are subject to mempool rules
 - **Capped validation gas**: MAX_VERIFY_GAS = 100,000
 - **Structural templates**: four recognized validation prefixes for public mempool acceptance
@@ -156,7 +156,7 @@ Several alternative/competing proposals emerged:
 
 ### VALUE in SENDER Frames
 
-*rmeissner, DanielVF, frangio, 0xrcinus, derek, matt — posts #124-134*
+*rmeissner, DanielVF, frangio, 0xrcinus, derek, matt - posts #124-134*
 
 rmeissner (Safe team) identified a gap: SENDER frames have no `value` property, preventing native ETH transfers without custom execute methods in smart accounts. This sparked strong consensus among participants.
 
@@ -178,7 +178,7 @@ matt (post #134) confirmed the authors support including value in frames now tha
 
 ### Signature Aggregation Forward-Compatibility
 
-*lightclient — PR #11481, April 2*
+*lightclient - PR #11481, April 2*
 
 lightclient proposed adding a `signatures` field to the outer transaction object. The motivation is PQ forward-compatibility: PQ signatures are large, and aggregation will be critical as users migrate. The proposed design:
 
@@ -190,11 +190,11 @@ From lightclient's PR description:
 
 > Any important goal of 8141 is to be forward compatible with signature aggregation techniques, especially with respect to PQ signatures. As those signatures are quite large, aggregating them may become very important as many users begin migrating.
 
-This is the most structurally significant open proposal — it would change the transaction format itself.
+This is the most structurally significant open proposal - it would change the transaction format itself.
 
 ### Precompile-Based Verification
 
-*derekchiang — PR #11482, April 2*
+*derekchiang - PR #11482, April 2*
 
 derek proposed allowing VERIFY frames to target precompiles directly. This extends the default-code verification logic to contract accounts, enabling:
 
@@ -206,19 +206,19 @@ This PR is still being worked on but represents a meaningful expansion of the ve
 
 ### EOA + EIP-7702 Delegation Compatibility
 
-*DanielVF — posts #120, #122*
+*DanielVF - posts #120, #122*
 
 DanielVF identified that accounts with EIP-7702 delegated code cannot use signature-based authorization with frame transactions. When an EOA has delegated its code to a smart contract, the default code path isn't invoked, but the delegated contract may not implement `APPROVE`. This is a gap that needs addressing.
 
 ### Async Execution Compatibility (Continued)
 
-*DanielVF, derek — posts #121-123*
+*DanielVF, derek - posts #121-123*
 
 The async execution thread continued. DanielVF pointed derek to ethresearch threads and EIP-7886, mentioning an upcoming EthCC talk. derek asked for more resources to ensure frame transactions remain compatible with Ethereum's potential move toward async execution.
 
 ### Spec Consistency Fixes
 
-*node.cm, chiranjeev13 — posts #135-136, PR #11488*
+*node.cm, chiranjeev13 - posts #135-136, PR #11488*
 
 node.cm (new participant) identified that VERIFY frames are implicitly capped at 2 per transaction, since only two approval flags exist (`sender_approved` and `payer_approved`) and each can only be set once. They recommended making this explicit in the Constraints section.
 
@@ -229,13 +229,13 @@ chiranjeev13 followed up with PR #11488 fixing multiple spec inconsistencies:
 
 ### Signature Index Discovery Problem
 
-*derekchiang — PR #11481 comment, Apr 9*
+*derekchiang - PR #11481 comment, Apr 9*
 
-derekchiang raised a practical concern with lightclient's signatures list proposal (PR #11481): smart contracts leveraging outer signatures have no way to know which index their signature occupies in the list. Since a transaction may have any number of signatures in arbitrary order, a contract can't hardcode an index. The updated default code has to loop through the entire signature list to find the relevant entry — an ergonomic and gas-efficiency weakness that may need addressing before the proposal can be finalized.
+derekchiang raised a practical concern with lightclient's signatures list proposal (PR #11481): smart contracts leveraging outer signatures have no way to know which index their signature occupies in the list. Since a transaction may have any number of signatures in arbitrary order, a contract can't hardcode an index. The updated default code has to loop through the entire signature list to find the relevant entry - an ergonomic and gas-efficiency weakness that may need addressing before the proposal can be finalized.
 
 ### EIP-3607 Compatibility Status Update
 
-*lightclient — PR #11272, Apr 8*
+*lightclient - PR #11272, Apr 8*
 
-lightclient's earlier review on the EIP-3607 compatibility PR (#11272, disabling the EIP-3607 check for frame transactions) was dismissed on Apr 8. The PR remains open without resolution — the interaction between EIP-3607's sender-has-code rejection and frame transactions for smart accounts is still an unresolved design question.
+lightclient's earlier review on the EIP-3607 compatibility PR (#11272, disabling the EIP-3607 check for frame transactions) was dismissed on Apr 8. The PR remains open without resolution - the interaction between EIP-3607's sender-has-code rejection and frame transactions for smart accounts is still an unresolved design question.
 

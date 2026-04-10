@@ -4,14 +4,14 @@
 
 ## Core Concept
 
-EIP-8141 introduces **Frame Transactions** — a new transaction type (`0x06`) where a transaction consists of multiple **frames**, each with a purpose (verify identity, execute calls, deploy contracts). The protocol uses frame modes to reason about what each frame does, enabling safe mempool relay and flexible user-defined validation.
+EIP-8141 introduces **Frame Transactions** - a new transaction type (`0x06`) where a transaction consists of multiple **frames**, each with a purpose (verify identity, execute calls, deploy contracts). The protocol uses frame modes to reason about what each frame does, enabling safe mempool relay and flexible user-defined validation.
 
 A key insight for understanding the current spec: **EIP-8141 is two specs in one**.
 
-- The **execution model** says "validation and payment are programmable" — any account code can verify any signature scheme and approve any payer, with arbitrary logic.
+- The **execution model** says "validation and payment are programmable" - any account code can verify any signature scheme and approve any payer, with arbitrary logic.
 - The **mempool model** says "that programmability is only publicly relayable when it fits a small set of validation-prefix shapes and state-dependency rules."
 
-The execution model defines what is *possible*; the mempool model defines what is *propagatable*. A frame transaction that doesn't match the mempool rules is still valid on-chain — it just can't be gossiped through the public p2p network and must reach a block builder through private channels.
+The execution model defines what is *possible*; the mempool model defines what is *propagatable*. A frame transaction that doesn't match the mempool rules is still valid on-chain - it just can't be gossiped through the public p2p network and must reach a block builder through private channels.
 
 ## Transaction Structure
 
@@ -46,8 +46,8 @@ frames = [[mode, target, gas_limit, data], ...]
 **Stack**: `[offset, length, scope]`
 
 **Scopes**:
-- `0x1`: Approve execution — sets `sender_approved = true` (only valid when `frame.target == tx.sender`)
-- `0x2`: Approve payment — increments nonce, collects gas fees from the account, sets `payer_approved = true`
+- `0x1`: Approve execution - sets `sender_approved = true` (only valid when `frame.target == tx.sender`)
+- `0x2`: Approve payment - increments nonce, collects gas fees from the account, sets `payer_approved = true`
 - `0x3`: Approve both execution and payment
 
 **Security**: Only `frame.target` can call `APPROVE` (`ADDRESS == frame.target` check). `sender_approved` must be true before `payer_approved` can be set.
@@ -83,7 +83,7 @@ When `frame.target` has no code, the protocol applies built-in "default code" be
 
 **DEFAULT mode:** Reverts.
 
-This means **any EOA can use frame transactions today** — no smart contract deployment needed.
+This means **any EOA can use frame transactions today** - no smart contract deployment needed.
 
 ## Atomic Batching
 
@@ -126,7 +126,7 @@ Note the `& 0xFF` mask: since `mode` now carries upper-bit flags (approval scope
 
 VERIFY frame data is elided because:
 1. It contains the signature (can't be part of what's signed)
-2. Enables future signature aggregation — because VERIFY frames cannot change execution outcomes, a block builder could theoretically strip all VERIFY frames and append a succinct validity proof instead
+2. Enables future signature aggregation - because VERIFY frames cannot change execution outcomes, a block builder could theoretically strip all VERIFY frames and append a succinct validity proof instead
 3. Allows sponsor data to be added after sender signs (the sponsor's VERIFY frame target is still covered by the hash)
 
 ## Mempool Policy
@@ -203,8 +203,8 @@ If the swap reverts, the ERC-20 approval is also reverted.
 
 | Frame | Mode | Target | Data |
 |---|---|---|---|
-| 0 | VERIFY | sender | (0, v, r, s) — approve execution |
-| 1 | VERIFY | sponsor | Sponsor signature — approve payment |
+| 0 | VERIFY | sender | (0, v, r, s) - approve execution |
+| 1 | VERIFY | sponsor | Sponsor signature - approve payment |
 | 2 | SENDER | ERC-20 | transfer(sponsor, fees) |
 | 3 | SENDER | target | User's call |
 
@@ -212,7 +212,7 @@ If the swap reverts, the ERC-20 approval is also reverted.
 
 - **No authorization list**: Unlike EIP-7702, doesn't rely on ECDSA for delegation. Compatible with PQ crypto.
 - **No access list**: Future optimizations covered by block-level access lists (EIP-7928).
-- **No value field in frames**: Account code handles value transfers — keeps frame structure minimal. (Note: strong community consensus to add `value` to SENDER frames — see Pending Proposals below.)
+- **No value field in frames**: Account code handles value transfers - keeps frame structure minimal. (Note: strong community consensus to add `value` to SENDER frames - see Pending Proposals below.)
 - **ORIGIN returns frame caller**: Changed from traditional tx.origin behavior (precedent set by EIP-7702).
 - **Transient storage cleared between frames**: TSTORE/TLOAD state doesn't persist across frames.
 - **Warm/cold state shared across frames**: Gas accounting for storage access is shared.
@@ -222,13 +222,13 @@ If the swap reverts, the ERC-20 approval is also reverted.
 
 | Proposal | Relationship |
 |---|---|
-| ERC-4337 | 8141 is the native protocol successor — removes bundler intermediary |
-| EIP-7702 | Complementary — 7702 accounts can also use frame transactions. Note: 7702-delegated accounts cannot currently use default code signature verification (gap identified by DanielVF) |
+| ERC-4337 | 8141 is the native protocol successor - removes bundler intermediary |
+| EIP-7702 | Complementary - 7702 accounts can also use frame transactions. Note: 7702-delegated accounts cannot currently use default code signature verification (gap identified by DanielVF) |
 | ERC-7562 | 8141's mempool rules are inspired by but simpler than 7562 (no staking/reputation) |
-| EIP-8175 | Competing simpler alternative — no new opcodes, no per-frame gas |
-| EIP-8130 | Coinbase/Base's alternative — declared verifiers (no wallet code exec), 14 PRs, active development. See [Competing Standards](./06-competing-standards) |
-| EIP-7997 | Deterministic deployer — used for account deployment frames |
-| EIP-7392 | Signature registry — PR #11455 proposes making default code interoperable |
+| EIP-8175 | Competing simpler alternative - no new opcodes, no per-frame gas |
+| EIP-8130 | Coinbase/Base's alternative - declared verifiers (no wallet code exec), 14 PRs, active development. See [Competing Standards](./06-competing-standards) |
+| EIP-7997 | Deterministic deployer - used for account deployment frames |
+| EIP-7392 | Signature registry - PR #11455 proposes making default code interoperable |
 
 ## Pending Proposals (as of April 10, 2026)
 
@@ -236,7 +236,7 @@ Four significant proposals are under active discussion that would change the spe
 
 ### 1. Signatures List in Outer Transaction (PR #11481)
 
-lightclient proposes adding a `signatures` field to the outer transaction for PQ signature aggregation forward-compatibility. Signatures would be verified before frame execution, enabling future block-level aggregation that elides individual signatures. This would change the transaction format. All reviewers approved, but derekchiang raised an open concern (Apr 9): smart contracts can't know which index their signature is at in the list, forcing default code to loop through all entries — a gas and ergonomic weakness.
+lightclient proposes adding a `signatures` field to the outer transaction for PQ signature aggregation forward-compatibility. Signatures would be verified before frame execution, enabling future block-level aggregation that elides individual signatures. This would change the transaction format. All reviewers approved, but derekchiang raised an open concern (Apr 9): smart contracts can't know which index their signature is at in the list, forcing default code to loop through all entries - a gas and ergonomic weakness.
 
 ### 2. Precompile-Based VERIFY Frames (PR #11482)
 

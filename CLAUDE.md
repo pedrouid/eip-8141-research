@@ -1,4 +1,4 @@
-# EIP-8141 Research — Project Instructions
+# EIP-8141 Research - Project Instructions
 
 This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePress documentation site with research documents, a landing page, and supporting infrastructure. These instructions ensure any contributor (human or agent) can update and maintain the repo consistently.
 
@@ -7,7 +7,7 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 ## Repository Structure
 
 ```
-├── CLAUDE.md                          # This file — project instructions
+├── CLAUDE.md                          # This file - project instructions
 ├── README.md                          # GitHub landing page with document index and synthesis
 ├── package.json                       # VitePress dev dependency
 ├── docs/
@@ -18,13 +18,13 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 │   ├── 03-original-spec.md            # Original Jan 29 submission and what it lacked
 │   ├── 04-merged-changes.md           # Every PR (merged, closed, open) with rationale
 │   ├── 05-original-vs-latest.md       # Side-by-side diff of structural changes
-│   ├── 06-competing-standards.md      # EIP-8130, EIP-8175, EIP-8202, Tempo — design + comparison
+│   ├── 06-competing-standards.md      # EIP-8130, EIP-8175, EIP-8202, Tempo - design + comparison
 │   ├── 07-pending-concerns.md         # Open concerns (statelessness, mempool, trilemma, complexity)
 │   ├── 08-faq.md                      # Indexed Q&A (section.question format, e.g. 2.3)
 │   └── .vitepress/
 │       ├── config.ts                  # Nav, sidebar, social links
 │       └── theme/
-│           ├── index.ts               # Theme entry — imports custom.css
+│           ├── index.ts               # Theme entry - imports custom.css
 │           ├── Layout.vue             # Wraps default layout, adds Footer
 │           ├── Footer.vue             # 3-column footer (Research, Competing Standards, Sources)
 │           └── custom.css             # Global table styles
@@ -35,7 +35,7 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 ## Document Numbering and Ordering
 
 - Documents are numbered `00` through `08` in the filename
-- `00-appendix.md` is always **last** in nav, sidebar, and footer — the `00` prefix keeps it out of the numbered sequence
+- `00-appendix.md` is always **last** in nav, sidebar, and footer - the `00` prefix keeps it out of the numbered sequence
 - Documents `01`–`08` appear in numeric order everywhere
 - The FAQ (`08-faq.md`) uses indexed questions: sections are numbered (1–10), questions are `section.question` (e.g., 1.1, 2.3, 8.5)
 - When adding a new document, assign the next number (e.g., `09-*.md`) and update: `config.ts` (nav + sidebar), `Footer.vue`, and `README.md`
@@ -49,13 +49,13 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 - **config.ts**: Defines nav header and sidebar. Nav has: Home, Research (dropdown), FAQ, Demo (external link). Sidebar lists all docs in order with Appendix last. Keep these in sync when adding/removing docs.
 - **Footer.vue**: 3-column grid (Research links, Competing Standards anchors, Sources with external links). Does NOT include FAQ or Appendix.
 - **Layout.vue**: Wraps VitePress default layout, injects Footer via `#layout-bottom` slot.
-- **custom.css**: Global rule `white-space: nowrap` on first column of all tables. Do not remove — prevents column text wrapping across all docs.
+- **custom.css**: Global rule `white-space: nowrap` on first column of all tables. Do not remove - prevents column text wrapping across all docs.
 - **theme/index.ts**: Imports DefaultTheme, Layout, and custom.css. Keep imports here when adding new CSS.
 
 ### Landing Page (docs/index.md)
 
 - Uses VitePress `layout: home` with hero, actions, and features in YAML frontmatter
-- Hero buttons: "Read the Spec Overview" (brand), "Try the Demo" (alt), "View on GitHub" (alt)
+- Hero buttons: "Read the Spec Overview" (brand), "Try the Demo" (alt)
 - Below frontmatter: markdown sections with frame mode table, examples, opcode table
 - Frame modes table lists DEFAULT first (it is mode 0 in the spec)
 - Examples that include gas sponsorship should include a DEFAULT post-op frame for sponsor refund
@@ -66,6 +66,7 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 - Links between docs: use root-relative paths (`/01-current-spec`, not `./01-current-spec.md`)
 - Links to external sites: use full URLs with `target="_blank"` in Vue templates
 - No emojis in any file
+- Never use em dashes (the `—` character). Use regular hyphens (`-`) instead.
 - Keep answers in FAQ to 1-2 lines, always with question and answer on separate lines
 
 ---
@@ -89,9 +90,9 @@ When updating the repo to capture new developments, follow this checklist in ord
 
 ### 1. Gather New Data
 
-- **Fetch latest spec** from `master` branch — compare against `01-current-spec.md`
+- **Fetch latest spec** from `master` branch - compare against `01-current-spec.md`
 - **Search for new PRs** since the last documented PR (check `00-appendix.md` for the most recent)
-- **Read all comments** on new and updated PRs — PR comments often contain critical design rationale
+- **Read all comments** on new and updated PRs - PR comments often contain critical design rationale
 - **Read new EthMagicians posts** beyond the last documented post number (check `00-appendix.md`)
 - **Check competing proposals** for new PRs or discussion threads (EIP-8130, EIP-8175, EIP-8202)
 - **Check ethresear.ch** for new posts in relevant threads
@@ -104,13 +105,13 @@ Each document has a specific scope. Update only the relevant ones:
 |---|---|
 | `01-current-spec.md` | Spec changed (new PRs merged), or pending proposals section needs updating |
 | `02-feedback-evolution.md` | New EthMagicians posts, new PR review comments with substantive debate |
-| `03-original-spec.md` | Rarely — only if new context about the original submission surfaces |
+| `03-original-spec.md` | Rarely - only if new context about the original submission surfaces |
 | `04-merged-changes.md` | New PRs merged, closed, or opened. Update status of existing open PRs. |
 | `05-original-vs-latest.md` | Spec changed structurally (new PRs merged that alter behavior) |
 | `06-competing-standards.md` | New competing EIPs, new PRs on existing competitors, new comparison threads |
 | `07-pending-concerns.md` | New concerns raised in ethresear.ch, EthMagicians, or private discussions |
 | `08-faq.md` | New questions arise from community, or answers change due to spec updates |
-| `00-appendix.md` | Always — update PR timeline, post count, contributor list, external resources |
+| `00-appendix.md` | Always - update PR timeline, post count, contributor list, external resources |
 
 ### 3. Update Infrastructure
 
@@ -131,12 +132,12 @@ After updates, check:
 ## Writing Principles
 
 - **Traceability**: Every claim links to a specific PR number, EthMagicians post number, or commit
-- **Direct quotes**: Use author quotes to capture rationale — paraphrasing loses nuance
+- **Direct quotes**: Use author quotes to capture rationale - paraphrasing loses nuance
 - **Rejected PRs matter**: Closed PRs reveal the design space the authors explored and chose against
 - **Comments over descriptions**: PR review threads often contain more insight than the PR description
 - **Chronological + thematic**: `04-merged-changes.md` is chronological; `02-feedback-evolution.md` groups by thematic phase
-- **What's absent**: Document what the spec does NOT have — gaps explain future direction
-- **No names in concerns**: `07-pending-concerns.md` does not attribute concerns to named individuals — it presents arguments, not people
+- **What's absent**: Document what the spec does NOT have - gaps explain future direction
+- **No names in concerns**: `07-pending-concerns.md` does not attribute concerns to named individuals - it presents arguments, not people
 - **FAQ brevity**: Answers are 1-2 lines max. Link to docs or external sources for detail.
 
 ---
@@ -147,7 +148,7 @@ After updates, check:
 - Don't add features, refactor code, or clean up code that wasn't part of the ask
 - No docstrings, comments, or type annotations on code you didn't touch
 - Keep commit messages concise (1-2 lines)
-- Don't create new files unless explicitly needed — prefer editing existing ones
+- Don't create new files unless explicitly needed - prefer editing existing ones
 
 ---
 
@@ -178,6 +179,6 @@ After updates, check:
 
 ### Updating PR status
 
-1. Update `04-merged-changes.md` — move PR between Open/Merged/Closed sections as needed, add review comment summaries
+1. Update `04-merged-changes.md` - move PR between Open/Merged/Closed sections as needed, add review comment summaries
 2. Update `00-appendix.md` PR timeline table
 3. If a merged PR changes the spec: update `01-current-spec.md` and `05-original-vs-latest.md`
