@@ -4,7 +4,7 @@
 
 ## Structural Comparison
 
-| Aspect | Original (Jan 29) | Latest (Apr 9) |
+| Aspect | Original (Jan 29) | Latest (Apr 8) |
 |---|---|---|
 | **Opcodes** | `APPROVE`, `TXPARAMLOAD`, `TXPARAMSIZE`, `TXPARAMCOPY` | `APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY` |
 | **APPROVE mechanism** | Return codes 0-4 at top-level frame | Transaction-scoped with scope operand (0x1, 0x2, 0x3), callable at any depth |
