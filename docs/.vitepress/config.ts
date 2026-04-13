@@ -1,9 +1,98 @@
 import { defineConfig } from "vitepress";
 
+const SITE_URL = "https://eip8141.io";
+const SITE_NAME = "EIP-8141 Frame Transaction";
+const SITE_DESCRIPTION =
+  "Native account abstraction and post-quantum readiness for Ethereum. One transaction type, multiple frames, programmable validation. Research, analysis, and implementation tracking for EIP-8141 Frame Transaction.";
+const OG_IMAGE = `${SITE_URL}/og-image.png`;
+
 export default defineConfig({
-  title: "EIP-8141 Proposal",
-  description:
-    "Comprehensive analysis of EIP-8141 (Frame Transaction) - origin, evolution, and current state",
+  title: SITE_NAME,
+  titleTemplate: ":title | EIP-8141",
+  description: SITE_DESCRIPTION,
+  lang: "en-US",
+  cleanUrls: true,
+  sitemap: {
+    hostname: SITE_URL,
+  },
+  head: [
+    // Favicon and theme color
+    ["link", { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32x32.png" }],
+    ["link", { rel: "icon", type: "image/png", sizes: "16x16", href: "/favicon-16x16.png" }],
+    ["link", { rel: "icon", type: "image/png", href: "/favicon.png" }],
+    ["link", { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" }],
+    ["meta", { name: "theme-color", content: "#646cff" }],
+
+    // Standard meta
+    ["meta", { name: "author", content: "Pedro Gomes" }],
+    [
+      "meta",
+      {
+        name: "keywords",
+        content:
+          "EIP-8141, Frame Transaction, Ethereum, account abstraction, native AA, post-quantum, ERC-4337, EIP-7702, EIP-7702 alternative, programmable validation, gas sponsorship, paymaster, atomic batching, FOCIL, VOPS",
+      },
+    ],
+    ["meta", { name: "robots", content: "index, follow" }],
+
+    // Open Graph
+    ["meta", { property: "og:type", content: "website" }],
+    ["meta", { property: "og:site_name", content: SITE_NAME }],
+    ["meta", { property: "og:title", content: SITE_NAME }],
+    ["meta", { property: "og:description", content: SITE_DESCRIPTION }],
+    ["meta", { property: "og:url", content: SITE_URL }],
+    ["meta", { property: "og:image", content: OG_IMAGE }],
+    ["meta", { property: "og:image:width", content: "1200" }],
+    ["meta", { property: "og:image:height", content: "630" }],
+    [
+      "meta",
+      {
+        property: "og:image:alt",
+        content: "EIP-8141 Frame Transaction",
+      },
+    ],
+    ["meta", { property: "og:locale", content: "en_US" }],
+
+    // Twitter Card
+    ["meta", { name: "twitter:card", content: "summary_large_image" }],
+    ["meta", { name: "twitter:title", content: SITE_NAME }],
+    ["meta", { name: "twitter:description", content: SITE_DESCRIPTION }],
+    ["meta", { name: "twitter:image", content: OG_IMAGE }],
+    [
+      "meta",
+      {
+        name: "twitter:image:alt",
+        content: "EIP-8141 Frame Transaction",
+      },
+    ],
+
+    // Canonical link injected per-page via transformPageData below
+  ],
+  transformPageData(pageData) {
+    const isHome = pageData.frontmatter.layout === "home";
+    const slug = pageData.relativePath
+      .replace(/(^|\/)index\.md$/, "")
+      .replace(/\.md$/, "");
+    const url = slug ? `${SITE_URL}/${slug}` : `${SITE_URL}/`;
+
+    const title = isHome
+      ? SITE_NAME
+      : pageData.frontmatter.title || pageData.title || SITE_NAME;
+    const description =
+      pageData.frontmatter.description ||
+      pageData.frontmatter.hero?.tagline ||
+      SITE_DESCRIPTION;
+
+    pageData.frontmatter.head ??= [];
+    pageData.frontmatter.head.push(
+      ["link", { rel: "canonical", href: url }],
+      ["meta", { property: "og:url", content: url }],
+      ["meta", { property: "og:title", content: title }],
+      ["meta", { property: "og:description", content: description }],
+      ["meta", { name: "twitter:title", content: title }],
+      ["meta", { name: "twitter:description", content: description }],
+    );
+  },
   themeConfig: {
     nav: [
       { text: "Home", link: "/" },
