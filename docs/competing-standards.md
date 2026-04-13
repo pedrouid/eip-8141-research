@@ -16,8 +16,8 @@ The five general-purpose proposals sit on a spectrum (alternatives, you choose o
 More General                                                                More Constrained
     |                                                                             |
  EIP-8141       EIP-8175       EIP-8130       EIP-8202                      EIP-XXXX
- (arbitrary     (flat caps,    (declared      (flat extensions,              (fixed UX
-  EVM in         programmable   verifiers,     scheme-agile auth,            primitives,
+ (arbitrary     (flat caps,    (verifier       (flat extensions,              (fixed UX
+  EVM in         programmable   contracts,     scheme-agile auth,            primitives,
   VERIFY         fee_auth)      no wallet      single execution)             passkeys)
   frames)                       code)
 ```
@@ -38,7 +38,7 @@ Two complementary proposals sit off the spectrum (narrower scope, compose with a
 
 **EIP-8175** provides flat capability composition with programmable gas sponsorship via fee_auth, but limits sender validation to fixed signature schemes. It started as "simpler than 8141" but evolved to include 4 new opcodes and EVM execution in the fee_auth prelude.
 
-**EIP-8130** trades some flexibility for predictable validation; verifiers are pure functions, nodes know the computational cost upfront. The cost is that complex validation logic can't be expressed at the protocol level.
+**EIP-8130** makes validation programmable but operationally predictable through verifier contracts: any validation logic can be expressed inside a verifier, while the allowlist and known gas bounds give nodes predictable cost. It is also designed as a full cross-chain account standard. The constraint is that verifiers implement a pure `verify(hash, data) → ownerId` interface, which shapes how complex policies (time-based, state-dependent) need to be expressed.
 
 **EIP-8202** takes a different angle entirely; it doesn't try to be an AA system. Instead, it solves signature agility and feature composition at the transaction envelope level. One execution payload, flat typed extensions, no new opcodes. The cost is no batching, no programmable validation, and no gas sponsorship (yet).
 
@@ -74,7 +74,7 @@ Two complementary proposals sit off the spectrum (narrower scope, compose with a
 |---|---|---|
 | **EIP-8141** | Protocol developers, L1 infrastructure, advanced smart accounts | Hard fork required. Comprehensive but long timeline. |
 | **EIP-8175** | Reth/Erigon ecosystem, developers wanting flat batching + programmable sponsorship | Hard fork required. 4 new opcodes, actively iterating. Competes with EIP-8202 for `0x05` tx type. |
-| **EIP-8130** | L2s (especially Base/Coinbase), wallets wanting simple AA | Hard fork required, but simpler client changes. No EVM modifications. |
+| **EIP-8130** | L2s (especially Base/Coinbase), wallets wanting a shared cross-chain account standard, high-throughput chains | Hard fork required, but simpler client changes. No EVM modifications. Base is implementing. |
 | **EIP-8202** | EOAs wanting PQ safety, protocol designers tired of tx type proliferation | Hard fork required. Minimal client changes (no EVM mods), but competes with EIP-7932/8197 for the same design space. |
 | **EIP-XXXX** | Wallets wanting batching + passkeys + sponsorship without smart contract complexity | Hard fork required. No EVM changes. Targets immediate UX improvement, not long-term extensibility. |
 | **EIP-8223** | Smart-account controllers wanting gas sponsorship without EVM validation; protocols running funded operator accounts | Hard fork required. Adds only the `0x13` predeploy. Compatible with FOCIL/VOPS out of the box. Complementary to other proposals. |
@@ -188,10 +188,15 @@ Sender authentication is purely cryptographic: ecrecover or Ed25519 verification
 **Status**: Draft | **Category**: Core (Standards Track)
 **Created**: October 14, 2025
 **Requires**: EIP-2718, EIP-7702
+**Latest spec**: [chunter-cb/EIPs eip-8130.md](https://github.com/chunter-cb/EIPs/blob/bb45441b89a021f884a960b1f5e2efb6704e6749/EIPS/eip-8130.md)
 
 ### Overview
 
-EIP-8130 introduces a new EIP-2718 transaction type and an onchain Account Configuration system. Instead of allowing arbitrary EVM execution during validation (as EIP-8141 does), accounts register owners with onchain **verifier contracts**. Transactions declare which verifier to use, enabling nodes to filter transactions without executing wallet code. No EVM changes (no new opcodes) are required.
+Summary provided by the author:
+
+> EIP-8130 is a full cross-chain account standard with verifier-based validation that is both programmable and operationally predictable. Enables any validation logic, batched calls, gas abstraction while giving nodes simpler policy surfaces, better validation performance, and lower VOPS/statelessness pressure than frame-based validation models. It also gives multi-chain wallets a shared account standard for portability and provides an operating model for high-throughput chains. Base is implementing.
+
+Concretely, EIP-8130 introduces a new EIP-2718 transaction type and an onchain Account Configuration system. Instead of allowing arbitrary EVM execution during validation (as EIP-8141 does), accounts register owners with onchain **verifier contracts**. Transactions declare which verifier to use, enabling nodes to filter transactions without executing wallet code. No EVM changes (no new opcodes) are required. For implementation details, see the [latest spec](https://github.com/chunter-cb/EIPs/blob/bb45441b89a021f884a960b1f5e2efb6704e6749/EIPS/eip-8130.md).
 
 ### Core Design
 
@@ -256,16 +261,18 @@ Nodes maintain a verifier allowlist. For allowlisted verifiers with known gas bo
 - **16 PRs** (14 merged, 1 open, 1 closed), active iteration from January through April 2026
 - **9 EthMagicians posts** at [ethereum-magicians.org/t/eip-8130-account-abstraction-by-account-configurations/25952](https://ethereum-magicians.org/t/eip-8130-account-abstraction-by-account-configurations/25952)
 - Key participants: chunter (author), rmeissner (Safe), Helkomine
+- **Implementation**: Base is implementing (per the author)
 
 ### Strengths
 
-- **No EVM during validation**: nodes can implement verifier logic natively for maximum throughput and full async-execution compatibility (Monad, EIP-7886).
-- **Portable configuration**: owner config changes with `chain_id = 0` replay deterministically across chains.
-- **Incremental adoption**: nodes add new signature schemes by updating their verifier allowlist, not via protocol upgrade.
+- **Cross-chain account standard**: shared account standard for multi-chain wallets, with owner config changes that can replay deterministically across chains (`chain_id = 0`).
+- **Programmable but operationally predictable validation**: verifier contracts are programmable (any logic can be expressed in a verifier), while the allowlist + known gas bounds give nodes predictable validation cost. Lower VOPS / statelessness pressure than frame-based validation models (no EVM during validation, simpler policy surfaces).
+- **Async-execution compatible**: nodes can implement verifier logic natively for maximum throughput, compatible with Monad and async models (EIP-7886).
+- **Incremental scheme adoption**: nodes add new signature schemes by updating their verifier allowlist, not via protocol upgrade.
 
 ### Weaknesses
 
-- **Limited validation expressiveness**: verifiers are pure functions (`verify(hash, data) → ownerId`). Time-based policies, state-dependent authorization, and other complex rules cannot be expressed.
+- **Validation expressiveness is bounded by the verifier interface**: verifiers implement `verify(hash, data) → ownerId`, which is pure. Rules that require mutable state or complex side-effecting logic (time-based policies, state-dependent authorization) have to be expressed within this pure-verifier shape. The author's framing is that this is still "programmable," since the verifier itself is arbitrary code; the counter-framing from EIP-8141 proponents is that the verifier shape constrains expressiveness compared to full EVM in VERIFY frames.
 - **Node-coordination risk**: nodes independently decide which verifiers to accept. A fragmented allowlist ecosystem could limit transaction propagation.
 - **New system-level infrastructure**: the Account Configuration Contract and Nonce Manager are new protocol system contracts.
 - **No value in calls**: calls carry no ETH value; ETH transfers require wallet bytecode.
@@ -707,7 +714,7 @@ The competing landscape splits along two axes:
 
 What to take away:
 
-- **Frame model vs flat composition** is the architectural fault line. EIP-8175 and EIP-8202 share the flat-composition position and overlapping authors. EIP-8141 and EIP-8130 represent two ways of adding AA without flat composition (programmable EVM vs declared verifiers).
+- **Frame model vs flat composition** is the architectural fault line. EIP-8175 and EIP-8202 share the flat-composition position and overlapping authors. EIP-8141 and EIP-8130 represent two ways of adding AA without flat composition (programmable EVM in VERIFY frames vs programmable verifier contracts with an allowlist).
 - **PQ readiness** favors EIP-8141 and EIP-8202 most directly (each in its own way), with EIP-8175 partial via Ed25519+Falcon and EIP-8130 via verifier-allowlist coordination.
 - **Mempool complexity** runs inverse to validation expressiveness. The more expressive the validation model, the more the mempool needs (banned opcodes, gas caps, validation prefixes, ERC-7562 lineage). EIP-8202 / EIP-XXXX / EIP-8223 / EIP-8224 all prioritize mempool simplicity at the cost of programmable validation.
 - **Complementary stack possibility**: the benaadams stack (EIP-8141 + EIP-8223 + EIP-8224) is the only proposal cluster designed to layer general-purpose AA, static sponsorship, and shielded gas funding into a single coherent design. The other proposals are more standalone.
