@@ -131,6 +131,8 @@ VERIFY frame data is elided because:
 
 ## Mempool Policy
 
+The policy below is the **restrictive tier** of a [two-tier mempool architecture](/mempool-strategy). It is what clients ship first and what FOCIL nodes default to. An expansive tier (ERC-7562 / paymaster-extended) is intended to develop in parallel for use cases that exceed the restrictive policy (privacy protocols, multi-account paymasters).
+
 The public mempool recognizes four validation prefixes:
 
 **Self Relay:**

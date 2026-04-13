@@ -13,6 +13,7 @@ Comprehensive analysis of [EIP-8141](https://eips.ethereum.org/EIPS/eip-8141) (F
 | [Original vs Latest](./docs/original-vs-latest.md) | Side-by-side comparison of structural changes and philosophical shifts |
 | [Competing Standards](./docs/competing-standards.md) | EIP-8130, EIP-8175, EIP-8202, Tempo - design, tradeoffs, comparative analysis |
 | [Pending Concerns](./docs/pending-concerns.md) | Open concerns - statelessness, mempool health, the "choose 2 of 3" trilemma |
+| [Mempool Strategy](./docs/mempool-strategy.md) | Two-tier mempool architecture, VOPS extension, merkle escape hatch, why no relayers are needed |
 | [Developer Tooling](./docs/developer-tooling.md) | Bear and bull cases for wallet/app developer adoption, protocol defaults vs ERC fragmentation |
 | [FAQ](./docs/faq.md) | Common questions with short answers and cross-references |
 | [Appendix](./docs/appendix.md) | PR timeline, key contributors, external resources |

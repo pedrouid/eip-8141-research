@@ -10,6 +10,7 @@
           <li><a href="/merged-changes">Merged Changes</a></li>
           <li><a href="/original-vs-latest">Original vs Latest</a></li>
           <li><a href="/pending-concerns">Pending Concerns</a></li>
+          <li><a href="/mempool-strategy">Mempool Strategy</a></li>
           <li><a href="/developer-tooling">Developer Tooling</a></li>
         </ul>
       </div>

@@ -80,6 +80,8 @@ The argument in full ([source](https://x.com/decentrek/status/203669788151270199
 
 **Practical implication for wallet tooling**. If the adoption cost truly is "implement a new transaction type," the most-requested AA features (ERC-20 gas payment for existing EOAs, sponsored transactions without a relayer) become reachable from a standard EOA. That preempts the fragmentation pressure that drove ERC-5792 and ERC-7677. The permissions and session-key ERC problem remains, but batching and sponsorship are handled at the protocol layer.
 
+The "no relayer" claim is structural, not aspirational: privacy rebroadcasters and "front ETH so users can pay gas in ERC-20" are both expressible as pure onchain smart contracts under EIP-8141. See [Mempool Strategy → Why Frame Transactions Don't Need Relayers](/mempool-strategy#why-frame-transactions-dont-need-relayers).
+
 ---
 
 ## How EIP-8141 Addresses These Concerns

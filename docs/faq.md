@@ -162,15 +162,15 @@ Frame transaction validation requires more state access than legacy transactions
 
 **8.2. What is the "choose 2 of 3" trilemma?**
 
-The observation that current designs cannot simultaneously deliver Frames/Native AA, Public Mempool/FOCIL, and Statelessness/VOPS - you can have at most two. [See concern #7 →](/pending-concerns#7-the-choose-2-of-3-trilemma)
+The observation that current designs cannot simultaneously deliver Frames/Native AA, Public Mempool/FOCIL, and Statelessness/VOPS - you can have at most two. [See concern #7 →](/pending-concerns#7-the-choose-2-of-3-trilemma) The proposed resolution under a [two-tier mempool + VOPS+4 + merkle escape hatch](/mempool-strategy#resolving-the-trilemma) is detailed in Mempool Strategy.
 
 **8.3. Is there a workaround for VOPS compatibility?**
 
-A witness-based approach (transactions carry proofs for state accessed outside VOPS) has been proposed, but it adds significant complexity, ~4 kB per extra storage slot. [See concern #8 →](/pending-concerns#8-witness-based-focil-compatibility--possible-but-complex)
+Yes. The proposed [VOPS extension](/mempool-strategy#the-state-side-vops-4-slots) covers nonce, balance, code, and the first 4 storage slots per account, which handles most AA validation reads. Use cases that exceed this baseline include a [merkle branch](/mempool-strategy#the-merkle-branch-escape-hatch) (4-8 kB today, 1-2 kB after binary tree).
 
 **8.4. What about encrypted mempools?**
 
-Encrypted mempools (e.g., LUCID protocol) are fundamentally incompatible with frame transaction validation - nodes can't check fields needed for DOS prevention if contents are encrypted. [See concern #5 →](/pending-concerns#5-encrypted-mempools-are-incompatible)
+Encrypted mempools (e.g., LUCID protocol) are fundamentally incompatible with the public restrictive mempool. The proposed framework routes them through the [expansive tier and onchain rebroadcaster contracts](/mempool-strategy#why-frame-transactions-dont-need-relayers) instead. [See concern #5 →](/pending-concerns#5-encrypted-mempools-are-incompatible)
 
 **8.5. How much extra state do nodes need?**
 

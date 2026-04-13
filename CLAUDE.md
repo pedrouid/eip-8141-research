@@ -21,6 +21,7 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 │   ├── competing-standards.md      # EIP-8130, EIP-8175, EIP-8202, Tempo - design + comparison
 │   ├── pending-concerns.md         # Open concerns (statelessness, mempool, trilemma, complexity)
 │   ├── faq.md                      # Indexed Q&A (section.question format, e.g. 2.3)
+│   ├── mempool-strategy.md         # Two-tier mempool architecture, VOPS extension, merkle escape hatch, no-relayers
 │   ├── developer-tooling.md        # Bear/bull cases for wallet/app dev adoption, protocol defaults vs ERC fragmentation
 │   └── .vitepress/
 │       ├── config.ts                  # Nav, sidebar, social links
@@ -112,6 +113,7 @@ Each document has a specific scope. Update only the relevant ones:
 | `competing-standards.md` | New competing EIPs, new PRs on existing competitors, new comparison threads |
 | `pending-concerns.md` | New concerns raised in ethresear.ch, EthMagicians, or private discussions |
 | `faq.md` | New questions arise from community, or answers change due to spec updates |
+| `mempool-strategy.md` | New mempool tier proposals, VOPS-extension changes, witness-cost analysis, relayer-substitute patterns |
 | `developer-tooling.md` | New bear/bull arguments emerge from wallet/app developers, or protocol defaults expand |
 | `appendix.md` | Always - update PR timeline, post count, contributor list, external resources |
 
