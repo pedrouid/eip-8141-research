@@ -2,13 +2,19 @@
   <footer class="custom-footer">
     <div class="footer-container">
       <div class="footer-col">
-        <h4>Docs</h4>
+        <h4>Spec</h4>
         <ul>
           <li><a href="/current-spec">Current Spec</a></li>
           <li><a href="/feedback-evolution">Feedback Evolution</a></li>
           <li><a href="/original-spec">Original Spec</a></li>
           <li><a href="/merged-changes">Merged Changes</a></li>
           <li><a href="/original-vs-latest">Original vs Latest</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Topics</h4>
+        <ul>
+          <li><a href="/competing-standards">Competing Standards</a></li>
           <li><a href="/pending-concerns">Pending Concerns</a></li>
           <li><a href="/mempool-strategy">Mempool Strategy</a></li>
           <li><a href="/developer-tooling">Developer Tooling</a></li>
@@ -107,7 +113,7 @@
   max-width: calc(var(--vp-layout-max-width) - 64px);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 32px;
 }
 
@@ -137,6 +143,12 @@
 
 .footer-col a:hover {
   color: var(--vp-c-brand-1);
+}
+
+@media (max-width: 1024px) {
+  .footer-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (max-width: 768px) {

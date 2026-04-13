@@ -34,13 +34,21 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 
 ---
 
-## Document Ordering
+## Document Ordering and Categories
 
 - Docs use slug filenames without numeric prefixes (e.g. `current-spec.md`, not `01-current-spec.md`)
 - Order is defined manually in `config.ts` (nav + sidebar), `Footer.vue`, and `README.md`, not by filename
-- `appendix.md` is always **last** in nav, sidebar, and footer
+- Docs are grouped into three categories. The same categories apply across the header nav dropdowns, sidebar groups, footer columns, and README tables:
+
+| Category | Purpose | Current docs |
+|---|---|---|
+| **Spec** | How EIP-8141 works and how it got here | Current Spec, Feedback Evolution, Original Spec, Merged Changes, Original vs Latest |
+| **Topics** | Analytical deep-dives beyond the spec itself | Competing Standards, Pending Concerns, Mempool Strategy, Developer Tooling |
+| **Resources** | Reference material, index, Q&A | FAQ, Appendix |
+
+- `appendix.md` is always **last** in the Resources group
 - The FAQ (`faq.md`) uses indexed questions: sections are numbered (1–10), questions are `section.question` (e.g., 1.1, 2.3, 8.5)
-- When adding a new document, create `docs/<slug>.md` and update: `config.ts` (nav + sidebar), `Footer.vue`, and `README.md`
+- When adding a new document, decide which category it belongs to, then create `docs/<slug>.md` and update: `config.ts` (nav + sidebar), `Footer.vue`, and `README.md` in the matching category
 
 ---
 
@@ -160,11 +168,12 @@ After updates, check:
 
 ### Adding a new document
 
-1. Create `docs/<slug>.md`
-2. Add to `config.ts` nav (inside Docs dropdown) and sidebar (before Appendix)
-3. Add to `Footer.vue` if it belongs in the Docs column
-4. Add to `README.md` document table
-5. Update this file's repository structure section
+1. Decide the category (Spec, Topics, or Resources)
+2. Create `docs/<slug>.md`
+3. Add to `config.ts` nav (inside the matching dropdown, Spec or Topics) and sidebar (inside the matching group)
+4. Add to `Footer.vue` under the matching column (Spec or Topics); Resources are sidebar-only
+5. Add to `README.md` under the matching category table
+6. Update this file's repository structure section
 
 ### Adding a new competing standard
 
