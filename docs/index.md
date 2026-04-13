@@ -42,7 +42,7 @@ EOAs benefit directly without EIP-7702. The protocol has built-in fallback behav
 
 ### Example A: Gasless Approve + Swap
 
-A user approves and swaps tokens in a single atomic transaction without paying gas:
+A user approves and swaps tokens in a single atomic transaction. The sponsor pays all gas; the user pays nothing:
 
 | Frame | Mode | Target | What it does |
 |---|---|---|---|
@@ -50,12 +50,11 @@ A user approves and swaps tokens in a single atomic transaction without paying g
 | 1 | VERIFY | sponsor | Verify sponsor, approve payment |
 | 2 | SENDER | ERC-20 | `approve(DEX, amount)` — allow DEX to spend tokens |
 | 3 | SENDER | DEX | `swap(...)` — execute the swap |
-| 4 | SENDER | USDC | `transfer(sponsor, fee)` — pay sponsor in USDC |
-| 5 | DEFAULT | sponsor | Post-op: refund overcharged fees |
+| 4 | DEFAULT | sponsor | Post-op: refund overcharged gas fees to sponsor |
 
-### Example B: Gasless Liquidity Rebalance
+### Example B: Liquidity Rebalance & Pay Gas in USDC
 
-An EOA at address A rebalances a Uniswap v4 liquidity position without paying gas:
+An EOA at address A rebalances a Uniswap v4 liquidity position, paying for gas in USDC instead of ETH:
 
 | Frame | Mode | Target | What it does |
 |---|---|---|---|
