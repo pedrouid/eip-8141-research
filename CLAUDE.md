@@ -24,6 +24,7 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 │   ├── faq.md                      # Indexed Q&A (section.question format, e.g. 2.3)
 │   ├── mempool-strategy.md         # Two-tier mempool architecture, VOPS extension, merkle escape hatch, no-relayers
 │   ├── developer-tooling.md        # Bear/bull cases for wallet/app dev adoption, protocol defaults vs ERC fragmentation
+│   ├── eoa-support.md              # EOA support via default code, replacing EIP-7702 for common cases
 │   └── .vitepress/
 │       ├── config.ts                  # Nav, sidebar, social links
 │       └── theme/
@@ -44,7 +45,7 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 | Category | Purpose | Current docs |
 |---|---|---|
 | **Spec** | How EIP-8141 works and how it got here | Current Spec, Feedback Evolution, Original Spec, Merged Changes, Original vs Latest |
-| **Topics** | Analytical deep-dives beyond the spec itself | Competing Standards, Pending Concerns, Mempool Strategy, Developer Tooling |
+| **Topics** | Analytical deep-dives beyond the spec itself | Competing Standards, Pending Concerns, Mempool Strategy, Developer Tooling, EOA Support |
 | **Resources** | Reference material, index, Q&A | FAQ, Appendix |
 
 - `appendix.md` is always **last** in the Resources group
@@ -136,6 +137,7 @@ Each document has a specific scope. Update only the relevant ones:
 | `faq.md` | New questions arise from community, or answers change due to spec updates |
 | `mempool-strategy.md` | New mempool tier proposals, VOPS-extension changes, witness-cost analysis, relayer-substitute patterns |
 | `developer-tooling.md` | New bear/bull arguments emerge from wallet/app developers, or protocol defaults expand |
+| `eoa-support.md` | Default code spec changes (new sig schemes, scope rules), or new comparisons to EIP-7702 surfaces |
 | `appendix.md` | Always - update PR timeline, post count, contributor list, external resources |
 
 ### 3. Update Infrastructure

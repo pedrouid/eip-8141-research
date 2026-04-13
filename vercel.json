@@ -37,6 +37,9 @@
     { "source": "/faq.html", "destination": "/faq", "permanent": true },
 
     { "source": "/developer-tooling.html", "destination": "/developer-tooling", "permanent": true },
-    { "source": "/mempool-strategy.html", "destination": "/mempool-strategy", "permanent": true }
+    { "source": "/mempool-strategy.html", "destination": "/mempool-strategy", "permanent": true },
+    { "source": "/default-code", "destination": "/eoa-support", "permanent": true },
+    { "source": "/default-code.html", "destination": "/eoa-support", "permanent": true },
+    { "source": "/eoa-support.html", "destination": "/eoa-support", "permanent": true }
   ]
 }

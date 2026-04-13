@@ -18,6 +18,7 @@
           <li><a href="/pending-concerns">Pending Concerns</a></li>
           <li><a href="/mempool-strategy">Mempool Strategy</a></li>
           <li><a href="/developer-tooling">Developer Tooling</a></li>
+          <li><a href="/eoa-support">EOA Support</a></li>
         </ul>
       </div>
       <div class="footer-col">

@@ -113,6 +113,7 @@ export default defineConfig({
           { text: "Pending Concerns", link: "/pending-concerns" },
           { text: "Mempool Strategy", link: "/mempool-strategy" },
           { text: "Developer Tooling", link: "/developer-tooling" },
+          { text: "EOA Support", link: "/eoa-support" },
         ],
       },
 
@@ -137,6 +138,7 @@ export default defineConfig({
           { text: "Pending Concerns", link: "/pending-concerns" },
           { text: "Mempool Strategy", link: "/mempool-strategy" },
           { text: "Developer Tooling", link: "/developer-tooling" },
+          { text: "EOA Support", link: "/eoa-support" },
         ],
       },
       {

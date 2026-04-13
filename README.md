@@ -22,6 +22,7 @@ Comprehensive analysis of [EIP-8141](https://eips.ethereum.org/EIPS/eip-8141) (F
 | [Pending Concerns](./docs/pending-concerns.md) | Open concerns - statelessness, mempool health, the "choose 2 of 3" trilemma |
 | [Mempool Strategy](./docs/mempool-strategy.md) | Two-tier mempool architecture, VOPS extension, merkle escape hatch, why no relayers are needed |
 | [Developer Tooling](./docs/developer-tooling.md) | Bear and bull cases for wallet/app developer adoption, protocol defaults vs ERC fragmentation |
+| [EOA Support](./docs/eoa-support.md) | How protocol-level default code replaces EIP-7702 delegation for common-case EOAs |
 
 ### Resources
 
