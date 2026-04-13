@@ -10,6 +10,7 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 ├── CLAUDE.md                          # This file - project instructions
 ├── README.md                          # GitHub landing page with document index and synthesis
 ├── package.json                       # VitePress dev dependency
+├── vercel.json                        # 308 redirects from old paths to current slugs (URL stability)
 ├── docs/
 │   ├── index.md                       # VitePress home page (hero, features, examples)
 │   ├── appendix.md                 # Sources, PR timeline, contributors, external resources
@@ -50,13 +51,21 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 - The FAQ (`faq.md`) uses indexed questions: sections are numbered (1–10), questions are `section.question` (e.g., 1.1, 2.3, 8.5)
 - When adding a new document, decide which category it belongs to, then create `docs/<slug>.md` and update: `config.ts` (nav + sidebar), `Footer.vue`, and `README.md` in the matching category
 
+### URL stability and Vercel redirects
+
+`vercel.json` at the repo root maintains 308 redirects from old paths to current slugs. The site is hosted on Vercel; redirects are server-side at the edge.
+
+- Both **source** and **destination** use `.html` extensions (e.g. `/01-current-spec.html` → `/current-spec.html`)
+- One redirect per old path. No extensionless source variants.
+- When renaming a doc or restructuring URLs, **add a new redirect**, do not remove existing ones. External backlinks to old paths must keep working.
+
 ---
 
 ## Website Configuration
 
 ### VitePress (docs/.vitepress/)
 
-- **config.ts**: Defines nav header and sidebar. Nav has: Home, Docs (dropdown), FAQ, Demo (external link). Sidebar lists all docs in order with Appendix last. Keep these in sync when adding/removing docs.
+- **config.ts**: Defines nav header and sidebar. Nav has: Home, Spec (dropdown), Topics (dropdown), FAQ, Demo (external link). Sidebar has three groups (Spec, Topics, Resources) with Appendix last in Resources. Keep these in sync when adding/removing docs.
 - **Footer.vue**: 4-column grid (Spec, Topics, Competing Standards anchors, Resources with external links). Does NOT include FAQ or Appendix.
 - **Layout.vue**: Wraps VitePress default layout, injects Footer via `#layout-bottom` slot.
 - **custom.css**: Global rule `white-space: nowrap` on first column of all tables. Do not remove - prevents column text wrapping across all docs.
@@ -139,6 +148,15 @@ After updates, check:
 - The appendix PR timeline matches what's described in `merged-changes.md`
 - FAQ cross-references to `pending-concerns.md` use correct anchor slugs
 
+**Distinguish event-timestamp dates from sync-snapshot dates:**
+
+| Date type | Examples | Action |
+|---|---|---|
+| **Event timestamp** | "PR #11481 merged Apr 2", "post #137 (Apr 10)", "derekchiang's comment (Apr 9)" | Never change. These are real events. |
+| **Sync-snapshot date** | "Latest (Apr 8)" header in `original-vs-latest.md`, "Pending Proposals (as of Apr 13)" in `current-spec.md`, "Active Open PRs (as of Apr 13)" in `merged-changes.md`, phase-range headers like "Phase 5 (Mar 26 – Apr 13)" in `feedback-evolution.md` | Refresh on every sync to reflect what is actually current as of the new sync date. |
+
+A common stale-date trap: phase-range headers in `feedback-evolution.md` get extended when the latest sync adds entries to that phase, but the header end-date isn't updated.
+
 ---
 
 ## Writing Principles
@@ -149,8 +167,36 @@ After updates, check:
 - **Comments over descriptions**: PR review threads often contain more insight than the PR description
 - **Chronological + thematic**: `merged-changes.md` is chronological; `feedback-evolution.md` groups by thematic phase
 - **What's absent**: Document what the spec does NOT have - gaps explain future direction
-- **No names in concerns**: `pending-concerns.md` does not attribute concerns to named individuals - it presents arguments, not people
 - **FAQ brevity**: Answers are 1-2 lines max. Link to docs or external sources for detail.
+
+### Topic-doc structure
+
+Topic docs (the Topics category: Competing Standards, Pending Concerns, Mempool Strategy, Developer Tooling) follow a fixed shape:
+
+- **TL;DR at the top** (problem statement + key positions + how the doc resolves them). Analyses that lead the doc are more useful than ones that close it. Example: `competing-standards.md` opens with the Comparative Analysis; `pending-concerns.md` opens with the Summary of Open Questions.
+- **Numbered or named sections** in the middle.
+- **Summary at the end** that mirrors the TL;DR with any additional nuance.
+
+When a topic doc presents opposing positions (e.g. Bear Case / Bull Case in `developer-tooling.md`), label them explicitly and include a one-line *Position* statement before the argument. Each position should have its own source link.
+
+### Source attribution
+
+Attribution rules vary by document, set deliberately:
+
+| Document | Attribution policy |
+|---|---|
+| `pending-concerns.md` | **Never attribute** to named individuals. Present arguments, not people. |
+| `developer-tooling.md` | **Always attribute** Bear and Bull positions via a `[source](URL)` link next to the position header. |
+| All other docs | Cite PR numbers, post numbers, commits per the **Traceability** principle. |
+
+### Counterpoint convention
+
+When a new framework doc (e.g. `mempool-strategy.md`) addresses existing concerns:
+
+1. Add a `**Counterpoint**:` paragraph at the end of each affected concern in `pending-concerns.md`, linking to the relevant section of the framework doc.
+2. Update that concern's row in the Summary of Open Questions table to reflect the resolution (e.g. "Resolved under [VOPS+4 extension](/mempool-strategy#...)").
+
+This keeps the concerns doc self-contained while routing readers to the framework when they want depth.
 
 ---
 
@@ -186,9 +232,19 @@ After updates, check:
 ### Adding a new pending concern
 
 1. Add numbered section in `pending-concerns.md` following existing pattern
-2. Add row to the Summary of Open Questions table at the bottom
+2. Add row to the Summary of Open Questions table at the top of the doc
 3. Add cross-reference in `faq.md` if a relevant question exists (use anchor slug format)
 4. Do not attribute concerns to named individuals
+
+### Adding a new topic doc that addresses existing concerns
+
+When the new doc proposes a framework, resolution, or counterargument that touches existing pending concerns:
+
+1. Write the topic doc following the [Topic-doc structure](#topic-doc-structure) conventions
+2. Audit `pending-concerns.md` for concerns the doc resolves or reframes
+3. For each affected concern, follow the [Counterpoint convention](#counterpoint-convention): add a `**Counterpoint**:` paragraph linking to the relevant section, and update that concern's row in the Summary table
+4. Cross-link from related FAQ entries to the new doc's relevant sections
+5. If the new doc reframes content already in `current-spec.md` (e.g. mempool policy), open the relevant section with a short paragraph pointing to the new framework
 
 ### Updating PR status
 

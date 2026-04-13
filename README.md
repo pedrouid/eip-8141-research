@@ -30,6 +30,16 @@ Comprehensive analysis of [EIP-8141](https://eips.ethereum.org/EIPS/eip-8141) (F
 | [FAQ](./docs/faq.md) | Common questions with short answers and cross-references |
 | [Appendix](./docs/appendix.md) | PR timeline, key contributors, external resources |
 
+## Updating
+
+To sync the repo with the latest spec changes, PRs, discussions, and competing standards, paste this prompt into a Claude Code session inside the repo:
+
+```
+Run the Update Process in CLAUDE.md.
+```
+
+The agent will check master spec, new PRs since the last documented one, EthMagicians and ethresear.ch posts, competing standards activity, then update the relevant docs and refresh sync-snapshot dates per the methodology.
+
 ## Website
 
 Browse the research at [eip-8141-research](https://pedrouid.github.io/eip-8141-research/) or try the [live demo](https://demo.eip-8141.ethrex.xyz/).
