@@ -34,6 +34,12 @@
             >
           </li>
           <li>
+            <a
+              href="/06-competing-standards#eip-8223-contract-payer-transaction"
+              >EIP-8223 — Contract Payer Transaction</a
+            >
+          </li>
+          <li>
             <a href="/06-competing-standards#comparative-analysis"
               >Comparative Analysis</a
             >

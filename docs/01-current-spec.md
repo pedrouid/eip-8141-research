@@ -230,9 +230,9 @@ If the swap reverts, the ERC-20 approval is also reverted.
 | EIP-7997 | Deterministic deployer, used for account deployment frames |
 | EIP-7392 | Signature registry; PR #11455 proposes making default code interoperable |
 
-## Pending Proposals (as of April 10, 2026)
+## Pending Proposals (as of April 13, 2026)
 
-Four significant proposals are under active discussion that would change the spec:
+Six significant proposals are under active discussion that would change the spec:
 
 ### 1. Signatures List in Outer Transaction (PR #11481)
 
@@ -240,7 +240,7 @@ lightclient proposes adding a `signatures` field to the outer transaction for PQ
 
 ### 2. Precompile-Based VERIFY Frames (PR #11482)
 
-derekchiang proposes allowing VERIFY frames to target designated "signature precompiles" directly. This enables contract accounts to use precompiles for verification (previously only available via EOA default code) and enables key rotation via storage-based public key commitments. Still in progress.
+derekchiang proposes allowing VERIFY frames to target designated "signature precompiles" directly. This enables contract accounts to use precompiles for verification (previously only available via EOA default code) and enables key rotation via storage-based public key commitments. All reviewers approved as of April 13, awaiting merge.
 
 ### 3. VALUE in SENDER Frames (Discussion, no PR yet)
 
@@ -249,4 +249,12 @@ Strong consensus from rmeissner (Safe), DanielVF, frangio, 0xrcinus, derek, and 
 ### 4. Spec Consistency Fixes (PR #11488)
 
 chiranjeev13 proposes: explicit VERIFY frame count check (`<= 2`), fixing stale APPROVE scope values in structural rules, and allowing any EOA as paymaster by removing the `frame.target != tx.sender` check from default VERIFY code.
+
+### 5. Broad Spec Tightening (PR #11521)
+
+benaadams (Ben Adams) proposes a 295-line spec hardening that splits the packed `mode` field into `mode` + `flags`, introduces a `FRAMEPARAM` opcode and `resolved_target` value, reduces `MAX_FRAMES` from `10^3` to `64`, adds a per-frame gas cost (`FRAME_TX_PER_FRAME_COST`), hardens default secp256k1/P256 paths (low-`s` enforcement, P256 address-domain separation), and strengthens security warnings around VERIFY-data malleability, `DELEGATECALL` + `APPROVE`, and deploy-frame front-running. Overlaps with #11481, #11482, and #11488 and will need coordination before merge.
+
+### 6. Frame Return Data Opcodes (Discussion, no PR yet)
+
+jacopo-eth (post #137, Apr 10) proposed native access to frame returndata via `FRAMERETURNDATASIZE` and `FRAMERETURNDATACOPY` opcodes, motivated by ERC-8211-style multi-step flows where one frame consumes the output of another without wrapper contracts. No author response yet.
 

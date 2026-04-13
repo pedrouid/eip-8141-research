@@ -6,7 +6,7 @@
 
 - [EIP-8141 Spec](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8141.md)
 - [All Related PRs](https://github.com/ethereum/EIPs/pulls?q=is%3Apr+8141)
-- [Ethereum Magicians Discussion (136 posts)](https://ethereum-magicians.org/t/frame-transaction/27617)
+- [Ethereum Magicians Discussion (138 posts)](https://ethereum-magicians.org/t/frame-transaction/27617)
 
 ---
 
@@ -40,8 +40,15 @@
 | Feb 6 | [#11272](https://github.com/ethereum/EIPs/pull/11272) | Thegaram | Disable EIP-3607 for frame transactions |
 | Mar 26 | [#11455](https://github.com/ethereum/EIPs/pull/11455) | SirSpudlington | Default code tweaks for EIP-7392 compatibility |
 | Apr 2 | [#11481](https://github.com/ethereum/EIPs/pull/11481) | lightclient | Add signatures list to outer tx (PQ aggregation) |
-| Apr 2 | [#11482](https://github.com/ethereum/EIPs/pull/11482) | derekchiang | Allow precompiles for VERIFY frames |
+| Apr 2 | [#11482](https://github.com/ethereum/EIPs/pull/11482) | derekchiang | Allow precompiles for VERIFY frames (all reviewers approved) |
 | Apr 6 | [#11488](https://github.com/ethereum/EIPs/pull/11488) | chiranjeev13 | Fix spec inconsistencies (APPROVE scopes, VERIFY count) |
+| Apr 13 | [#11521](https://github.com/ethereum/EIPs/pull/11521) | benaadams | Tighten spec (mode/flags split, FRAMEPARAM, resolved_target, MAX_FRAMES reduction, P256 hardening) |
+
+### Related
+
+| Date | PR | Author | Description |
+|---|---|---|---|
+| Apr 11 | [#11509](https://github.com/ethereum/EIPs/pull/11509) | benaadams | Add EIP-8223: Contract Payer Transaction (alternative/complementary sponsorship proposal) |
 
 ### Closed (not merged)
 
@@ -77,18 +84,21 @@
 | rmeissner | @rmeissner | Safe team representative, value-in-frames advocate |
 | node.cm | @node.cm | Spec reviewer, VERIFY frame count observation |
 | Chiranjeev Mishra | @chiranjeev13 | Spec consistency fixes |
+| Ben Adams | @benaadams | Spec tightening (PR #11521), author of EIP-8223 (Contract Payer Transaction) |
+| Jacopo | @jacopo-eth | Proposed FRAMERETURNDATASIZE/FRAMERETURNDATACOPY for multi-step flows |
+| Franco Victorio | @fvictorio | Raised question about validation-frame execution ordering vs non-frame txs |
 
 ## EthMagicians Discussion
 
 - **Thread**: [Frame Transaction](https://ethereum-magicians.org/t/frame-transaction/27617)
-- **Total posts**: 136 (as of April 10, 2026)
-- **Last documented coverage**: Posts 1-136
+- **Total posts**: 138 (as of April 13, 2026)
+- **Last documented coverage**: Posts 1-138
 
 ## External Resources
 
 - [Live Demo](https://demo.eip-8141.ethrex.xyz/)
 - [EIP-8141 Latest Spec](https://eips.ethereum.org/EIPS/eip-8141)
-- [Ethereum Magicians Discussion (136 posts)](https://ethereum-magicians.org/t/frame-transaction/27617)
+- [Ethereum Magicians Discussion (138 posts)](https://ethereum-magicians.org/t/frame-transaction/27617)
 - [PoC Implementation by sm-stack](https://github.com/sm-stack/eip8141-poc)
 - [PoC Writeup](https://hackmd.io/@TB5b8ghoQyChOtUKB0RsOg/B1PhyMK_be)
 - [BundleBear EIP-7702 Metrics](https://www.bundlebear.com/eip7702-overview/ethereum)
@@ -103,5 +113,6 @@
 - [EIP-8130: Account Abstraction by Account Configuration](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8130.md) — [Magicians thread](https://ethereum-magicians.org/t/eip-8130-account-abstraction-by-account-configurations/25952)
 - [EIP-8175: Composable Transaction](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8175.md) — [Magicians thread](https://ethereum-magicians.org/t/eip-8175-composable-transaction/27850)
 - [EIP-8202: Schemed Transaction](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8202.md) — [Magicians thread](https://ethereum-magicians.org/t/eip-8202-schemed-transaction/28044)
+- [EIP-8223: Contract Payer Transaction](https://github.com/ethereum/EIPs/pull/11509) — [Magicians thread](https://ethereum-magicians.org/t/eip-8223-contract-payer-transactions/28202)
 - [Frame Transactions vs. SchemedTransactions (comparison thread)](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056)
 

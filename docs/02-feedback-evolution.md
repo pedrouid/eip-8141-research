@@ -239,3 +239,27 @@ derekchiang raised a practical concern with lightclient's signatures list propos
 
 lightclient's earlier review on the EIP-3607 compatibility PR (#11272, disabling the EIP-3607 check for frame transactions) was dismissed on Apr 8. The PR remains open without resolution. The interaction between EIP-3607's sender-has-code rejection and frame transactions for smart accounts is still an unresolved design question.
 
+### Frame Return Data Access
+
+*jacopo-eth — post #137, Apr 10*
+
+Jacopo raised that access to frame returndata would enable using it as input in multi-step flows without requiring wrapper contracts (similar to the motivation behind ERC-8211). He proposed native support via `FRAMERETURNDATASIZE` and `FRAMERETURNDATACOPY` opcodes, with per-byte gas cost and a cap per frame. No author response yet.
+
+### Validation Frame Ordering Within a Block
+
+*fvictorio — post #138, Apr 13*
+
+Franco Victorio asked whether validation frames of frame transactions are executed first within a block, before non-frame transactions and non-validation frames, drawing an analogy to how ERC-4337 separates validation and execution phases. The question is about block-level scheduling, not transaction-level ordering, and remains unanswered in the thread.
+
+### Broad Spec Tightening
+
+*benaadams — PR #11521, Apr 13*
+
+Ben Adams submitted a 295-line spec tightening PR consolidating several open threads: splitting `mode`/`flags`, introducing `FRAMEPARAM` and `resolved_target`, hardening default secp256k1/P256 paths (low-`s`, P256 domain separation), reducing `MAX_FRAMES` from 1000 to 64, adding per-frame gas costs, locking deterministic deployment to EIP-7997, and strengthening security warnings around VERIFY-data malleability and DELEGATECALL + APPROVE. The PR overlaps with #11481, #11482, and #11488 and will likely need coordination with those before merge. derekchiang and the author have already exchanged review comments.
+
+### Contract Payer Transaction (EIP-8223)
+
+*benaadams — PR #11509, Apr 11*
+
+In parallel with the tightening PR, Ben Adams submitted EIP-8223 (PR #11509), a narrower sponsored-transaction proposal where gas fees are charged to `tx.to` via a canonical payer-registry predeploy at `0x13`. Validation requires one SLOAD and one balance check with no EVM execution, making it FOCIL/VOPS-compatible. The PR description explicitly positions EIP-8223 as complementary to EIP-8141 and EIP-8175 rather than competing: EIP-8223 covers the narrow case where static validation is sufficient, while frame-based proposals handle the general case. The registry mechanism could also be expressed as a capability or frame mode within those formats.
+

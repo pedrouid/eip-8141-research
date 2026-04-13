@@ -72,12 +72,14 @@ A subtle but important change: the original spec simply checked `mode == VERIFY`
 
 ## Active Proposals That May Change the Comparison
 
-As of April 9, 2026, several open PRs propose changes that would extend this comparison table:
+As of April 13, 2026, several open PRs propose changes that would extend this comparison table:
 
 | Proposal | PR | Impact |
 |---|---|---|
 | **Signatures list in outer tx** | [#11481](https://github.com/ethereum/EIPs/pull/11481) | Would add a `signatures` field to the transaction format, a new top-level field for PQ aggregation forward-compatibility |
-| **Precompile-based VERIFY** | [#11482](https://github.com/ethereum/EIPs/pull/11482) | Would allow VERIFY frames to target signature precompiles directly, changing the verification model |
+| **Precompile-based VERIFY** | [#11482](https://github.com/ethereum/EIPs/pull/11482) | Would allow VERIFY frames to target signature precompiles directly, changing the verification model (all reviewers approved) |
 | **VALUE in SENDER frames** | Under discussion (posts #124-134) | Strong consensus to add a `value` field to frames, no PR yet |
 | **VERIFY frame count constraint** | [#11488](https://github.com/ethereum/EIPs/pull/11488) | Would add explicit `<= 2` VERIFY frame limit to static constraints |
+| **Broad spec tightening** | [#11521](https://github.com/ethereum/EIPs/pull/11521) | Would split `mode`/`flags`, add `FRAMEPARAM` and `resolved_target`, harden default code (low-`s`, P256 domain separation), reduce `MAX_FRAMES` to 64, add per-frame gas cost |
+| **Frame returndata opcodes** | Under discussion (post #137) | Proposed `FRAMERETURNDATASIZE`/`FRAMERETURNDATACOPY` to enable multi-step flows, no PR yet |
 

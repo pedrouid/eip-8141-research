@@ -6,6 +6,22 @@ This document summarizes open concerns around EIP-8141 frame transactions as the
 
 ---
 
+## Summary of Open Questions
+
+| Concern | Status |
+|---|---|
+| Bytecode availability for AA-VOPS nodes | Unspecified in current proposals |
+| State growth bounds at scale AA adoption | Quantified but not mitigated |
+| Canonical paymaster adoption guarantee | Depends on market, not protocol |
+| Encrypted mempool compatibility | Fundamental conflict, no solution proposed |
+| Non-canonical paymaster censorship resistance | None under current design |
+| Propagation guarantees under paymaster fragmentation | Open question |
+| Frames + Public Mempool + Statelessness trilemma | Disputed: solvable if validation uses bounded state access |
+| Witness-based FOCIL compatibility | Theoretically possible, high complexity |
+| Implementation complexity and Glamsterdam impact | Contributing to delays, compounds other concerns |
+
+---
+
 ## 1. Stateless Validation Is Fundamentally Harder for Frame Transactions
 
 Legacy transactions require a single account trie lookup (~3,000 gas) to validate: check sender nonce and balance. Frame transactions execute arbitrary sender code via the VERIFY opcode, requiring access to the sender's bytecode, storage slots, and potentially helper library code, up to ~100k gas worth of state access.
@@ -102,20 +118,6 @@ However, the counterpoint is clear: while workarounds exist, **the complexity co
 Beyond the theoretical design tensions, there is a practical concern about the sheer complexity and breadth of implementation. Frame transactions touch consensus, mempool policy, p2p propagation, client state management, and wallet infrastructure simultaneously. Similar concerns were raised about the less complex EIP-8037, which was at least well-contained in scope.
 
 Frame transactions are already a contributing factor to Glamsterdam delays. While this alone is not considered a decisive argument against the proposal, it compounds the other concerns - each open question adds implementation surface, and the interactions between VOPS, FOCIL, witness proofs, canonical paymasters, and encrypted mempools create a combinatorial testing and verification burden.
-
-## Summary of Open Questions
-
-| Concern | Status |
-|---|---|
-| Bytecode availability for AA-VOPS nodes | Unspecified in current proposals |
-| State growth bounds at scale AA adoption | Quantified but not mitigated |
-| Canonical paymaster adoption guarantee | Depends on market, not protocol |
-| Encrypted mempool compatibility | Fundamental conflict, no solution proposed |
-| Non-canonical paymaster censorship resistance | None under current design |
-| Propagation guarantees under paymaster fragmentation | Open question |
-| Frames + Public Mempool + Statelessness trilemma | Disputed: solvable if validation uses bounded state access |
-| Witness-based FOCIL compatibility | Theoretically possible, high complexity |
-| Implementation complexity and Glamsterdam impact | Contributing to delays, compounds other concerns |
 
 ---
 

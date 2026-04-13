@@ -192,6 +192,10 @@ Unclear. EIP-8141 is the most comprehensive but also the most complex. EIP-8130 
 
 Yes - declared verifiers are a subset of what VERIFY frames can do. The reverse is not true. This is a key argument from EIP-8141 proponents.
 
+**9.4. What is EIP-8223 and how does it relate to EIP-8141?**
+
+A new proposal (PR #11509, Apr 11 2026) for static gas sponsorship via a canonical payer-registry predeploy at `0x13`. Its author explicitly frames it as complementary to EIP-8141 and EIP-8175, covering the narrow case where validation needs only an SLOAD plus a balance check. [See EIP-8223 →](/06-competing-standards#eip-8223-contract-payer-transaction)
+
 ---
 
 ## 10. Implementation & Timeline
