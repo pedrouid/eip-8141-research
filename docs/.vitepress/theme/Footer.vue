@@ -4,12 +4,13 @@
       <div class="footer-col">
         <h4>Docs</h4>
         <ul>
-          <li><a href="/01-current-spec">Current Spec</a></li>
-          <li><a href="/02-feedback-evolution">Feedback Evolution</a></li>
-          <li><a href="/03-original-spec">Original Spec</a></li>
-          <li><a href="/04-merged-changes">Merged Changes</a></li>
-          <li><a href="/05-original-vs-latest">Original vs Latest</a></li>
-          <li><a href="/07-pending-concerns">Pending Concerns</a></li>
+          <li><a href="/current-spec">Current Spec</a></li>
+          <li><a href="/feedback-evolution">Feedback Evolution</a></li>
+          <li><a href="/original-spec">Original Spec</a></li>
+          <li><a href="/merged-changes">Merged Changes</a></li>
+          <li><a href="/original-vs-latest">Original vs Latest</a></li>
+          <li><a href="/pending-concerns">Pending Concerns</a></li>
+          <li><a href="/developer-tooling">Developer Tooling</a></li>
         </ul>
       </div>
       <div class="footer-col">
@@ -17,30 +18,30 @@
         <ul>
           <li>
             <a
-              href="/06-competing-standards#eip-8130-account-abstraction-by-account-configuration"
+              href="/competing-standards#eip-8130-account-abstraction-by-account-configuration"
               >EIP-8130 — Account Configuration</a
             >
           </li>
           <li>
             <a
-              href="/06-competing-standards#eip-8202-scheme-agile-transactions-schemed-transactions"
+              href="/competing-standards#eip-8202-scheme-agile-transactions-schemed-transactions"
               >EIP-8202 — Schemed Transactions</a
             >
           </li>
           <li>
             <a
-              href="/06-competing-standards#eip-xxxx-tempo-like-transactions"
+              href="/competing-standards#eip-xxxx-tempo-like-transactions"
               >EIP-XXXX — Tempo-like Transactions</a
             >
           </li>
           <li>
             <a
-              href="/06-competing-standards#eip-8223-contract-payer-transaction"
+              href="/competing-standards#eip-8223-contract-payer-transaction"
               >EIP-8223 — Contract Payer Transaction</a
             >
           </li>
           <li>
-            <a href="/06-competing-standards#comparative-analysis"
+            <a href="/competing-standards#comparative-analysis"
               >Comparative Analysis</a
             >
           </li>

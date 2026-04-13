@@ -7,7 +7,7 @@ hero:
   actions:
     - theme: brand
       text: Read the Overview
-      link: /01-current-spec
+      link: /current-spec
     - theme: alt
       text: Try the Demo
       link: https://demo.eip-8141.ethrex.xyz/

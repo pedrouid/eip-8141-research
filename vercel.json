@@ -1,0 +1,13 @@
+{
+  "redirects": [
+    { "source": "/00-appendix", "destination": "/appendix", "permanent": true },
+    { "source": "/01-current-spec", "destination": "/current-spec", "permanent": true },
+    { "source": "/02-feedback-evolution", "destination": "/feedback-evolution", "permanent": true },
+    { "source": "/03-original-spec", "destination": "/original-spec", "permanent": true },
+    { "source": "/04-merged-changes", "destination": "/merged-changes", "permanent": true },
+    { "source": "/05-original-vs-latest", "destination": "/original-vs-latest", "permanent": true },
+    { "source": "/06-competing-standards", "destination": "/competing-standards", "permanent": true },
+    { "source": "/07-pending-concerns", "destination": "/pending-concerns", "permanent": true },
+    { "source": "/08-faq", "destination": "/faq", "permanent": true }
+  ]
+}
