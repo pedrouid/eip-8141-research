@@ -55,9 +55,13 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 
 `vercel.json` at the repo root maintains 308 redirects from old paths to current slugs. The site is hosted on Vercel; redirects are server-side at the edge.
 
-- Both **source** and **destination** use `.html` extensions (e.g. `/01-current-spec.html` → `/current-spec.html`)
-- One redirect per old path. No extensionless source variants.
-- When renaming a doc or restructuring URLs, **add a new redirect**, do not remove existing ones. External backlinks to old paths must keep working.
+- **Destinations are extensionless** (e.g. `/current-spec`) since `cleanUrls: true` is set in `config.ts` and canonical URLs have no `.html`
+- **Sources cover all variants**: each renamed doc has redirects for the old extensionless path, the old `.html` path, and the new-slug `.html` path. Example for `current-spec.md` (renamed from `01-current-spec.md`):
+  - `/01-current-spec` → `/current-spec`
+  - `/01-current-spec.html` → `/current-spec`
+  - `/current-spec.html` → `/current-spec`
+- **New docs** (no rename history) get a single `.html` redirect to handle visitors who type `.html`: `/<slug>.html` → `/<slug>`
+- When renaming a doc or restructuring URLs, **add new redirects, do not remove existing ones**. External backlinks to old paths must keep working.
 
 ---
 
