@@ -1,4 +1,6 @@
 {
+  "cleanUrls": true,
+  "trailingSlash": false,
   "redirects": [
     { "source": "/00-appendix", "destination": "/appendix", "permanent": true },
     { "source": "/00-appendix.html", "destination": "/appendix", "permanent": true },

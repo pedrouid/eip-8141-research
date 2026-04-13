@@ -56,6 +56,8 @@ export default defineConfig({
 
     // Twitter Card
     ["meta", { name: "twitter:card", content: "summary_large_image" }],
+    ["meta", { name: "twitter:site", content: "@pedrouid" }],
+    ["meta", { name: "twitter:creator", content: "@pedrouid" }],
     ["meta", { name: "twitter:title", content: SITE_NAME }],
     ["meta", { name: "twitter:description", content: SITE_DESCRIPTION }],
     ["meta", { name: "twitter:image", content: TWITTER_IMAGE }],
