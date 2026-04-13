@@ -28,17 +28,17 @@ When an account abstraction standard ships without protocol-level defaults, ever
 
 When AA ships with primitives and no policy, the ecosystem fills the policy gap. Each common feature has to be standardized as a wallet-level ERC, and each ERC has to be adopted by every major wallet to be useful to app developers. The pattern is well-documented:
 
-**Slow convergence**. [ERC-5792](https://eips.ethereum.org/EIPS/eip-5792) (`wallet_sendCalls` for batch calls) took an extended period for major wallets to align on. Adoption across top wallets and apps is still incomplete as of this writing.
+**Slow convergence**. [ERC-5792](https://eips.ethereum.org/EIPS/eip-5792) (`wallet_sendCalls` for batch calls) took an extended period for major wallets to align on, and adoption across top wallets and apps appears to remain incomplete based on observable wallet integrations.
 
 **Fragmented APIs**. Competing wallet vendors steward parallel standards for the same feature, each with different mental models that leak into app developer APIs:
 
 | Feature | Standard A | Standard B |
 |---|---|---|
-| Permissions / session keys | MetaMask: [ERC-7710](https://eips.ethereum.org/EIPS/eip-7710) + [ERC-7715](https://eips.ethereum.org/EIPS/eip-7715) | Base: [ERC-7895](https://eips.ethereum.org/EIPS/eip-7895) + Spend Permissions |
+| Permissions / session keys | MetaMask: [ERC-7710](https://eips.ethereum.org/EIPS/eip-7710) + [ERC-7715](https://eips.ethereum.org/EIPS/eip-7715) | Base: [ERC-7895](https://eips.ethereum.org/EIPS/eip-7895) + [Spend Permissions](https://docs.base.org/identity/smart-wallet/concepts/features/optional/spend-permissions) |
 | Batch calls | [ERC-5792](https://eips.ethereum.org/EIPS/eip-5792) (converged, slowly) | — |
 | Fee sponsorship | [ERC-7677](https://eips.ethereum.org/EIPS/eip-7677) (Coinbase lineage) | Wallet-specific proposals emerging |
 
-The permissions example is the canonical warning. ERC-7710/7715 and ERC-7895/Spend Permissions model permissions in substantially different ways, no other wallets implement either yet, and apps that want permissions have to either pick a side or ship two implementations.
+The permissions example is the canonical warning. ERC-7710/7715 and ERC-7895/Spend Permissions model permissions in substantially different ways, no broader wallet adoption is visible at the time of writing, and apps that want permissions have to either pick a side or ship two implementations.
 
 **Root cause**. Without protocol defaults, every wallet's policy is as valid as any other. That is how you end up with N parallel ERCs per feature and a multi-year convergence cycle per ERC.
 

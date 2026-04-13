@@ -49,20 +49,20 @@ This is the EOA's way of issuing one or more calls in a single SENDER frame. Com
 
 Default code reverts. EOAs have no meaningful behavior to execute when called by the EntryPoint (which is what DEFAULT mode signifies), so the protocol does not synthesize one.
 
-This does not mean DEFAULT frames are unused. They are widely used in practice, but only when targeting deployed contracts at specific positions in the transaction. See the next section.
+This does not mean DEFAULT frames are unused. They are intended for two specific roles when targeting deployed contracts at specific positions in the transaction. See the next section.
 
 ---
 
 ## DEFAULT Frames in Practice
 
-A DEFAULT frame sets `caller = ENTRY_POINT` (instead of `tx.sender` like SENDER mode). That is exactly what you want for two specific roles in a frame transaction, both gated by position:
+A DEFAULT frame sets `caller = ENTRY_POINT` (instead of `tx.sender` like SENDER mode). The two recognized roles for DEFAULT frames in the current spec are positional:
 
 | Position | Use case | Why DEFAULT mode |
 |---|---|---|
 | **First frame** | Account deployment | The account being deployed does not exist yet, so there is no `tx.sender` code to act as caller. EntryPoint is the only meaningful caller. |
 | **Last frame** | Paymaster post-op (refunds) | The paymaster's refund logic gates on `caller == ENTRY_POINT`, which is a cleaner authorization than gating on the sender. |
 
-These are the only two valid DEFAULT frame use cases known today. Both are positional conventions, not protocol-enforced constraints, but the public mempool's recognized validation prefixes assume them.
+These are the two recognized DEFAULT frame use cases in the current spec. Both are positional conventions encoded in the public mempool's recognized validation prefixes; the spec does not formally enumerate them as the only allowed uses.
 
 ### Account Deployment (first frame)
 
@@ -110,7 +110,7 @@ The cost of EIP-7702 in production is real:
 3. User must sign a delegation to opt in.
 4. Delegation is persistent, so revocation requires another signed authorization.
 
-EIP-8141 default code removes all four. The wallet implements a new transaction type, the user signs a frame transaction, and the protocol does the rest. See [Developer Tooling → Bull Case](/developer-tooling#bull-case-native-aa-with-powerful-defaults) for the broader adoption-cost argument.
+EIP-8141 default code is designed to reduce or eliminate all four for the common case. Proponents argue the wallet only needs to implement a new transaction type, the user signs a frame transaction, and the protocol does the rest. See [Developer Tooling → Bull Case](/developer-tooling#bull-case-native-aa-with-powerful-defaults) for the broader adoption-cost argument.
 
 ---
 

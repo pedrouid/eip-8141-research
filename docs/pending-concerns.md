@@ -14,17 +14,19 @@ This document summarizes open concerns around EIP-8141 frame transactions as the
 
 ## Summary of Open Questions
 
+The status column distinguishes concerns where a proposed framework offers an answer (no consensus yet) from concerns that remain genuinely open.
+
 | Concern | Status |
 |---|---|
-| Bytecode availability for AA-VOPS nodes | Addressed by [VOPS+4 extension](/mempool-strategy#the-state-side-vops-4-slots) (covers code + nonce + balance + 4 slots) |
-| State growth bounds at scale AA adoption | Bounded under VOPS+4; non-VOPS-friendly txs pay [merkle branch cost](/mempool-strategy#the-merkle-branch-escape-hatch) |
-| Canonical paymaster adoption guarantee | Depends on market, not protocol |
-| Encrypted mempool compatibility | Routed through [expansive tier and onchain rebroadcasters](/mempool-strategy#expansive-mempool-what-develops-in-parallel), not public mempool |
-| Non-canonical paymaster censorship resistance | None under current design (limited to 1 pending tx in restrictive tier) |
-| Propagation guarantees under paymaster fragmentation | Open question |
-| Frames + Public Mempool + Statelessness trilemma | Resolved under [two-tier mempool + VOPS+4 + witness escape hatch](/mempool-strategy#resolving-the-trilemma) |
-| Witness-based FOCIL compatibility | Accepted as the explicit cost of the [escape hatch](/mempool-strategy#the-merkle-branch-escape-hatch) for non-VOPS-friendly txs |
-| Implementation complexity and Glamsterdam impact | Contributing to delays, compounds other concerns |
+| Bytecode availability for AA-VOPS nodes | **Proposed answer**: covered by [VOPS+4 extension](/mempool-strategy#the-state-side-vops-4-slots) (code + nonce + balance + 4 slots) |
+| State growth bounds at scale AA adoption | **Proposed answer**: bounded under VOPS+4; non-VOPS-friendly txs pay a [merkle branch cost](/mempool-strategy#the-merkle-branch-escape-hatch) |
+| Canonical paymaster adoption guarantee | **Open**: depends on market, not protocol |
+| Encrypted mempool compatibility | **Proposed answer**: routed through [expansive tier and onchain rebroadcasters](/mempool-strategy#expansive-mempool-what-develops-in-parallel), not the public mempool |
+| Non-canonical paymaster censorship resistance | **Open**: none under current design (limited to 1 pending tx in restrictive tier) |
+| Propagation guarantees under paymaster fragmentation | **Open**: depends on cross-client policy alignment |
+| Frames + Public Mempool + Statelessness trilemma | **Proposed answer**: addressed by [two-tier mempool + VOPS+4 + witness escape hatch](/mempool-strategy#resolving-the-trilemma) |
+| Witness-based FOCIL compatibility | **Proposed**: as the explicit cost of the [escape hatch](/mempool-strategy#the-merkle-branch-escape-hatch) for non-VOPS-friendly txs |
+| Implementation complexity and Glamsterdam impact | **Open**: cited in community discussion as adding scope |
 
 ---
 
@@ -146,7 +148,30 @@ The proposed framework (see [Mempool Strategy](/mempool-strategy#the-merkle-bran
 
 Beyond the theoretical design tensions, there is a practical concern about the sheer complexity and breadth of implementation. Frame transactions touch consensus, mempool policy, p2p propagation, client state management, and wallet infrastructure simultaneously. Similar concerns were raised about the less complex EIP-8037, which was at least well-contained in scope.
 
-Frame transactions are already a contributing factor to Glamsterdam delays. While this alone is not considered a decisive argument against the proposal, it compounds the other concerns - each open question adds implementation surface, and the interactions between VOPS, FOCIL, witness proofs, canonical paymasters, and encrypted mempools create a combinatorial testing and verification burden.
+Frame transactions have been cited in community discussion as adding scope to the Glamsterdam timeline. While this alone is not considered a decisive argument against the proposal, it compounds the other concerns: each open question adds implementation surface, and the interactions between VOPS, FOCIL, witness proofs, canonical paymasters, and encrypted mempools create a combinatorial testing and verification burden.
+
+---
+
+## Summary
+
+The concerns above split cleanly into two groups, reflected in the [summary table](#summary-of-open-questions) at the top:
+
+**Concerns the proposed framework offers an answer to** (where the answer is the [Mempool Strategy](/mempool-strategy) framework, not yet adopted policy):
+
+- Stateless validation difficulty (#1) → bounded by restrictive tier + VOPS+4
+- VOPS state growth (#2) → covered by VOPS+4 plus merkle witnesses for the long tail
+- Encrypted mempool incompatibility (#5) → routed through expansive tier and onchain rebroadcasters
+- The "choose 2 of 3" trilemma (#7) → resolved per-tx-class under the framework
+- Witness-based FOCIL compatibility (#8) → accepted as the escape hatch's per-tx cost
+
+**Concerns that remain genuinely open**:
+
+- Mempool health as censorship resistance (#3) → mitigated by the restrictive tier but depends on FOCIL adoption
+- Canonical paymaster adoption guarantee (#4) → market-driven, not protocol-enforceable
+- Transaction propagation fragility (#6) → depends on cross-client policy alignment
+- Implementation complexity / Glamsterdam scope (#9) → compounds other concerns
+
+**What to watch**: whether the proposed framework gets formal traction (PRs, ethresear.ch follow-ups, FOCIL-and-VOPS integration work), and whether wallet ecosystems converge on the canonical paymaster pattern or fragment into non-canonical ones.
 
 ---
 

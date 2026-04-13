@@ -13,7 +13,7 @@ For state, the proposal extends the [VOPS (Validity-Only Partial Statelessness)]
 
 The framing is borrowed from Bitcoin: **let consensus rules do a lot, but restrict at the mempool layer**. [Bitcoin Core's policy rules](https://github.com/bitcoin/bitcoin/tree/master/doc/policy) are upgradable without hardforks, which is why Bitcoin has been able to evolve for 15+ years while keeping the consensus footprint narrow. EIP-8141 applies the same pattern to native AA.
 
-A consequence of this design: **frame transactions do not need relayers**. Privacy rebroadcasters and "front ETH so users can pay gas in ERC-20" are both expressible as pure onchain smart contracts, with no live third-party actors required in the transaction supply chain.
+A consequence of this design: **the proposal claims frame transactions remove the need for off-chain relayers**. Privacy rebroadcasters and "front ETH so users can pay gas in ERC-20" are designed to be expressible as pure onchain smart contracts, with no live third-party actors required in the transaction supply chain. This is the proposal's structural claim, not yet observed in production.
 
 ---
 
@@ -59,7 +59,7 @@ These constraints were chosen so that one transaction's validity depends on a sm
 - ERC-20 gas payment via canonical paymaster (see [EIP-8141 spec example 4](https://eips.ethereum.org/EIPS/eip-8141#practical-use-cases))
 - Smart account validation that reads only its own storage
 
-This is intended as "AA for the common case" at the protocol layer. The restrictive tier deliberately targets what most wallets and users actually need; richer use cases route through the expansive tier.
+The intent is to cover what most wallets and users need at the protocol layer. The restrictive tier deliberately targets the common case; richer use cases route through the expansive tier.
 
 ---
 
@@ -135,7 +135,9 @@ The ["choose 2 of 3" trilemma](/pending-concerns#7-the-choose-2-of-3-trilemma) (
 
 ## The Bitcoin Pattern: Permissive Consensus, Restrictive Mempool
 
-The architectural pattern underlying this strategy is borrowed from Bitcoin. In Bitcoin, **consensus rules** (what's valid on-chain) and **standardness rules** (what gets relayed by the mempool) are deliberately separate layers. The mempool filters are maintained in [Bitcoin Core's policy code](https://github.com/bitcoin/bitcoin/tree/master/doc/policy) and evolve without consensus-level changes:
+The architectural pattern underlying this strategy is borrowed by analogy from Bitcoin. The analogy is not equivalence: Bitcoin's scripting model and Ethereum's EVM differ substantially. The borrowed idea is the layering itself.
+
+In Bitcoin, **consensus rules** (what's valid on-chain) and **standardness rules** (what gets relayed by the mempool) are deliberately separate layers. The mempool filters are maintained in [Bitcoin Core's policy code](https://github.com/bitcoin/bitcoin/tree/master/doc/policy) and evolve without consensus-level changes:
 
 - **Consensus rules are permissive**: anything that can be validated by the protocol is valid on-chain
 - **Mempool rules are restrictive**: nodes filter the propagation network down to a safer subset
@@ -155,22 +157,22 @@ The cost is conceptual: developers must understand that "consensus-valid" and "p
 
 ---
 
-## Why Frame Transactions Don't Need Relayers
+## Why the Proposal Claims Frame Transactions Don't Need Relayers
 
-A common assumption inherited from EIP-4337 / EIP-7702 deployments is that AA requires off-chain relayer infrastructure: bundlers, paymaster operators, privacy rebroadcasters. The proposed strategy makes the explicit claim that **frame transactions do not need any of this**.
+A common assumption inherited from EIP-4337 / EIP-7702 deployments is that AA requires off-chain relayer infrastructure: bundlers, paymaster operators, privacy rebroadcasters. The proposed strategy argues this is no longer structurally necessary.
 
-The mechanism: anything a relayer does for an EIP-4337 deployment can be expressed as a pure onchain smart contract under EIP-8141.
+The proposed mechanism: anything a relayer does for an EIP-4337 deployment can be expressed as a pure onchain smart contract under EIP-8141.
 
-**Privacy rebroadcasters** become onchain contracts that observe the canonical mempool, repackage transactions with the necessary witness branches, and submit them. No live operator is required.
+**Privacy rebroadcasters** could become onchain contracts that observe the canonical mempool, repackage transactions with the necessary witness branches, and submit them. No live operator would be required.
 
-**"Front ETH so users can pay gas in ERC-20"** becomes a canonical paymaster (or non-canonical paymaster within the limit) that:
+**"Front ETH so users can pay gas in ERC-20"** could become a canonical paymaster (or non-canonical paymaster within the limit) that:
 - Accepts an ERC-20 payment in a SENDER frame
 - Pays the transaction's ETH gas cost
 - Settles the rate at execution time
 
-The contract carries the role the off-chain actor carried before. No separate operator is required.
+If the design works as proposed, the contract carries the role the off-chain actor carried before, without a separate operator.
 
-This is the structural advantage the proposal claims over [EIP-4337](https://eips.ethereum.org/EIPS/eip-4337) + [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702): in those designs, the relayer/bundler is required because validation does not run in-protocol. EIP-8141 brings validation into the protocol, which removes the need for an out-of-protocol actor to validate, package, and submit.
+This is the structural argument the proposal makes against [EIP-4337](https://eips.ethereum.org/EIPS/eip-4337) + [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702): in those designs, the relayer/bundler is required because validation does not run in-protocol. EIP-8141 brings validation into the protocol, which the proposal claims removes the structural need for an out-of-protocol actor to validate, package, and submit. Whether the on-chain substitutes match the operational properties of bundlers in practice is an open question for production deployments.
 
 The practical implication is one of the strongest claims in the [Developer Tooling bull case](/developer-tooling#bull-case-native-aa-with-powerful-defaults): the wallet adoption cost reduces to "implement a new transaction type," because there is no per-chain relayer infrastructure to operate.
 
@@ -178,9 +180,11 @@ The practical implication is one of the strongest claims in the [Developer Tooli
 
 ## Summary
 
-- **Two-tier mempool**: Restrictive (ships first, covers ~80% of cases) and Expansive (parallel, opt-in, handles privacy and complex validation).
-- **VOPS extension**: Add the first 4 storage slots per account to the VOPS baseline. Small constant factor, covers most AA validation patterns.
-- **Merkle branch escape hatch**: Use cases outside VOPS+4 include witness data (4-8 kB today, 1-2 kB binary tree). Cost falls on the transactions that need it.
-- **Trilemma resolution**: Frames + FOCIL + VOPS coexist for the majority of traffic. Edge cases pay an explicit per-tx cost or move to the expansive tier.
-- **Bitcoin pattern**: Permissive consensus + restrictive mempool = upgradability without hardforks.
-- **No relayers**: Privacy rebroadcasters and ERC-20 gas fronting express as pure onchain smart contracts. The wallet integration cost collapses to "implement a new transaction type."
+The framework is a **proposal** assembled around a specification baseline (the restrictive tier). The shipped piece is the restrictive mempool policy in the EIP-8141 spec; the rest (expansive tier, VOPS+4, witness escape hatch, the no-relayer claim) is the proposed framework around it.
+
+- **Two-tier mempool** (proposed): Restrictive (in spec, covers the common case) and Expansive (proposed parallel layer, opt-in, handles privacy and complex validation).
+- **VOPS extension** (proposed): adds the first 4 storage slots per account to the VOPS baseline. Small constant factor, intended to cover most AA validation patterns.
+- **Merkle branch escape hatch** (proposed): use cases outside VOPS+4 include witness data (4-8 kB today, 1-2 kB after binary tree). Cost falls on the transactions that need it.
+- **Trilemma**: under this framework, Frames + FOCIL + VOPS can coexist for the majority of traffic. Edge cases pay an explicit per-tx cost or move to the expansive tier. The framework is not yet adopted policy.
+- **Bitcoin pattern** (analogy, not equivalence): permissive consensus + restrictive mempool gives upgradability without hardforks. The architectural lesson is the layering itself, not the specifics of Bitcoin Script.
+- **No relayers** (proposed claim): privacy rebroadcasters and ERC-20 gas fronting are designed to be expressible as pure onchain smart contracts. Whether the substitute matches bundlers' operational properties in practice is open.

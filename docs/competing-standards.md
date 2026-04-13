@@ -468,7 +468,7 @@ The bounded signature sizes (`MAX_WEBAUTHN_SIG_SIZE = 2,049 bytes`) and determin
 
 ### Activity
 
-- **Pre-draft** by gakonst (Georgios Konstantopoulos, Paradigm/Reth), published as a design exploration outside the standard EIP channels
+- **[Pre-draft gist](https://gist.github.com/gakonst/00117aa2a1cd327f515bc08fb807102e)** by gakonst (Georgios Konstantopoulos, Paradigm/Reth), published as a design exploration outside the standard EIP channels
 - No EIP number assigned, no PR to ethereum/EIPs, no EthMagicians thread yet
 - Very early stage; referenced in community discussions but not yet submitted for formal review
 
@@ -667,11 +667,11 @@ Validation is bounded cryptographic computation plus a canonical code-hash check
 
 ### What EIP-8175's Ecosystem Says About EIP-8141
 
-From the [Frame Transactions vs. SchemedTransactions comparison thread](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056), Giulio2002 argues that frame transactions impose a "smart wallet tax" of ~30,000-48,000 gas for contract dispatch, storage reads, and EVM context, making PQ verification via VERIFY frames (~63,000 gas) roughly 2x more expensive than direct SchemedTransaction verification (~29,500 gas for Falcon).
+In the [Frame Transactions vs. SchemedTransactions comparison thread](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056), Giulio2002 ([post #1](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056/1)) argues that frame transactions impose a "smart wallet tax" of ~30,000-48,000 gas for contract dispatch, storage reads, and EVM context, making PQ verification via VERIFY frames (~63,000 gas) roughly 2x more expensive than direct SchemedTransaction verification (~29,500 gas for Falcon).
 
 The deeper argument: every real signature scheme ends up needing a precompile anyway (P256 → RIP-7212, Falcon → EIP-8052, Dilithium → EIP-8051). Frames become "an unnecessary indirection" over precompiles that were going to be needed regardless.
 
-EIP-8141 defenders counter that: (1) the gas comparison conflates ERC-4337 EntryPoint overhead with frame transaction overhead, (2) existing EOAs cannot use new crypto schemes under SchemedTransactions without changing addresses, which lightclient has characterized as *"an almost certain guarantee that there will be very little adoption"* in the [comparison thread](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056), and (3) NIST-recommended hybrid classical+PQ signing is trivial in VERIFY frames but impossible in flat signature schemes.
+EIP-8141 defenders counter that: (1) the gas comparison is contested. ch4r10t33r ([post #17](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056/17)) argues "the 30,000–48,000 gas 'smart wallet tax' figure is substantially inflated when applied to a natively-validated Frame Transaction", because the figure conflates ERC-4337 EntryPoint overhead with frame transaction overhead. (2) existing EOAs cannot use new crypto schemes under SchemedTransactions without changing addresses, which matt ([post #15](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056/15)) characterized as *"an almost certain guarantee that there will be very little adoption"*. (3) NIST-recommended hybrid classical+PQ signing is trivial in VERIFY frames but impossible in flat signature schemes.
 
 *Analysis*: EIP-8175 and EIP-8202 share overlapping authors (rakita and Giulio2002 cross-pollinate across both). The two proposals advocate a consistent "flat composition, not recursive" design position against EIP-8141's frame model.
 
@@ -694,4 +694,22 @@ However, EIP-8202 explicitly acknowledges EIP-8141 as a potential extension:
 > "An EIP-8141-style frame extension could attach nested execution frames to the same transaction envelope without requiring a new top-level transaction type."
 
 The positioning is complementary-but-skeptical: EIP-8202 solves the envelope and signature agility problem first, and frames could be layered on top later as an extension, but the authors are clearly concerned about the mempool complexity that frame execution introduces.
+
+---
+
+## Summary
+
+The competing landscape splits along two axes:
+
+**Generality vs. deployability** (the spectrum at the top of this doc): EIP-8141 is the most general (arbitrary EVM in VERIFY frames), and the constraint level rises as you move through EIP-8175 (programmable fee_auth), EIP-8130 (declared verifiers, no wallet code), EIP-8202 (flat scheme-agile envelope), to EIP-XXXX/Tempo-like (fixed UX primitives, no programmable validation).
+
+**Scope** (general-purpose AA vs. narrower complementary proposals): EIP-8223 and EIP-8224 are intentionally scoped narrower than the other five. They address only sponsored gas and shielded gas funding respectively, and explicitly compose with whatever general-purpose AA design ships.
+
+What to take away:
+
+- **Frame model vs flat composition** is the architectural fault line. EIP-8175 and EIP-8202 share the flat-composition position and overlapping authors. EIP-8141 and EIP-8130 represent two ways of adding AA without flat composition (programmable EVM vs declared verifiers).
+- **PQ readiness** favors EIP-8141 and EIP-8202 most directly (each in its own way), with EIP-8175 partial via Ed25519+Falcon and EIP-8130 via verifier-allowlist coordination.
+- **Mempool complexity** runs inverse to validation expressiveness. The more expressive the validation model, the more the mempool needs (banned opcodes, gas caps, validation prefixes, ERC-7562 lineage). EIP-8202 / EIP-XXXX / EIP-8223 / EIP-8224 all prioritize mempool simplicity at the cost of programmable validation.
+- **Complementary stack possibility**: the benaadams stack (EIP-8141 + EIP-8223 + EIP-8224) is the only proposal cluster designed to layer general-purpose AA, static sponsorship, and shielded gas funding into a single coherent design. The other proposals are more standalone.
+- **Tx type number conflicts** signal where consolidation will eventually be forced (EIP-8175 and EIP-8202 both claim `0x05`).
 
