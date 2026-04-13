@@ -1,4 +1,4 @@
-# EIP-8141: Frame Transaction - Research
+# EIP-8141: Frame Transaction
 
 Comprehensive analysis of [EIP-8141](https://eips.ethereum.org/EIPS/eip-8141) (Frame Transaction) - tracking its origin, evolution through community feedback, competing proposals, and open concerns.
 

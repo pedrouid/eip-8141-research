@@ -2,7 +2,7 @@
   <footer class="custom-footer">
     <div class="footer-container">
       <div class="footer-col">
-        <h4>Research</h4>
+        <h4>Docs</h4>
         <ul>
           <li><a href="/01-current-spec">Current Spec</a></li>
           <li><a href="/02-feedback-evolution">Feedback Evolution</a></li>

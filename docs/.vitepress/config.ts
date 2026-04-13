@@ -8,7 +8,7 @@ export default defineConfig({
     nav: [
       { text: "Home", link: "/" },
       {
-        text: "Research",
+        text: "Docs",
         items: [
           { text: "Current Spec", link: "/01-current-spec" },
           { text: "Feedback Evolution", link: "/02-feedback-evolution" },
@@ -25,7 +25,7 @@ export default defineConfig({
     ],
     sidebar: [
       {
-        text: "Research",
+        text: "Docs",
         items: [
           { text: "Current Spec", link: "/01-current-spec" },
           { text: "Feedback Evolution", link: "/02-feedback-evolution" },
