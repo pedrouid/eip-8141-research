@@ -28,7 +28,7 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 │       └── theme/
 │           ├── index.ts               # Theme entry - imports custom.css
 │           ├── Layout.vue             # Wraps default layout, adds Footer
-│           ├── Footer.vue             # 3-column footer (Docs, Competing Standards, Sources)
+│           ├── Footer.vue             # 4-column footer (Spec, Topics, Competing Standards, Resources)
 │           └── custom.css             # Global table styles
 ```
 
@@ -57,7 +57,7 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 ### VitePress (docs/.vitepress/)
 
 - **config.ts**: Defines nav header and sidebar. Nav has: Home, Docs (dropdown), FAQ, Demo (external link). Sidebar lists all docs in order with Appendix last. Keep these in sync when adding/removing docs.
-- **Footer.vue**: 3-column grid (Docs links, Competing Standards anchors, Sources with external links). Does NOT include FAQ or Appendix.
+- **Footer.vue**: 4-column grid (Spec, Topics, Competing Standards anchors, Resources with external links). Does NOT include FAQ or Appendix.
 - **Layout.vue**: Wraps VitePress default layout, injects Footer via `#layout-bottom` slot.
 - **custom.css**: Global rule `white-space: nowrap` on first column of all tables. Do not remove - prevents column text wrapping across all docs.
 - **theme/index.ts**: Imports DefaultTheme, Layout, and custom.css. Keep imports here when adding new CSS.
@@ -129,7 +129,7 @@ Each document has a specific scope. Update only the relevant ones:
 
 - **README.md**: Update "Last updated" date and coverage numbers. Update document table if docs added.
 - **config.ts**: Update nav/sidebar if docs added or renamed
-- **Footer.vue**: Update if docs added to Docs column or new external links added to Sources
+- **Footer.vue**: Update if docs added to Spec or Topics column, or new external links added to Resources
 
 ### 4. Verify Consistency
 

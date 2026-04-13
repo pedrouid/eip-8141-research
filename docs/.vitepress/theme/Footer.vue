@@ -55,7 +55,7 @@
         </ul>
       </div>
       <div class="footer-col">
-        <h4>Sources</h4>
+        <h4>Resources</h4>
         <ul>
           <li>
             <a
