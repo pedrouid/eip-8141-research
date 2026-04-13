@@ -48,7 +48,7 @@ The permissions example is the canonical warning. ERC-7710/7715 and ERC-7895/Spe
 
 *Position*: EIP-8141 is too unopinionated. Without protocol-level defaults, it will reproduce the ERC-5792, ERC-7895, and ERC-7710 fragmentation pattern for every AA feature.
 
-The argument in full:
+The argument in full ([source](https://x.com/_jxom/status/2043135281604464905)):
 
 > An ideal UX-focused protocol should offer wallets and app devs with conventional defaults, and an escape hatch for configurability. Defaults that cover ~80% of real world use cases; configurability for the 20%.
 >
