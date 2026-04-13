@@ -168,34 +168,18 @@ Sender authentication is purely cryptographic: ecrecover or Ed25519 verification
 - **39 posts** in the related comparison thread [Frame Transactions vs. SchemedTransactions](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056)
 - Key participants: rakita (author), Giulio2002 (Falcon-512 PR, cross-pollination with EIP-8202), Helkomine, DanielVF
 
-### Evolution
-
-The spec evolved significantly from its initial framing:
-
-1. **Feb 26**: Initial submission, "no new opcodes, no execution frames." Static payer co-signature for sponsorship.
-2. **Apr 6**: Major restructure, moves `to`/`value`/`data` into typed CALL/CREATE capabilities, adds programmable fee_auth with RETURNETH/SIG/SIGHASH opcodes.
-3. **Apr 9**: Adds TX_GAS_LIMIT opcode.
-
-The move from "no new opcodes" to 4 new opcodes is notable; it narrows the complexity gap with EIP-8141 while maintaining the flat composition philosophy.
-
 ### Strengths
 
-- **Programmable sponsorship without full AA**: fee_auth provides gas sponsorship through contract execution without the full frame validation infrastructure.
-- **Signature introspection**: SIG/SIGHASH opcodes let fee_auth contracts verify signatures in-EVM, enabling arbitrary sponsor authorization logic.
-- **Independent signing**: Blinded signatures array allows parties to sign independently without ordered commitment chains.
-- **Extensible capability model**: Future features added as new capability types without new tx types.
-- **Fee_auth state persistence**: Sponsor accounting survives user tx failures.
-- **Gas efficiency argument**: The comparison thread argues that SchemedTransaction-style PQ verification (~29,500 gas for Falcon) is cheaper than smart wallet dispatch through EIP-8141 (~63,000 gas).
+- **Programmable sponsorship through fee_auth**: the prelude call with SIG/SIGHASH/RETURNETH gives sponsors in-EVM signature introspection and independent state (survives main-tx revert).
+- **Extensible capability model**: new features added as new capability types without new tx types.
+- **Gas efficiency (proponent claim)**: proponents argue SchemedTransaction-style PQ verification (~29,500 gas for Falcon) is cheaper than smart-wallet dispatch through EIP-8141 (~63,000 gas), per the [comparison thread](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056).
 
 ### Weaknesses
 
-- **No longer "simpler"**: The spec now has 4 new opcodes (same count as EIP-8141), programmable EVM execution in fee_auth, and growing complexity. The original simplicity pitch has eroded.
-- **fee_auth needs mempool simulation**: The programmable fee_auth prelude introduces mempool validation complexity, though less than EIP-8141's VERIFY frames.
-- **No programmable sender validation**: Sender authentication is limited to fixed signature schemes. Adding new schemes requires a hard fork.
-- **Existing account migration unclear**: Ed25519 addresses derive from public keys, producing new addresses, not existing EOAs. Users must migrate assets.
-- **No hybrid classical+PQ**: Cannot require both ECDSA and a PQ signature simultaneously (NIST-recommended transition approach), which is trivial in EIP-8141 but impossible here.
-- **Tx type conflict**: Competes with EIP-8202 for the `0x05` tx type number.
-- **Rapid evolution**: Major design changes from v1 (no opcodes, static payer) to v3 (4 opcodes, programmable fee_auth) in 6 weeks raises maturity concerns.
+- **Rapid scope expansion**: the spec went from "no new opcodes, no execution frames" at Feb 26 submission to 4 new opcodes and programmable fee_auth EVM by April 9. The original simplicity pitch has eroded, and the pace of design changes raises maturity concerns.
+- **No programmable sender validation**: sender auth is limited to fixed signature schemes. New schemes require a hard fork. Hybrid classical+PQ signing (NIST-recommended) is not natively supported.
+- **Existing EOA migration**: Ed25519 addresses derive from public keys, producing new addresses. Users must migrate assets.
+- **Tx type conflict**: competes with EIP-8202 for the `0x05` tx type number.
 
 ---
 ## EIP-8130: Account Abstraction by Account Configuration
@@ -275,18 +259,16 @@ Nodes maintain a verifier allowlist. For allowlisted verifiers with known gas bo
 
 ### Strengths
 
-- **Performance**: No EVM execution during validation. Nodes can implement verifier logic natively for maximum throughput.
-- **Async execution compatible**: Validation doesn't require EVM execution, making it compatible with Monad and potential Ethereum async models (EIP-7886).
-- **Portable configuration**: Owner config changes with `chain_id = 0` can replay across chains deterministically.
-- **Incremental adoption**: Nodes adopt new signature schemes by updating their verifier allowlist, not by protocol upgrade.
-- **No EVM changes**: No new opcodes means simpler client implementation and easier L2 adoption.
+- **No EVM during validation**: nodes can implement verifier logic natively for maximum throughput and full async-execution compatibility (Monad, EIP-7886).
+- **Portable configuration**: owner config changes with `chain_id = 0` replay deterministically across chains.
+- **Incremental adoption**: nodes add new signature schemes by updating their verifier allowlist, not via protocol upgrade.
 
 ### Weaknesses
 
-- **Limited validation expressiveness**: Verifiers are pure functions (`verify(hash, data) → ownerId`). Complex validation logic (e.g., time-based policies, state-dependent authorization) can't be expressed.
-- **Node coordination**: Nodes must independently decide which verifiers to accept. A fragmented allowlist ecosystem could limit transaction propagation.
-- **No value in calls**: Calls carry no ETH value; ETH transfers require going through wallet bytecode.
-- **System contract dependency**: The Account Configuration Contract and Nonce Manager are new system-level infrastructure.
+- **Limited validation expressiveness**: verifiers are pure functions (`verify(hash, data) → ownerId`). Time-based policies, state-dependent authorization, and other complex rules cannot be expressed.
+- **Node-coordination risk**: nodes independently decide which verifiers to accept. A fragmented allowlist ecosystem could limit transaction propagation.
+- **New system-level infrastructure**: the Account Configuration Contract and Nonce Manager are new protocol system contracts.
+- **No value in calls**: calls carry no ETH value; ETH transfers require wallet bytecode.
 
 ---
 
@@ -377,22 +359,18 @@ The spec explicitly notes: "This EIP allows multiple orthogonal capabilities, bu
 
 ### Strengths
 
-- **Stops type proliferation**: One envelope that composes features instead of minting new tx types for every combination. Blobs + set-code + new sig scheme = same type `0x05`.
-- **Immediately deployable PQ path**: Ephemeral secp256k1 uses only existing ECDSA infrastructure and Keccak-256. No new crypto primitives, no contract deployment, no on-chain registration.
-- **Minimal mempool disruption**: Validation is purely cryptographic: deterministic cost, no EVM execution, no banned opcode lists. Compatible with async execution models.
-- **Clean EIP-7702 upgrade**: Set-code authorizations become scheme-agile, so delegations can use non-ECDSA schemes.
-- **No EVM changes**: No new opcodes, no changes to the execution environment.
-- **Backward-compatible secp256k1**: Existing EOAs keep their address when switching to the new tx format.
+- **Stops tx type proliferation**: one envelope composes features (blobs + set-code + sig scheme all stay `0x05`) instead of minting a new tx type per combination.
+- **Immediately deployable PQ path**: ephemeral secp256k1 uses existing ECDSA infrastructure and Keccak-256. No new crypto primitives, no contract deployment.
+- **Minimal mempool disruption**: purely cryptographic validation. Deterministic cost, no EVM, async-compatible. Existing secp256k1 EOAs keep their address.
+- **Scheme-agile EIP-7702 upgrade**: set-code authorizations become scheme-agile, so delegations can use non-ECDSA schemes.
 
 ### Weaknesses
 
-- **No atomic batching**: Single execution payload means no multi-call atomicity at the protocol level. Users needing batch operations must go through smart contract wrappers (multicall).
-- **No programmable validation**: Validation is a fixed cryptographic check, not arbitrary EVM logic. Complex policies (time-based, state-dependent, social recovery) can't be expressed at the tx level.
-- **No gas sponsorship yet**: `ROLE_PAYER` is reserved but undefined. No paymaster mechanism in the current spec.
-- **Ephemeral key UX**: Users get a new address when migrating from secp256k1 to ephemeral secp256k1 (Merkle root changes the derivation). Assets must be explicitly transferred.
-- **Ephemeral key exhaustion**: 2^20 (~1M) transactions per account. After exhaustion, must migrate to a new address.
-- **Overlap concerns**: Community feedback notes significant functional overlap with EIP-7932 (crypto agility registry) and EIP-8197 (CATX). Risk of fragmentation across multiple scheme-agility proposals.
-- **Early stage**: 6 discussion posts, no merged PRs, no community consensus yet.
+- **No programmable validation or batching**: fixed cryptographic check only. Complex policies (time-based, state-dependent, social recovery) cannot be expressed. Batching requires multicall wrappers.
+- **No gas sponsorship yet**: `ROLE_PAYER` is reserved but undefined.
+- **Ephemeral key UX**: new address on migration (Merkle root changes derivation), and a per-account cap of ~1M transactions after which users must migrate again.
+- **Scheme-agility overlap**: community feedback notes functional overlap with EIP-7932 (crypto agility registry) and EIP-8197 (CATX). Risk of fragmentation across multiple scheme-agility proposals.
+- **Early stage**: 6 discussion posts, no merged PRs.
 
 ---
 
@@ -490,29 +468,24 @@ The bounded signature sizes (`MAX_WEBAUTHN_SIG_SIZE = 2,049 bytes`) and determin
 
 ### Activity
 
-- **Pre-draft gist** by gakonst (Georgios Konstantopoulos, Paradigm/Reth)
+- **Pre-draft** by gakonst (Georgios Konstantopoulos, Paradigm/Reth), published as a design exploration outside the standard EIP channels
 - No EIP number assigned, no PR to ethereum/EIPs, no EthMagicians thread yet
-- Very early stage, published as a design exploration
+- Very early stage; referenced in community discussions but not yet submitted for formal review
 
 ### Strengths
 
-- **Immediate UX wins**: Batching, sponsorship, passkeys, validity windows, and 2D nonces, the features wallets actually need today, in a single tx type. No smart contract wrappers or off-chain infrastructure.
-- **Passkeys at L1**: P-256 and WebAuthn signatures are first-class at the transaction layer. Users can sign with biometrics directly, without bundlers or relayers.
-- **Simple mempool**: No EVM during validation, bounded signature sizes, deterministic verification costs. Compatible with async execution models.
-- **Per-call receipts**: Applications can pinpoint which call in a batch failed, enabling better debugging and UX than all-or-nothing with no granularity.
-- **No EVM changes**: No new opcodes, no changes to the execution environment. Simpler client implementation.
-- **EIP-7702 compatibility**: Existing 7702 delegation works within the new tx format.
-- **Validity windows**: Scheduled and expiring transactions natively, useful for limit orders, time-locked operations, and stale transaction cleanup.
+- **Immediate UX wins in one tx type**: batching, sponsorship, passkeys (P-256/WebAuthn at L1), validity windows, 2D nonces, per-call receipts. No smart-contract wrappers, no relayers.
+- **Simple mempool**: purely cryptographic validation, bounded signature sizes, deterministic cost, async-compatible.
+- **EIP-7702 compatibility**: existing 7702 delegation works within the new tx format.
 
 ### Weaknesses
 
-- **No programmable validation**: The signature scheme set is fixed at the protocol level. Adding a new scheme requires a hard fork. Complex validation policies (multisig, social recovery, state-dependent rules) can't be expressed.
-- **No PQ strategy**: P-256 and WebAuthn are both vulnerable to quantum computers. No ephemeral key scheme or arbitrary-scheme extensibility. The spec would need future hard forks to add PQ-safe schemes.
-- **Fee payer limited to secp256k1**: Sponsors must use ECDSA and can't sponsor with passkeys or other schemes.
-- **No per-call gas isolation**: All calls share a single gas limit. One expensive call can starve subsequent calls. No per-frame gas budgeting like EIP-8141.
-- **P-256/WebAuthn create new addresses**: Address derivation from P-256 keys produces new addresses, not existing EOA addresses. Users need to migrate assets or use 7702 delegation.
-- **Access keys deferred**: The Keychain wrapper is defined but the actual access key rules (expiry, spending limits, revocation) are punted to a companion EIP.
-- **Pre-draft stage**: Published as a gist only. No EIP number, no community review, no iteration yet.
+- **No programmable validation and no PQ strategy**: signature scheme set is fixed. Adding schemes requires a hard fork. P-256 and WebAuthn are both quantum-vulnerable. Complex policies (multisig, recovery, state-dependent rules) cannot be expressed.
+- **Fee payer limited to secp256k1**: sponsors cannot use passkeys or other schemes.
+- **No per-call gas isolation**: all calls share a single gas limit; one expensive call can starve subsequent calls.
+- **P-256/WebAuthn create new addresses**: existing EOAs cannot use these schemes without migrating assets or 7702-delegating.
+- **Access keys deferred to a companion EIP**: the Keychain wrapper is defined, but the actual access-key rules (expiry, spending limits, revocation) are not.
+- **Pre-draft stage**: no EIP number, no community review.
 
 ---
 
@@ -677,19 +650,16 @@ Validation is bounded cryptographic computation plus a canonical code-hash check
 
 ### Strengths
 
-- **Solves the bootstrap problem**: Fresh EOAs can fund their first transaction without traceable on-chain links to the depositor.
-- **Mempool-safe by construction**: Bounded cryptographic verification, no EVM execution, fixed storage reads. Restrictive-tier compatible.
-- **Universal setup (fflonk)**: No circuit-specific trusted setup ceremony required. Reuses existing powers-of-tau.
-- **Append-only roots**: Censorship-resistant. Old proofs never expire.
-- **Composable with EIP-8223**: One-shot bootstrap, then transition to cheap sponsored transactions.
-- **Bounded ETH exit**: Unused fee-note value emerges as public ETH at `gas_refund_recipient`, doubling as an account bootstrap mechanism.
+- **Solves the bootstrap problem**: fresh EOAs can fund their first transaction without traceable on-chain links to the depositor. Composable with EIP-8223 (one-shot bootstrap, then sponsored txs).
+- **Mempool-safe by construction**: bounded cryptographic verification plus fixed storage reads, no EVM. Fits the restrictive tier alongside EIP-8223.
+- **Universal setup (fflonk)**: no circuit-specific trusted setup ceremony. Reuses existing powers-of-tau.
+- **Censorship-resistant roots**: append-only accepted roots mean old proofs never expire.
 
 ### Weaknesses
 
-- **High intrinsic gas**: ~222K gas per transaction is significant. Intended as a one-shot operation, not a steady-state mechanism.
-- **One-shot positioning**: Not designed for repeated use; the user transitions to cheaper mechanisms (EIP-8223) for ongoing activity.
-- **Pre-draft artifacts**: Canonical fee-note bytecode, verification key, circuit artifacts, and cross-client test vectors are not yet published.
-- **Very early stage**: PR opened April 12, 2026. No review cycle, no community consensus yet.
+- **High intrinsic gas (~222K)**: designed as a one-shot operation, not a steady-state mechanism.
+- **Pre-draft artifacts**: canonical fee-note bytecode, verification key, circuit artifacts, and cross-client test vectors are not yet published.
+- **Very early stage**: PR opened April 12, 2026. No review cycle yet.
 
 ---
 
@@ -701,13 +671,13 @@ From the [Frame Transactions vs. SchemedTransactions comparison thread](https://
 
 The deeper argument: every real signature scheme ends up needing a precompile anyway (P256 → RIP-7212, Falcon → EIP-8052, Dilithium → EIP-8051). Frames become "an unnecessary indirection" over precompiles that were going to be needed regardless.
 
-EIP-8141 defenders counter that: (1) the gas comparison conflates ERC-4337 EntryPoint overhead with frame transaction overhead, (2) existing EOAs cannot use new crypto schemes under SchemedTransactions without changing addresses, *"an almost certain guarantee that there will be very little adoption"* (matt), and (3) NIST-recommended hybrid classical+PQ signing is trivial in VERIFY frames but impossible in flat signature schemes.
+EIP-8141 defenders counter that: (1) the gas comparison conflates ERC-4337 EntryPoint overhead with frame transaction overhead, (2) existing EOAs cannot use new crypto schemes under SchemedTransactions without changing addresses, which lightclient has characterized as *"an almost certain guarantee that there will be very little adoption"* in the [comparison thread](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056), and (3) NIST-recommended hybrid classical+PQ signing is trivial in VERIFY frames but impossible in flat signature schemes.
 
-EIP-8175 and EIP-8202 share the same author ecosystem (rakita and Giulio2002 cross-pollinate) and form an allied front pushing "flat composition, not recursive" against EIP-8141's frame model.
+*Analysis*: EIP-8175 and EIP-8202 share overlapping authors (rakita and Giulio2002 cross-pollinate across both). The two proposals advocate a consistent "flat composition, not recursive" design position against EIP-8141's frame model.
 
 ### What EIP-8130's Author Says About EIP-8141
 
-From the Biconomy blog analysis:
+From the [Biconomy blog analysis](https://blog.biconomy.io/native-account-abstraction-state-of-art-and-pending-proposals-q1-26/):
 > "Base's position: 'We can heavily optimize this and build out performant mempool/block builder implementations,' something they can't do with EIP-8141's arbitrary validation frames."
 
 The core disagreement: EIP-8130 advocates say EIP-8141's arbitrary EVM validation creates DoS vulnerabilities. EIP-8141 supporters counter that EIP-8130 can be built atop EIP-8141 (verifiers are a subset of what VERIFY frames can do) but not vice versa.

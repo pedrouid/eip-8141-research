@@ -4,6 +4,12 @@
 
 This document summarizes open concerns around EIP-8141 frame transactions as they intersect with statelessness, mempool health, and censorship resistance. The primary source is the ethresear.ch thread ["Frame Transactions Through a Statelessness Lens"](https://ethresear.ch/t/frame-transactions-through-a-statelessness-lens/24538) (March–April 2026).
 
+**Acronyms used throughout this doc**:
+
+- **VOPS** — Validity-Only Partial Statelessness. The minimum state footprint a node needs after ZKEVMs replace re-execution. Current baseline is the full account trie (~10 GB for ~400M accounts). See the [AA-VOPS thread](https://ethresear.ch/t/a-pragmatic-path-towards-validity-only-partial-statelessness-vops/22236) for origin.
+- **FOCIL** — Fork-Choice enforced Inclusion Lists. A censorship-resistance mechanism where a subset of validators publishes inclusion lists that the proposer must honor. Relies on inclusion-list builders being able to validate the transactions they include.
+- **ERC-7562** — Validation rules for ERC-4337 bundlers (the closest existing framework for "what mempool nodes can safely simulate").
+
 ---
 
 ## Summary of Open Questions
@@ -77,6 +83,10 @@ If majority wallet adoption routes to non-canonical paymasters, those transactio
 
 This creates a circular dependency: censorship resistance for AA transactions depends on market adoption of a specific design, not on protocol guarantees.
 
+The dependency is structural. The canonical paymaster contract must be standardized, recognized by node software via runtime-code match, and voluntarily adopted by wallets. Any of those three steps failing means sponsored transactions land outside public-mempool propagation. Historical precedent: ERC-4337 paymaster diversity is high in production, and no dominant canonical variant has emerged, which is the exact failure mode this concern anticipates for frame transactions.
+
+**Status**: unresolved. The restrictive mempool tier limits non-canonical paymasters to `MAX_PENDING_TXS_USING_NON_CANONICAL_PAYMASTER = 1` pending transaction each, which mitigates the public-mempool DoS surface but does not address censorship resistance for wallets that prefer richer paymaster logic. The [expansive mempool tier](/mempool-strategy#expansive-mempool-what-develops-in-parallel) is the proposed long-term answer, but it is opt-in per node.
+
 ## 5. Encrypted Mempools Are Incompatible
 
 One proposed mitigation is a commit-and-execute model where block inclusion requires only balance, nonce, and a code flag. The transaction pays for actual validation later, decoupling inclusion from state access.
@@ -92,6 +102,10 @@ The deeper tension: reconciling frame transactions with encrypted mempools, acco
 If canonical paymaster instances proliferate (multiple deployments, multiple configurations), how are propagation and inclusion guarantees preserved? Transactions that never reach a broad enough subset of the network cannot be picked up by builders or enforced via FOCIL.
 
 Propagation success depends on the vast majority of minimal nodes being able to validate and relay. Any fragmentation in what those nodes can process directly narrows the set of transactions that have censorship resistance guarantees.
+
+Concretely, the public mempool propagates a transaction only if enough of the relay graph can validate it. The restrictive tier's guarantee rests on every client implementing the same policy rules (validation prefix shapes, banned opcodes, canonical paymaster recognition). If implementation drift occurs (one client ships early, another is slow, a third adds policy tweaks), the effective propagation surface for AA transactions shrinks to the intersection of what all clients accept. This is a well-known failure mode for non-consensus policy rules and is not protocol-enforceable.
+
+**Status**: open. No protocol mechanism prevents implementation drift or mitigates the shrink-to-intersection problem. Mitigations are all social / coordination-based: reference implementations, conformance tests, and client-developer consensus on the canonical paymaster bytecode. The [restrictive mempool tier](/mempool-strategy#restrictive-mempool-what-ships-first) is specified precisely enough to support conformance testing, but the propagation guarantee ultimately depends on cross-client agreement.
 
 ## 7. The "Choose 2 of 3" Trilemma
 

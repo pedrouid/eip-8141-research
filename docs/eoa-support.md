@@ -23,9 +23,9 @@ Every EOA gets the following behavior without any opt-in, deployment, or signed 
 
 ### VERIFY mode
 
-The default verification logic:
+The default verification logic (see [spec → Default code](https://eips.ethereum.org/EIPS/eip-8141#default-code)):
 
-1. Require `frame.target == tx.sender`. Otherwise revert.
+1. Require `frame.target == tx.sender` **unless** the approval scope is payer-only (`0x1`). Any EOA can serve as a paymaster, so the sender-match check is waived for the payer-scope path. This exception was added in [PR #11488](https://github.com/ethereum/EIPs/pull/11488).
 2. Read approval scope from mode bits: `scope = (frame.mode >> 8) & 3`. If `scope == 0`, revert.
 3. Read first byte of `frame.data` as `signature_type`:
    - `0x0` (secp256k1): parse `(v, r, s)` and require `frame.target == ecrecover(sig_hash, v, r, s)`.
@@ -33,17 +33,17 @@ The default verification logic:
    - Anything else: revert.
 4. Call `APPROVE(scope)`.
 
-This is what lets an EOA validate itself as the sender or as a payer. For payer scope (`0x1`), [PR #11488](https://github.com/ethereum/EIPs/pull/11488) explicitly removes the `frame.target != tx.sender` check from the default VERIFY code path so any EOA can serve as a paymaster.
+This is what lets an EOA validate itself as the sender, as a payer, or both (for scope `0x3`).
 
 ### SENDER mode
 
-The default execution logic:
+The default execution logic (see [spec → Default code](https://eips.ethereum.org/EIPS/eip-8141#default-code)):
 
 1. Require `frame.target == tx.sender`. Otherwise revert.
 2. Read `frame.data` as the RLP encoding of `calls = [[target, value, data], ...]`.
 3. For each call, execute it with `msg.sender = tx.sender`. If any call reverts, revert the frame.
 
-This is the EOA's way of issuing one or more calls in a single SENDER frame. Combined with the atomic batch flag (bit 11) on consecutive SENDER frames, it gives EOAs atomic multi-call without a smart account.
+This is the EOA's way of issuing one or more calls in a single SENDER frame. Combined with the [atomic batch flag (bit 11)](https://eips.ethereum.org/EIPS/eip-8141#mode-flags) on consecutive SENDER frames, it gives EOAs atomic multi-call without a smart account.
 
 ### DEFAULT mode
 
@@ -180,10 +180,12 @@ This is a real interoperability gap, [identified by DanielVF](/current-spec#rela
 
 ## Summary
 
-- **EOAs are first-class AA users in EIP-8141**. The protocol's default code handles secp256k1 and P256 signature verification (VERIFY mode) and batched call dispatch (SENDER mode) without any code being deployed on the account.
-- **No EIP-7702 delegation needed for the common case**. No authorization tx, no persistent on-chain state change, no smart-account deployment, no relayer infrastructure to maintain.
-- **EOA support is per-transaction, not per-account**. Each frame transaction composes its own frame sequence; nothing about the account changes between transactions.
-- **EOAs can serve as paymasters**. The default VERIFY logic supports the payment approval scope, and PR #11488 removed the `target == tx.sender` constraint, so any EOA can sign as a sponsor.
-- **Custom account code is still the right path when you need richer logic**. Multisig, recovery, session keys, exotic signature schemes, complex paymasters all require deploying account code (or 7702-delegating to it). Default code is the floor, not the ceiling.
-- **Two boundaries to remember**. Default code does not handle contract deployment (use a `deploy` frame as the first frame) and does not run for 7702-delegated EOAs (the delegated code overrides it).
-- **DEFAULT frames are positional**. They serve as the first frame for account deployment (target = deterministic deployer) and as the last frame for paymaster post-op refunds (target = paymaster contract). DEFAULT mode is what gates the paymaster's refund logic to `caller == ENTRY_POINT`.
+The thesis in one paragraph: EIP-8141 makes EOAs first-class AA users through protocol-level default code, eliminating the authorization-transaction, smart-account-deployment, and relayer-infrastructure overhead that EIP-7702 + EIP-4337 requires. Because default code is protocol logic rather than state on the account, wallets can change what features each transaction uses without resigning a delegation. Default code is the floor: accounts that need multisig, recovery, session keys, or exotic validation can still deploy custom code. DEFAULT frames have two narrow positional roles, first-frame account deployment via a deterministic deployer, and last-frame paymaster post-op refunds, both of which hinge on `caller == ENTRY_POINT` rather than `tx.sender`.
+
+Practical takeaways:
+
+- Existing EOAs, no migration needed
+- Per-transaction composability, no persistent delegation
+- EOA-as-paymaster works out of the box
+- Custom account code is the right path for everything default code doesn't cover
+- Default code does not run for 7702-delegated EOAs (the delegated code overrides it)

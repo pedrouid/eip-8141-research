@@ -5,6 +5,7 @@ const SITE_NAME = "EIP-8141 Frame Transaction";
 const SITE_DESCRIPTION =
   "Native account abstraction and post-quantum readiness for Ethereum. One transaction type, multiple frames, programmable validation. Research, analysis, and implementation tracking for EIP-8141 Frame Transaction.";
 const OG_IMAGE = `${SITE_URL}/og-image.png`;
+const TWITTER_IMAGE = `${SITE_URL}/twitter-card.png`;
 
 export default defineConfig({
   title: SITE_NAME,
@@ -57,7 +58,7 @@ export default defineConfig({
     ["meta", { name: "twitter:card", content: "summary_large_image" }],
     ["meta", { name: "twitter:title", content: SITE_NAME }],
     ["meta", { name: "twitter:description", content: SITE_DESCRIPTION }],
-    ["meta", { name: "twitter:image", content: OG_IMAGE }],
+    ["meta", { name: "twitter:image", content: TWITTER_IMAGE }],
     [
       "meta",
       {
