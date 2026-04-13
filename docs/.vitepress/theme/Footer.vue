@@ -53,11 +53,6 @@
               >EIP-8224 — Counterfactual Transaction</a
             >
           </li>
-          <li>
-            <a href="/competing-standards#comparative-analysis"
-              >Comparative Analysis</a
-            >
-          </li>
         </ul>
       </div>
       <div class="footer-col">
