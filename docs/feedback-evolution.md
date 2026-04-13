@@ -263,3 +263,9 @@ Ben Adams submitted a 295-line spec tightening PR consolidating several open thr
 
 In parallel with the tightening PR, Ben Adams submitted EIP-8223 (PR #11509), a narrower sponsored-transaction proposal where gas fees are charged to `tx.to` via a canonical payer-registry predeploy at `0x13`. Validation requires one SLOAD and one balance check with no EVM execution, making it FOCIL/VOPS-compatible. The PR description explicitly positions EIP-8223 as complementary to EIP-8141 and EIP-8175 rather than competing: EIP-8223 covers the narrow case where static validation is sufficient, while frame-based proposals handle the general case. The registry mechanism could also be expressed as a capability or frame mode within those formats.
 
+### Counterfactual Transaction (EIP-8224)
+
+*benaadams — PR #11518, Apr 12*
+
+A day later, Ben Adams submitted EIP-8224 (PR #11518), addressing the bootstrap problem that remains even after EIP-8223: a fresh EOA with no ETH cannot pay gas privately, because receiving ETH from any source creates a traceable on-chain link. EIP-8224 introduces a new transaction type (`0x08`) carrying an fflonk ZK proof (over BN254) that the sender owns an unspent fee note in a canonical fee-note contract (recognized by code hash). Validation is bounded cryptographic computation plus fixed storage reads, no EVM execution, ~222K gas typical. The intended composition: one-shot bootstrap via EIP-8224 to fund a smart account, then transition to cheap sponsored transactions via EIP-8223. Together with EIP-8141, the three proposals form a layered stack for general-purpose AA, static sponsorship, and shielded gas funding.
+

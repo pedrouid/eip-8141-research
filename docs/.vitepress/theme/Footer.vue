@@ -48,6 +48,12 @@
             >
           </li>
           <li>
+            <a
+              href="/competing-standards#eip-8224-counterfactual-transaction"
+              >EIP-8224 — Counterfactual Transaction</a
+            >
+          </li>
+          <li>
             <a href="/competing-standards#comparative-analysis"
               >Comparative Analysis</a
             >

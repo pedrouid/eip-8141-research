@@ -2,7 +2,7 @@
 
 ---
 
-Four competing proposals take fundamentally different approaches to achieving account abstraction and signature agility on Ethereum, plus one complementary proposal (EIP-8223) that covers the narrower sponsored-transaction case with static validation. Understanding them is essential to evaluating EIP-8141's design tradeoffs and positioning.
+Four competing proposals take fundamentally different approaches to achieving account abstraction and signature agility on Ethereum, plus two complementary proposals (EIP-8223 and EIP-8224) from the same author lineage that cover narrower static-validation cases (sponsored transactions and shielded gas funding via ZK proofs). Understanding them is essential to evaluating EIP-8141's design tradeoffs and positioning.
 
 ---
 
@@ -22,7 +22,7 @@ More General                                                                More
   frames)                       code)
 ```
 
-EIP-8223 is not placed on this spectrum because its scope is narrower than the others. It addresses only gas sponsorship with static validation and is explicitly positioned as complementary to any general-purpose AA design, not as a replacement.
+EIP-8223 and EIP-8224 are not placed on this spectrum because their scope is narrower than the others. EIP-8223 addresses only gas sponsorship with static validation; EIP-8224 addresses only shielded gas funding via ZK proofs. Both are explicitly positioned as complementary to any general-purpose AA design, not as replacements.
 
 **EIP-8141** gives maximum flexibility: any account code can define any validation logic, multiple execution frames per transaction, atomic batching. The cost is mempool complexity (banned opcodes, gas caps, validation prefixes) and async execution incompatibility.
 
@@ -44,6 +44,7 @@ EIP-8223 is not placed on this spectrum because its scope is narrower than the o
 | **EIP-8202** | Ephemeral secp256k1: one-time ECDSA keys with Merkle-committed rotation. Immediately deployable, no new crypto primitives, relying on Keccak-256 preimage resistance. Future PQ schemes added as new `scheme_id` values. Lightest-weight migration but users get a new address. |
 | **EIP-XXXX** | Not addressed. Supports secp256k1, P-256, and WebAuthn, all quantum-vulnerable. Adding PQ schemes requires a hard fork to define a new signature encoding. |
 | **EIP-8223** | Not a PQ proposal. Sender is secp256k1 only. Orthogonal to signature agility. |
+| **EIP-8224** | Not a PQ proposal. ZK proof verification (fflonk over BN254) is itself quantum-vulnerable. Orthogonal to signature agility. |
 
 ### Mempool & Performance
 
@@ -55,6 +56,7 @@ EIP-8223 is not placed on this spectrum because its scope is narrower than the o
 | **EIP-8202** | ecrecover + Merkle proof (deterministic) | Low: purely cryptographic, no EVM | Yes |
 | **EIP-XXXX** | ecrecover / P-256 / WebAuthn (bounded) | Low: deterministic crypto, bounded sig sizes | Yes |
 | **EIP-8223** | ecrecover + 1 SLOAD at `0x13` + balance check | Minimal: static reads only, no EVM | Yes (FOCIL/VOPS-native; only `0x13` storage trie added) |
+| **EIP-8224** | fflonk proof verify (~176K gas) + EXTCODEHASH check + fixed storage reads | Minimal: bounded crypto + static reads, no EVM | Yes (FOCIL/VOPS-native; canonical fee-note code-hash recognition) |
 
 ### Adoption Positioning
 
@@ -66,6 +68,7 @@ EIP-8223 is not placed on this spectrum because its scope is narrower than the o
 | **EIP-8202** | EOAs wanting PQ safety, protocol designers tired of tx type proliferation | Hard fork required. Minimal client changes (no EVM mods), but competes with EIP-7932/8197 for the same design space. |
 | **EIP-XXXX** | Wallets wanting batching + passkeys + sponsorship without smart contract complexity | Hard fork required. No EVM changes. Targets immediate UX improvement, not long-term extensibility. |
 | **EIP-8223** | Smart-account controllers wanting gas sponsorship without EVM validation; protocols running funded operator accounts | Hard fork required. Adds only the `0x13` predeploy. Compatible with FOCIL/VOPS out of the box. Complementary to other proposals. |
+| **EIP-8224** | Privacy-preserving users bootstrapping a fresh EOA without traceable funding; one-shot operation before transitioning to EIP-8223 | Hard fork required. Adds canonical fee-note bytecode + fflonk verification. Composable with EIP-8223. Complementary to other proposals. |
 
 ---
 
@@ -589,6 +592,94 @@ This is strictly compatible with **FOCIL inclusion lists** and **VOPS partial st
 - **One sponsor per contract**: One-to-one binding limits multi-tenant payer patterns without separate contracts per user.
 - **Limited binding**: Activation requires `tx.to` to be the payer contract, which constrains the transaction shape and conflicts with patterns where the target is a different application contract.
 - **Very early stage**: PR opened April 11, 2026. No review cycle, no community consensus yet.
+
+---
+
+## EIP-8224: Counterfactual Transaction
+
+**Author**: Ben Adams (@benaadams)
+**Status**: Draft (PR [#11518](https://github.com/ethereum/EIPs/pull/11518)) | **Category**: Core (Standards Track)
+**Created**: April 12, 2026
+**Requires**: EIP-196, EIP-197, EIP-1559, EIP-2718, EIP-2780, EIP-3529, EIP-4788, EIP-6780, EIP-7708, EIP-7904
+
+### Overview
+
+EIP-8224 introduces a new EIP-2718 transaction type (`0x08`) for **protocol-native shielded gas funding using ZK proofs against canonical fee-note contracts**. It addresses a problem that remains even after EIP-8223: a fresh EOA with no ETH cannot pay gas privately, because receiving ETH from any source creates a traceable on-chain link.
+
+The flow:
+
+1. A user deposits ETH into a canonical fee-note contract instance (recognized by runtime code hash, not a fixed address), receiving a private Poseidon commitment.
+2. Later, from a fresh EOA, the user submits a counterfactual transaction carrying an **fflonk** ZK proof (over BN254) that they own an unspent fee note sufficient to cover gas.
+3. The protocol verifies the proof (no EVM execution required, bounded cryptographic computation plus fixed storage reads), consumes the fee note's nullifier, settles gas, and sends any leftover ETH to a designated `gas_refund_recipient`.
+4. The transaction body executes normally; it can call any contract (privacy pool withdrawal, account setup, etc.).
+
+EIP-8224 is positioned as **complementary** to EIP-8141, EIP-8175, and EIP-8223 (all from the same `benaadams` lineage). It targets the bootstrap problem for fresh EOAs that need shielded gas funding before they can use any sponsorship-based mechanism.
+
+### Core Design
+
+**Code-hash recognition**: Fee-note contracts are recognized by `EXTCODEHASH`, not a fixed predeploy address. Multiple instances can coexist. The transaction names its instance via `fee_note_contract`, and the proof binds to that address.
+
+**fflonk over BN254**: Universal setup (reuses existing powers-of-tau), 2-pair pairing verification, ~176K gas proof verification cost. No circuit-specific trusted setup ceremony.
+
+**Append-only accepted roots**: Deposits add roots that are never revoked. Proofs against older roots remain valid forever, preventing censorship-based griefing.
+
+**Arbitrary note values**: No fixed denomination tiers. Deposit any ETH amount; the circuit proves `fee_denomination == note_value`.
+
+**Cross-chain protection**: `chain_id` bound in the proof (8 public inputs total) as defense-in-depth against cross-chain replay.
+
+**One-shot bootstrap pattern**: Used once to fund a smart account and register it in the EIP-8223 payer registry. All subsequent transactions from that account use cheap sponsored transactions.
+
+### Mempool Strategy
+
+Validation is bounded cryptographic computation plus a canonical code-hash check plus fixed storage reads. **No EVM execution.** This places EIP-8224 firmly in the [restrictive mempool tier](/mempool-strategy#restrictive-mempool-what-ships-first) alongside EIP-8223 and the EIP-8141 self-relay/canonical-paymaster prefixes.
+
+### Intrinsic Gas Breakdown
+
+| Component | Gas |
+|---|---|
+| Base (EIP-2780) | 4,500 |
+| fflonk proof verification (9 ECMUL + 9 ECADD + 2-pair ECPAIRING) | 176,346 |
+| Fee-note state access | 6,800 |
+| Fee-note state mutation | 22,500 |
+| ETH transfer logs | 3,512 |
+| **Fixed subtotal** | **213,658** |
+| Proof calldata (~512 bytes) | ~8,192 |
+| **Typical minimum total** | **~222,000** |
+
+### Key Differences from EIP-8141
+
+| Aspect | EIP-8224 | EIP-8141 |
+|---|---|---|
+| **Scope** | Shielded gas funding via ZK proofs against fee-note contracts | General-purpose AA: validation, execution, sponsorship |
+| **New opcodes** | None | 4 (`APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`) |
+| **Validation model** | fflonk proof + code-hash check + fixed storage reads, no EVM | Programmable EVM in VERIFY frames |
+| **Privacy model** | Private commitment (Poseidon), nullifier consumption | None natively; relies on out-of-protocol mixers |
+| **Bootstrap problem** | Solved (fresh EOA can pay gas without traceable funding) | Not addressed |
+| **Composability** | Designed to compose with EIP-8223 (one-shot bootstrap, then sponsored txs) | Stand-alone |
+| **VOPS/FOCIL compatibility** | Native (canonical code-hash + fixed storage reads) | Requires bounded state access discipline |
+| **Async execution** | Compatible (no EVM in validation) | Incompatible |
+| **Cost** | ~222K gas typical | Frame transaction overhead, varies by structure |
+
+### Activity
+
+- **1 PR** ([#11518](https://github.com/ethereum/EIPs/pull/11518)), opened April 12, 2026
+- Discussion thread not yet linked
+
+### Strengths
+
+- **Solves the bootstrap problem**: Fresh EOAs can fund their first transaction without traceable on-chain links to the depositor.
+- **Mempool-safe by construction**: Bounded cryptographic verification, no EVM execution, fixed storage reads. Restrictive-tier compatible.
+- **Universal setup (fflonk)**: No circuit-specific trusted setup ceremony required. Reuses existing powers-of-tau.
+- **Append-only roots**: Censorship-resistant. Old proofs never expire.
+- **Composable with EIP-8223**: One-shot bootstrap, then transition to cheap sponsored transactions.
+- **Bounded ETH exit**: Unused fee-note value emerges as public ETH at `gas_refund_recipient`, doubling as an account bootstrap mechanism.
+
+### Weaknesses
+
+- **High intrinsic gas**: ~222K gas per transaction is significant. Intended as a one-shot operation, not a steady-state mechanism.
+- **One-shot positioning**: Not designed for repeated use; the user transitions to cheaper mechanisms (EIP-8223) for ongoing activity.
+- **Pre-draft artifacts**: Canonical fee-note bytecode, verification key, circuit artifacts, and cross-client test vectors are not yet published.
+- **Very early stage**: PR opened April 12, 2026. No review cycle, no community consensus yet.
 
 ---
 

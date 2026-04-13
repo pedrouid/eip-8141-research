@@ -196,6 +196,10 @@ Yes - declared verifiers are a subset of what VERIFY frames can do. The reverse 
 
 A new proposal (PR #11509, Apr 11 2026) for static gas sponsorship via a canonical payer-registry predeploy at `0x13`. Its author explicitly frames it as complementary to EIP-8141 and EIP-8175, covering the narrow case where validation needs only an SLOAD plus a balance check. [See EIP-8223 →](/competing-standards#eip-8223-contract-payer-transaction)
 
+**9.5. What is EIP-8224 and how does it relate to EIP-8141?**
+
+A follow-up proposal (PR #11518, Apr 12 2026) for shielded gas funding via fflonk ZK proofs against canonical fee-note contracts. Solves the bootstrap problem of funding a fresh EOA without traceable on-chain links. Composes with EIP-8223 (one-shot bootstrap, then sponsored txs). [See EIP-8224 →](/competing-standards#eip-8224-counterfactual-transaction)
+
 ---
 
 ## 10. Implementation & Timeline
