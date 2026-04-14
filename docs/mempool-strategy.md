@@ -157,7 +157,7 @@ The cost is conceptual: developers must understand that "consensus-valid" and "p
 
 ---
 
-## Why the Proposal Claims Frame Transactions Don't Need Relayers
+## Why Frame Transactions Don't Need Relayers
 
 A common assumption inherited from EIP-4337 / EIP-7702 deployments is that AA requires off-chain relayer infrastructure: bundlers, paymaster operators, privacy rebroadcasters. The proposed strategy argues this is no longer structurally necessary.
 

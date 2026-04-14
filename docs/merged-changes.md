@@ -195,7 +195,7 @@ From lightclient's PR description:
 
 ---
 
-## Active Open PRs (as of April 13, 2026)
+## Active Open PRs (as of April 14, 2026)
 
 These PRs represent active design proposals that may change the spec in the near future.
 
@@ -233,7 +233,7 @@ From lightclient's PR description:
 
 - **Why**: Allow both EOAs and contract accounts to use precompiles for verification, enabling key rotation and shared verification logic.
 - **Proposed change**: Designate "signature precompiles" that VERIFY frames can target natively. The precompile reads the public key commitment from storage.
-- **All reviewers approved** (as of April 13), awaiting merge.
+- **All reviewers approved** (as of April 14), awaiting merge.
 
 From derekchiang's PR description:
 

@@ -232,7 +232,7 @@ If the swap reverts, the ERC-20 approval is also reverted.
 | EIP-7997 | Deterministic deployer, used for account deployment frames |
 | EIP-7392 | Signature registry; PR #11455 proposes making default code interoperable |
 
-## Pending Proposals (as of April 13, 2026)
+## Pending Proposals (as of April 14, 2026)
 
 Six significant proposals are under active discussion that would change the spec:
 
@@ -242,7 +242,7 @@ lightclient proposes adding a `signatures` field to the outer transaction for PQ
 
 ### 2. Precompile-Based VERIFY Frames (PR #11482)
 
-derekchiang proposes allowing VERIFY frames to target designated "signature precompiles" directly. This enables contract accounts to use precompiles for verification (previously only available via EOA default code) and enables key rotation via storage-based public key commitments. All reviewers approved as of April 13, awaiting merge.
+derekchiang proposes allowing VERIFY frames to target designated "signature precompiles" directly. This enables contract accounts to use precompiles for verification (previously only available via EOA default code) and enables key rotation via storage-based public key commitments. All reviewers approved as of April 14, awaiting merge.
 
 ### 3. VALUE in SENDER Frames (Discussion, no PR yet)
 

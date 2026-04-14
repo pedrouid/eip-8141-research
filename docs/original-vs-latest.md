@@ -72,7 +72,7 @@ A subtle but important change: the original spec simply checked `mode == VERIFY`
 
 ## Active Proposals That May Change the Comparison
 
-As of April 13, 2026, several open PRs propose changes that would extend this comparison table:
+As of April 14, 2026, several open PRs propose changes that would extend this comparison table:
 
 | Proposal | PR | Impact |
 |---|---|---|
