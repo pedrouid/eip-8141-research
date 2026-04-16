@@ -152,7 +152,7 @@ Several alternative/competing proposals emerged:
 
 ---
 
-## Phase 5: Value, Precompiles, and Signature Aggregation (Mar 26 – Apr 14)
+## Phase 5: Value, Precompiles, and Signature Aggregation (Mar 26 – Apr 16)
 
 ### VALUE in SENDER Frames
 
@@ -251,17 +251,23 @@ Jacopo raised that access to frame returndata would enable using it as input in 
 
 Franco Victorio asked whether validation frames of frame transactions are executed first within a block, before non-frame transactions and non-validation frames, drawing an analogy to how ERC-4337 separates validation and execution phases. The question is about block-level scheduling, not transaction-level ordering, and remains unanswered in the thread.
 
-### Broad Spec Tightening
+### Broad Spec Tightening (Merged)
 
-*benaadams — PR #11521, Apr 13*
+*benaadams — PR #11521, submitted Apr 13, merged Apr 14*
 
-Ben Adams submitted a 295-line spec tightening PR consolidating several open threads: splitting `mode`/`flags`, introducing `FRAMEPARAM` and `resolved_target`, hardening default secp256k1/P256 paths (low-`s`, P256 domain separation), reducing `MAX_FRAMES` from 1000 to 64, adding per-frame gas costs, locking deterministic deployment to EIP-7997, and strengthening security warnings around VERIFY-data malleability and DELEGATECALL + APPROVE. The PR overlaps with #11481, #11482, and #11488 and will likely need coordination with those before merge. derekchiang and the author have already exchanged review comments.
+Ben Adams submitted a 295-line spec tightening PR consolidating several open threads: splitting `mode`/`flags`, introducing `FRAMEPARAM` and `resolved_target`, hardening default secp256k1/P256 paths (low-`s`, P256 domain separation), reducing `MAX_FRAMES` from 1000 to 64, adding per-frame gas costs, locking deterministic deployment to EIP-7997, and strengthening security warnings around VERIFY-data malleability and DELEGATECALL + APPROVE. lightclient and derekchiang both approved. fjl questioned lowering MAX_FRAMES, but benaadams argued that journaling carries across frames (up to 2000 effective call depth) and it is easier to increase later after measurement. This is the broadest restructuring since PR #11401 (approval bits) and the first to add a fifth opcode (`FRAMEPARAM`) to the spec.
 
 ### Contract Payer Transaction (EIP-8223)
 
 *benaadams — PR #11509, Apr 11*
 
 In parallel with the tightening PR, Ben Adams submitted EIP-8223 (PR #11509), a narrower sponsored-transaction proposal where gas fees are charged to `tx.to` via a canonical payer-registry predeploy at `0x13`. Validation requires one SLOAD and one balance check with no EVM execution, making it FOCIL/VOPS-compatible. The PR description explicitly positions EIP-8223 as complementary to EIP-8141 and EIP-8175 rather than competing: EIP-8223 covers the narrow case where static validation is sufficient, while frame-based proposals handle the general case. The registry mechanism could also be expressed as a capability or frame mode within those formats.
+
+### Bytecodes in VOPS Proposal
+
+*derekchiang — ethresear.ch post #12, Apr 15*
+
+derekchiang proposed adding contract bytecodes to the VOPS baseline, noting that total contract bytecode is ~10.55 GB (as of 2024). Including it roughly doubles the VOPS size but stays well below the ~280 GB full state. This directly addresses the bytecode availability gap identified in [concern #2](/pending-concerns#2-vops-nodes-and-the-state-growth-problem) and the [AA-VOPS discussion](https://ethresear.ch/t/a-pragmatic-path-towards-validity-only-partial-statelessness-vops/22236): the original VOPS proposal bounded storage reads to N slots per account but did not address how AA-VOPS nodes obtain delegate bytecodes. Including bytecodes in the baseline resolves this without new opcodes or rent mechanisms.
 
 ### Counterfactual Transaction (EIP-8224)
 

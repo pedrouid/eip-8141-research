@@ -22,7 +22,7 @@ No. It is a draft EIP under active development targeting a future hard fork. [Tr
 
 **1.5. What new opcodes does it introduce?**
 
-Four: `APPROVE` (authorize execution/payment), `TXPARAM` (read tx parameters), `FRAMEDATALOAD` and `FRAMEDATACOPY` (read frame data). [Details →](/current-spec#the-approve-mechanism)
+Five: `APPROVE` (authorize execution/payment), `TXPARAM` (read tx parameters), `FRAMEDATALOAD` and `FRAMEDATACOPY` (read frame data), `FRAMEPARAM` (read frame metadata like mode and flags). [Details →](/current-spec#the-approve-mechanism)
 
 ---
 
@@ -130,7 +130,7 @@ The transaction format itself has no ECDSA dependency. Accounts choose their own
 
 **6.2. How does this compare to other proposals?**
 
-EIP-8141 offers the most flexible PQ path (arbitrary schemes). EIP-8202 uses [ephemeral one-time ECDSA keys](https://ethereum-magicians.org/t/eip-8202-schemed-transaction/28044). EIP-8130 requires deploying PQ verifier contracts. [Full comparison →](/competing-standards#pq-readiness)
+EIP-8141 offers the most flexible PQ path (arbitrary schemes). EIP-8202 now includes native Falcon-512 support (updated from its original ephemeral-k1 design). EIP-8130 requires deploying PQ verifier contracts. [Full comparison →](/competing-standards#pq-readiness)
 
 ---
 

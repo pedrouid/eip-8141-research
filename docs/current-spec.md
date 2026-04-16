@@ -18,24 +18,24 @@ The execution model defines what is *possible*; the mempool model defines what i
 ```
 [chain_id, nonce, sender, frames, max_priority_fee_per_gas, max_fee_per_gas, max_fee_per_blob_gas, blob_versioned_hashes]
 
-frames = [[mode, target, gas_limit, data], ...]
+frames = [[mode, flags, target, gas_limit, data], ...]
 ```
 
 - `sender`: the 20-byte address of the account originating the transaction
-- Each frame has a `mode` (with flags), a `target` address (or null for sender), a gas limit, and arbitrary data
-- Up to 1,000 frames per transaction
+- Each frame has a `mode` (lower 8 bits only), a `flags` field (approval scope + atomic batch), a `target` address (or null for sender), a gas limit, and arbitrary data
+- Up to 64 frames per transaction
 
 ## Frame Modes
 
-| Mode (lower 8 bits) | Name | Behavior |
+| Mode | Name | Behavior |
 |---|---|---|
 | 0 | `DEFAULT` | Called from `ENTRY_POINT`. Used for deployment or post-op tasks. |
 | 1 | `VERIFY` | Read-only (STATICCALL semantics). Must call `APPROVE`. Used for authentication & payment authorization. |
 | 2 | `SENDER` | Called from `tx.sender`. Requires prior `sender_approved`. Executes user's intended operations. |
 
-**Mode flags (upper bits):**
-- Bits 9-10: Approval scope constraint (limits which `APPROVE` scope can be used)
-- Bit 11: Atomic batch flag (groups consecutive SENDER frames into an all-or-nothing batch)
+**Flags (separate field, introduced by PR #11521):**
+- Bits 0-1: Approval scope constraint (limits which `APPROVE` scope can be used)
+- Bit 2: Atomic batch flag (groups consecutive SENDER frames into an all-or-nothing batch, SENDER only)
 
 ## The APPROVE Mechanism
 
@@ -43,7 +43,7 @@ frames = [[mode, target, gas_limit, data], ...]
 1. Terminates the current frame successfully (like `RETURN`)
 2. Updates transaction-scoped approval variables
 
-**Stack**: `[offset, length, scope]`
+**Stack**: `[offset, length, scope]` (with double-approval prevention: once a scope bit is set, it cannot be set again)
 
 **Scopes**:
 - `0x1`: Approve execution — sets `sender_approved = true` (only valid when `frame.target == tx.sender`)
@@ -58,11 +58,12 @@ For each frame transaction:
 
 1. Check `tx.nonce == state[tx.sender].nonce`
 2. Initialize `sender_approved = false`, `payer_approved = false`
-3. Execute each frame sequentially:
-   - **DEFAULT mode**: caller = `ENTRY_POINT`, execute as regular call
-   - **VERIFY mode**: caller = `ENTRY_POINT`, execute as STATICCALL, must call `APPROVE` or entire tx is invalid
-   - **SENDER mode**: requires `sender_approved == true`, caller = `tx.sender`
-4. After all frames: verify `payer_approved == true`, refund unused gas to payer
+3. For each frame, compute `resolved_target`: if `frame.target` is null, use `tx.sender`; otherwise use `frame.target`
+4. Execute each frame sequentially:
+   - **DEFAULT mode**: caller = `ENTRY_POINT`, execute as regular call to `resolved_target`
+   - **VERIFY mode**: caller = `ENTRY_POINT`, execute as STATICCALL to `resolved_target`, must call `APPROVE` or entire tx is invalid
+   - **SENDER mode**: requires `sender_approved == true`, caller = `tx.sender`, target = `resolved_target`
+5. After all frames: verify `payer_approved == true`, refund unused gas to payer
 
 ## EOA Default Code
 
@@ -70,10 +71,10 @@ When `frame.target` has no code, the protocol applies built-in "default code" be
 
 **VERIFY mode:**
 1. If `frame.target != tx.sender`, revert
-2. Read the approval scope from the mode bits: `scope = (frame.mode >> 8) & 3`. If `scope == 0`, revert
+2. Read the approval scope from the flags: `scope = frame.flags & 3`. If `scope == 0`, revert
 3. Read first byte of `frame.data` as `signature_type`
-4. If `0x0` (SECP256K1): verify ECDSA signature `(v, r, s)` against `compute_sig_hash(tx)`
-5. If `0x1` (P256): verify P256 signature `(r, s, qx, qy)`, check address = `keccak(qx|qy)[12:]`
+4. If `0x0` (SECP256K1): verify ECDSA signature `(v, r, s)` against `compute_sig_hash(tx)`, enforce low-`s`, reject failed `ecrecover`
+5. If `0x1` (P256): verify P256 signature `(r, s, qx, qy)`, check address = `keccak(0x04 | qx | qy)[12:]` (domain-separated), reject invalid public keys
 6. Call `APPROVE(scope)`
 
 **SENDER mode:**
@@ -87,7 +88,7 @@ This means **any EOA can use frame transactions today**, no smart contract deplo
 
 ## Atomic Batching
 
-Consecutive SENDER frames with bit 11 set form an atomic batch:
+Consecutive SENDER frames with bit 2 of `flags` set form an atomic batch:
 
 ```
 Frame 0: SENDER (atomic flag set)   ─┐
@@ -102,10 +103,10 @@ If any frame in a batch reverts, the state is restored to before the batch start
 ## Gas Accounting
 
 ```
-tx_gas_limit = 15000 (intrinsic) + calldata_cost(rlp(tx.frames)) + sum(frame.gas_limit)
+tx_gas_limit = 15000 (intrinsic) + 475 * len(tx.frames) + calldata_cost(rlp(tx.frames)) + sum(frame.gas_limit)
 ```
 
-Each frame has its own gas allocation. Unused gas is **not** carried to subsequent frames. After all frames execute, the total unused gas is refunded to the payer.
+Each frame incurs a per-frame cost of `FRAME_TX_PER_FRAME_COST` (475 gas) on top of the intrinsic cost. Each frame has its own gas allocation. Unused gas is **not** carried to subsequent frames. After all frames execute, the total unused gas is refunded to the payer.
 
 The total fee is:
 ```
@@ -117,12 +118,12 @@ tx_fee = tx_gas_limit * effective_gas_price + blob_fees
 ```python
 def compute_sig_hash(tx):
     for frame in tx.frames:
-        if (frame.mode & 0xFF) == VERIFY:
+        if frame.mode == VERIFY:
             frame.data = Bytes()  # elide VERIFY data
     return keccak(rlp(tx))
 ```
 
-Note the `& 0xFF` mask: since `mode` now carries upper-bit flags (approval scope in bits 9-10, atomic batch in bit 11), the check must isolate the lower 8 bits to identify VERIFY frames regardless of their flag configuration.
+Since `mode` and `flags` are now separate fields (PR #11521), the mode check is a direct comparison without masking.
 
 VERIFY frame data is elided because:
 1. It contains the signature (can't be part of what's signed)
@@ -218,7 +219,7 @@ If the swap reverts, the ERC-20 approval is also reverted.
 - **ORIGIN returns frame caller**: Changed from traditional tx.origin behavior (precedent set by EIP-7702).
 - **Transient storage cleared between frames**: TSTORE/TLOAD state doesn't persist across frames.
 - **Warm/cold state shared across frames**: Gas accounting for storage access is shared.
-- **Requires**: EIP-1559, EIP-2718, EIP-4844.
+- **Requires**: EIP-1559, EIP-2718, EIP-4844, EIP-7997 (deterministic deployer).
 
 ## Relationship to Other Proposals
 
@@ -227,14 +228,14 @@ If the swap reverts, the ERC-20 approval is also reverted.
 | ERC-4337 | 8141 is the native protocol successor, removing the bundler intermediary |
 | EIP-7702 | Complementary; 7702 accounts can also use frame transactions. Note: 7702-delegated accounts cannot currently use default code signature verification (gap identified by DanielVF) |
 | ERC-7562 | 8141's mempool rules are inspired by but simpler than 7562 (no staking/reputation) |
-| EIP-8175 | Competing simpler alternative: no new opcodes, no per-frame gas |
+| EIP-8175 | Competing alternative: flat capabilities + programmable fee_auth, 4 new opcodes |
 | EIP-8130 | Coinbase/Base's alternative: declared verifiers (no wallet code exec), 14 PRs, active development. See [Competing Standards](./competing-standards) |
 | EIP-7997 | Deterministic deployer, used for account deployment frames |
 | EIP-7392 | Signature registry; PR #11455 proposes making default code interoperable |
 
-## Pending Proposals (as of April 14, 2026)
+## Pending Proposals (as of April 16, 2026)
 
-Six significant proposals are under active discussion that would change the spec:
+Five significant proposals are under active discussion that would change the spec:
 
 ### 1. Signatures List in Outer Transaction (PR #11481)
 
@@ -242,7 +243,7 @@ lightclient proposes adding a `signatures` field to the outer transaction for PQ
 
 ### 2. Precompile-Based VERIFY Frames (PR #11482)
 
-derekchiang proposes allowing VERIFY frames to target designated "signature precompiles" directly. This enables contract accounts to use precompiles for verification (previously only available via EOA default code) and enables key rotation via storage-based public key commitments. All reviewers approved as of April 14, awaiting merge.
+derekchiang proposes allowing VERIFY frames to target designated "signature precompiles" directly. This enables contract accounts to use precompiles for verification (previously only available via EOA default code) and enables key rotation via storage-based public key commitments. All reviewers approved as of April 14, awaiting merge. Now that PR #11521 has been merged, this PR may need rebasing.
 
 ### 3. VALUE in SENDER Frames (Discussion, no PR yet)
 
@@ -250,13 +251,9 @@ Strong consensus from rmeissner (Safe), DanielVF, frangio, 0xrcinus, derek, and 
 
 ### 4. Spec Consistency Fixes (PR #11488)
 
-chiranjeev13 proposes: explicit VERIFY frame count check (`<= 2`), fixing stale APPROVE scope values in structural rules, and allowing any EOA as paymaster by removing the `frame.target != tx.sender` check from default VERIFY code.
+chiranjeev13 proposes: explicit VERIFY frame count check (`<= 2`), fixing stale APPROVE scope values in structural rules, and allowing any EOA as paymaster by removing the `frame.target != tx.sender` check from default VERIFY code. Some of these fixes overlap with changes already merged in PR #11521.
 
-### 5. Broad Spec Tightening (PR #11521)
-
-benaadams (Ben Adams) proposes a 295-line spec hardening that splits the packed `mode` field into `mode` + `flags`, introduces a `FRAMEPARAM` opcode and `resolved_target` value, reduces `MAX_FRAMES` from `10^3` to `64`, adds a per-frame gas cost (`FRAME_TX_PER_FRAME_COST`), hardens default secp256k1/P256 paths (low-`s` enforcement, P256 address-domain separation), and strengthens security warnings around VERIFY-data malleability, `DELEGATECALL` + `APPROVE`, and deploy-frame front-running. Overlaps with #11481, #11482, and #11488 and will need coordination before merge.
-
-### 6. Frame Return Data Opcodes (Discussion, no PR yet)
+### 5. Frame Return Data Opcodes (Discussion, no PR yet)
 
 jacopo-eth (post #137, Apr 10) proposed native access to frame returndata via `FRAMERETURNDATASIZE` and `FRAMERETURNDATACOPY` opcodes, motivated by ERC-8211-style multi-step flows where one frame consumes the output of another without wrapper contracts. No author response yet.
 

@@ -26,10 +26,10 @@ Every EOA gets the following behavior without any opt-in, deployment, or signed 
 The default verification logic (see [spec → Default code](https://eips.ethereum.org/EIPS/eip-8141#default-code)):
 
 1. Require `frame.target == tx.sender` **unless** the approval scope is payer-only (`0x1`). Any EOA can serve as a paymaster, so the sender-match check is waived for the payer-scope path. This exception was added in [PR #11488](https://github.com/ethereum/EIPs/pull/11488).
-2. Read approval scope from mode bits: `scope = (frame.mode >> 8) & 3`. If `scope == 0`, revert.
+2. Read approval scope from the flags field: `scope = frame.flags & 3`. If `scope == 0`, revert.
 3. Read first byte of `frame.data` as `signature_type`:
-   - `0x0` (secp256k1): parse `(v, r, s)` and require `frame.target == ecrecover(sig_hash, v, r, s)`.
-   - `0x1` (P256): parse `(r, s, qx, qy)`, require `frame.target == keccak(qx | qy)[12:]`, and require `P256VERIFY(sig_hash, r, s, qx, qy) == true`.
+   - `0x0` (secp256k1): parse `(v, r, s)`, enforce low-`s`, reject failed `ecrecover`, and require `frame.target == ecrecover(sig_hash, v, r, s)`.
+   - `0x1` (P256): parse `(r, s, qx, qy)`, require `frame.target == keccak(0x04 | qx | qy)[12:]` (domain-separated), reject invalid public keys, and require `P256VERIFY(sig_hash, r, s, qx, qy) == true`.
    - Anything else: revert.
 4. Call `APPROVE(scope)`.
 
@@ -43,7 +43,7 @@ The default execution logic (see [spec → Default code](https://eips.ethereum.o
 2. Read `frame.data` as the RLP encoding of `calls = [[target, value, data], ...]`.
 3. For each call, execute it with `msg.sender = tx.sender`. If any call reverts, revert the frame.
 
-This is the EOA's way of issuing one or more calls in a single SENDER frame. Combined with the [atomic batch flag (bit 11)](https://eips.ethereum.org/EIPS/eip-8141#mode-flags) on consecutive SENDER frames, it gives EOAs atomic multi-call without a smart account.
+This is the EOA's way of issuing one or more calls in a single SENDER frame. Combined with the [atomic batch flag (bit 2 of `flags`)](https://eips.ethereum.org/EIPS/eip-8141#mode-flags) on consecutive SENDER frames, it gives EOAs atomic multi-call without a smart account.
 
 ### DEFAULT mode
 

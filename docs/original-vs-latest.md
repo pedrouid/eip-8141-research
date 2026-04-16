@@ -4,24 +4,30 @@
 
 ## Structural Comparison
 
-| Aspect | Original (Jan 29) | Latest (Apr 8) |
+| Aspect | Original (Jan 29) | Latest (Apr 14) |
 |---|---|---|
-| **Opcodes** | `APPROVE`, `TXPARAMLOAD`, `TXPARAMSIZE`, `TXPARAMCOPY` | `APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY` |
-| **APPROVE mechanism** | Return codes 0-4 at top-level frame | Transaction-scoped with scope operand (0x1, 0x2, 0x3), callable at any depth |
+| **Opcodes** | `APPROVE`, `TXPARAMLOAD`, `TXPARAMSIZE`, `TXPARAMCOPY` (4) | `APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`, `FRAMEPARAM` (5) |
+| **APPROVE mechanism** | Return codes 0-4 at top-level frame | Transaction-scoped with scope operand (0x1, 0x2, 0x3), callable at any depth, double-approval prevention |
 | **APPROVE scope** | 0x0 (execution), 0x1 (payment), 0x2 (both) | 0x1 (execution), 0x2 (payment), 0x3 (both) |
 | **APPROVE restriction** | Must be top-level frame | `ADDRESS == frame.target` only |
-| **Mode field** | Just mode value (0, 1, 2) | Lower 8 bits = mode; bits 9-10 = approval scope constraint; bit 11 = atomic batch flag |
-| **Frame modes** | DEFAULT, VERIFY, SENDER | Same three modes, plus mode flags |
-| **Atomic batching** | Not supported | Bit 11 flag, consecutive SENDER frames form batch |
-| **EOA support** | None | Full default code: ECDSA + P256 verification, RLP-encoded call batching |
-| **Signature hash** | VERIFY data NOT elided (bug) | VERIFY data properly elided |
+| **Frame structure** | `[mode, target, gas_limit, data]` | `[mode, flags, target, gas_limit, data]` (mode/flags split) |
+| **Mode field** | Just mode value (0, 1, 2) | Pure mode (0, 1, 2) with separate `flags` field |
+| **Flags field** | N/A | Bits 0-1 = approval scope constraint; bit 2 = atomic batch flag |
+| **Frame modes** | DEFAULT, VERIFY, SENDER | Same three modes |
+| **Atomic batching** | Not supported | Bit 2 of flags, consecutive SENDER frames form batch |
+| **MAX_FRAMES** | `10^3` (1,000) | `64` |
+| **Per-frame cost** | None | `FRAME_TX_PER_FRAME_COST = 475` gas |
+| **EOA support** | None | Full default code: ECDSA (low-`s` enforced) + P256 (domain-separated) verification, RLP-encoded call batching |
+| **Signature hash** | VERIFY data NOT elided (bug) | VERIFY data properly elided; direct mode comparison (no masking needed after mode/flags split) |
 | **Mempool policy** | Not defined (just "Security Considerations" section) | Comprehensive: validation prefixes, canonical paymaster, banned opcodes, MAX_VERIFY_GAS |
-| **Requires header** | `2718, 4844` | `1559, 2718, 4844` |
+| **Requires header** | `2718, 4844` | `1559, 2718, 4844, 7997` |
 | **Authors** | 7 co-authors | 8 co-authors (derekchiang added) |
 | **Receipt** | Not specified in detail | Includes `payer` field and per-frame `[status, gas_used, logs]` |
 | **SENDER frame requirements** | Could execute without prior approval | Requires `sender_approved == true` |
 | **Value in frames** | Not in frame structure | Handled via default code call encoding, not as frame field |
 | **VERIFY frame behavior** | State changes allowed | Behaves as `STATICCALL`, no state changes |
+| **Target resolution** | Direct use of `frame.target` | Explicit `resolved_target` (null target resolves to `tx.sender`) |
+| **Deterministic deployer** | Not specified | Locked to EIP-7997 |
 
 ## Key Philosophical Shifts
 
@@ -62,24 +68,23 @@ This is more gas-efficient and easier to reason about.
 
 ### 5. From No Batching Control to Explicit Atomicity
 
-The original spec had no mechanism for atomic multi-call. The latest provides fine-grained control via bit 11 of the mode field, allowing users to specify exactly which SENDER frames must succeed together. This was a response to the universal expectation from developers that "if I'm batching operations, they should be atomic," while preserving the non-atomic default needed for paymaster patterns.
+The original spec had no mechanism for atomic multi-call. The latest provides fine-grained control via the atomic batch flag in the `flags` field (originally bit 11 of the packed `mode`, now bit 2 of the separate `flags` after the mode/flags split), allowing users to specify exactly which SENDER frames must succeed together. This was a response to the universal expectation from developers that "if I'm batching operations, they should be atomic," while preserving the non-atomic default needed for paymaster patterns.
 
-### 6. Signature Hash Now Handles Mode Flags
+### 6. Mode/Flags Split and Signature Hash Simplification
 
-A subtle but important change: the original spec simply checked `mode == VERIFY` to decide whether to elide frame data from the signature hash. Now that `mode` carries upper-bit flags (approval scope, atomic batch), the signature hash function uses `(frame.mode & 0xFF) == VERIFY`, masking out the flags to check only the execution mode. Without this, adding flags to a VERIFY frame would change the signature hash, breaking the entire verification model. This is a small detail with large consequences.
+The original spec simply checked `mode == VERIFY` to elide frame data from the signature hash. An intermediate version packed flags into the upper bits of mode, requiring `(frame.mode & 0xFF) == VERIFY` to mask them out. The latest spec (after PR #11521) splits mode and flags into separate fields, so the signature hash check is a direct `frame.mode == VERIFY` comparison again. The split also makes the frame structure more explicit: approval scope and atomic batch are clearly separate from the execution mode, reducing the risk of accidental interactions.
 
 ---
 
 ## Active Proposals That May Change the Comparison
 
-As of April 14, 2026, several open PRs propose changes that would extend this comparison table:
+As of April 16, 2026, several open PRs propose changes that would extend this comparison table:
 
 | Proposal | PR | Impact |
 |---|---|---|
 | **Signatures list in outer tx** | [#11481](https://github.com/ethereum/EIPs/pull/11481) | Would add a `signatures` field to the transaction format, a new top-level field for PQ aggregation forward-compatibility |
 | **Precompile-based VERIFY** | [#11482](https://github.com/ethereum/EIPs/pull/11482) | Would allow VERIFY frames to target signature precompiles directly, changing the verification model (all reviewers approved) |
 | **VALUE in SENDER frames** | Under discussion (posts #124-134) | Strong consensus to add a `value` field to frames, no PR yet |
-| **VERIFY frame count constraint** | [#11488](https://github.com/ethereum/EIPs/pull/11488) | Would add explicit `<= 2` VERIFY frame limit to static constraints |
-| **Broad spec tightening** | [#11521](https://github.com/ethereum/EIPs/pull/11521) | Would split `mode`/`flags`, add `FRAMEPARAM` and `resolved_target`, harden default code (low-`s`, P256 domain separation), reduce `MAX_FRAMES` to 64, add per-frame gas cost |
+| **VERIFY frame count constraint** | [#11488](https://github.com/ethereum/EIPs/pull/11488) | Would add explicit `<= 2` VERIFY frame limit to static constraints (some overlap with merged #11521) |
 | **Frame returndata opcodes** | Under discussion (post #137) | Proposed `FRAMERETURNDATASIZE`/`FRAMERETURNDATACOPY` to enable multi-step flows, no PR yet |
 

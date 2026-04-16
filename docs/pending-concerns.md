@@ -2,7 +2,7 @@
 
 ---
 
-This document summarizes open concerns around EIP-8141 frame transactions as they intersect with statelessness, mempool health, and censorship resistance. The primary source is the ethresear.ch thread ["Frame Transactions Through a Statelessness Lens"](https://ethresear.ch/t/frame-transactions-through-a-statelessness-lens/24538) (March–April 2026).
+This document summarizes open concerns around EIP-8141 frame transactions as they intersect with statelessness, mempool health, and censorship resistance. The primary source is the ethresear.ch thread ["Frame Transactions Through a Statelessness Lens"](https://ethresear.ch/t/frame-transactions-through-a-statelessness-lens/24538) (March–April 2026, 12 posts).
 
 **Acronyms used throughout this doc**:
 
@@ -56,7 +56,7 @@ At N=4 storage slots cached per account (64 bytes per slot), full adoption resul
 
 The [AA-VOPS proposal](https://ethresear.ch/t/a-pragmatic-path-towards-validity-only-partial-statelessness-vops/22236#p-54075-vops-and-native-account-abstraction-aavops-9) bounds storage reads to N slots per account but **does not address bytecode availability**: how AA-VOPS nodes obtain delegate bytecodes remains unspecified.
 
-**Counterpoint**: The [proposed VOPS extension](/mempool-strategy#the-state-side-vops-4-slots) settles N at 4 slots and includes nonce, balance, and code, which addresses bytecode availability for the AA-friendly path. Use cases that exceed this baseline pay a [per-tx merkle branch cost](/mempool-strategy#the-merkle-branch-escape-hatch).
+**Counterpoint**: The [proposed VOPS extension](/mempool-strategy#the-state-side-vops-4-slots) settles N at 4 slots and includes nonce, balance, and code, which addresses bytecode availability for the AA-friendly path. Use cases that exceed this baseline pay a [per-tx merkle branch cost](/mempool-strategy#the-merkle-branch-escape-hatch). Additionally, derekchiang proposed (ethresear.ch [post #12](https://ethresear.ch/t/frame-transactions-through-a-statelessness-lens/24538/12), Apr 15) adding all contract bytecodes to the VOPS baseline. Total contract bytecode is ~10.55 GB, roughly doubling VOPS size but staying well below the ~280 GB full state. This would resolve the bytecode availability gap without new opcodes or rent mechanisms.
 
 ## 3. Mempool Health Is Censorship Resistance
 

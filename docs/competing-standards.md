@@ -51,7 +51,7 @@ Two complementary proposals sit off the spectrum (narrower scope, compose with a
 | **EIP-8141** | Native: write account code with any sig scheme. Signature aggregation designed in (VERIFY frame elision, signatures list proposal PR #11481). Most complete PQ path. Hybrid classical+PQ trivial via two VERIFY frames. |
 | **EIP-8175** | Ed25519 native, Falcon-512 proposed (PR #11431). New schemes require hard fork. Cannot do hybrid classical+PQ (NIST-recommended transition). |
 | **EIP-8130** | Deploy PQ verifier contract, nodes add to allowlist. Good path but requires node coordination for adoption. |
-| **EIP-8202** | Ephemeral secp256k1: one-time ECDSA keys with Merkle-committed rotation. Immediately deployable, no new crypto primitives, relying on Keccak-256 preimage resistance. Future PQ schemes added as new `scheme_id` values. Lightest-weight migration but users get a new address. |
+| **EIP-8202** | Falcon-512 native (`scheme_id 0x02`). Updated from original ephemeral-k1 design to direct PQ cryptography. P256 for passkeys (`scheme_id 0x01`). Future PQ schemes added as new `scheme_id` values. |
 | **EIP-XXXX** | Not addressed. Supports secp256k1, P-256, and WebAuthn, all quantum-vulnerable. Adding PQ schemes requires a hard fork to define a new signature encoding. |
 | **EIP-8223** | Not a PQ proposal. Sender is secp256k1 only. Orthogonal to signature agility. |
 | **EIP-8224** | Not a PQ proposal. ZK proof verification (fflonk over BN254) is itself quantum-vulnerable. Orthogonal to signature agility. |
@@ -63,7 +63,7 @@ Two complementary proposals sit off the spectrum (narrower scope, compose with a
 | **EIP-8141** | EVM execution (capped at 100k gas) | High: validation prefix, banned opcodes, canonical paymaster |
 | **EIP-8175** | Crypto sig verification + fee_auth EVM prelude | Medium: stateless sigs, but fee_auth simulation needed |
 | **EIP-8130** | STATICCALL to verifier (or native impl) | Medium: verifier allowlist, account lock optimization |
-| **EIP-8202** | ecrecover + Merkle proof (deterministic) | Low: purely cryptographic, no EVM |
+| **EIP-8202** | ecrecover / P256VERIFY / Falcon-512 verify (deterministic) | Low: purely cryptographic, no EVM |
 | **EIP-XXXX** | ecrecover / P-256 / WebAuthn (bounded) | Low: deterministic crypto, bounded sig sizes |
 | **EIP-8223** | ecrecover + 1 SLOAD at `0x13` + balance check | Minimal: static reads only, no EVM |
 | **EIP-8224** | fflonk proof verify (~176K gas) + EXTCODEHASH check + fixed storage reads | Minimal: bounded crypto + static reads, no EVM |
@@ -146,14 +146,14 @@ Sender authentication is purely cryptographic: ecrecover or Ed25519 verification
 | Aspect | EIP-8175 | EIP-8141 |
 |---|---|---|
 | **Composition model** | Flat: typed capabilities (CALL, CREATE) | Recursive: frames with modes (VERIFY, SENDER, DEFAULT) |
-| **New opcodes** | 4 (`RETURNETH`, `SIG`, `SIGHASH`, `TX_GAS_LIMIT`) | 4 (`APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`) |
+| **New opcodes** | 4 (`RETURNETH`, `SIG`, `SIGHASH`, `TX_GAS_LIMIT`) | 5 (`APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`, `FRAMEPARAM`) |
 | **Tx type** | `0x05` | `0x06` |
 | **Signature model** | Separated signatures list with scheme types | Account code calls `APPROVE` in VERIFY frames |
 | **Validation model** | Cryptographic sig verification + fee_auth EVM prelude | Programmable EVM in VERIFY frames |
 | **Gas sponsorship** | Programmable fee_auth contract with `RETURNETH` escrow | VERIFY frame for sponsor, canonical paymaster |
 | **Fee_auth state persistence** | Survives main tx revert | Frame-level: depends on frame mode |
 | **Mempool complexity** | Medium: stateless sig verification, but fee_auth simulation needed | High: validation prefix, banned opcodes, gas caps |
-| **Atomic batching** | Sequential capabilities, break on revert | Mode flag bit 11 on consecutive SENDER frames |
+| **Atomic batching** | Sequential capabilities, break on revert | Flags field bit 2 on consecutive SENDER frames |
 | **PQ strategy** | Ed25519 native, Falcon-512 proposed | Arbitrary sig schemes in VERIFY frames |
 | **Hybrid classical+PQ** | Not natively supported | Trivial: two VERIFY frames with different schemes |
 | **Programmable validation** | No — fixed signature scheme set for sender | Yes — arbitrary EVM logic |
@@ -187,7 +187,7 @@ Sender authentication is purely cryptographic: ecrecover or Ed25519 verification
 **Author**: Chris Hunter (@chunter-cb, Coinbase/Base)
 **Status**: Draft | **Category**: Core (Standards Track)
 **Created**: October 14, 2025
-**Requires**: EIP-2718, EIP-7702
+**Requires**: EIP-2718 (EIP-7702 dependency dropped Apr 14; EIP-8130 now defines its own delegation indicator)
 **Latest spec**: [chunter-cb/EIPs eip-8130.md](https://github.com/chunter-cb/EIPs/blob/bb45441b89a021f884a960b1f5e2efb6704e6749/EIPS/eip-8130.md)
 
 ### Overview
@@ -243,12 +243,12 @@ Nodes maintain a verifier allowlist. For allowlisted verifiers with known gas bo
 | Aspect | EIP-8130 | EIP-8141 |
 |---|---|---|
 | **Validation model** | Declarative: verifier address in tx → STATICCALL verifier | Programmable: arbitrary EVM in VERIFY frames |
-| **New opcodes** | None | 4 (`APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`) |
+| **New opcodes** | None | 5 (`APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`, `FRAMEPARAM`) |
 | **Mempool safety** | Structural: verifier allowlist, no wallet code execution | Behavioral: banned opcodes, gas caps, validation prefix rules |
 | **Signature schemes** | Deploy verifier contract, add to node allowlist | Write account code that calls `APPROVE` |
 | **Extensibility** | Permissionless verifier deployment, but nodes must adopt | Fully arbitrary within frame architecture |
 | **Gas sponsorship** | `payer` + `payer_auth` fields | VERIFY frame for sponsor |
-| **Atomic batching** | Call phases (array of arrays) | Mode flag bit 11 on consecutive SENDER frames |
+| **Atomic batching** | Call phases (array of arrays) | Flags field bit 2 on consecutive SENDER frames |
 | **Account creation** | CREATE2 via `account_changes` | DEFAULT frame to deployer contract |
 | **EOA support** | Implicit authorization, auto-delegation to default wallet | Default code (ECDSA + P256 verification) |
 | **Owner management** | Onchain `owner_config` storage, portable config changes | Account code defines its own owner model |
@@ -258,10 +258,11 @@ Nodes maintain a verifier allowlist. For allowlisted verifiers with known gas bo
 
 ### Activity
 
-- **16 PRs** (14 merged, 1 open, 1 closed), active iteration from January through April 2026
+- **18 PRs** (15 merged, 2 open, 1 closed), active iteration from January through April 2026
 - **9 EthMagicians posts** at [ethereum-magicians.org/t/eip-8130-account-abstraction-by-account-configurations/25952](https://ethereum-magicians.org/t/eip-8130-account-abstraction-by-account-configurations/25952)
 - Key participants: chunter (author), rmeissner (Safe), Helkomine
 - **Implementation**: Base is implementing (per the author)
+- **Recent**: PR #11492 (merged Apr 14) introduced `REVOKED_VERIFIER` sentinel, added native delegation indicator (dropping the EIP-7702 dependency from `requires`), and added `DelegationApplied` event. PR #11526 (open, Apr 15) renames `from` → `sender` throughout the spec.
 
 ### Strengths
 
@@ -298,10 +299,13 @@ The core thesis is the opposite of EIP-8141's frame model: **flat composition, n
 
 **Authorization System**: The `authorizations` list contains typed `[role_id, scheme_id, witness]` tuples. Currently only `ROLE_SENDER` is defined. Each scheme registers a witness format, verification logic, address derivation, and gas surcharge. New signature schemes are added by registering a new `scheme_id`, with no envelope changes needed.
 
-**Two Initial Schemes**:
+**Three Initial Schemes** (updated from original two-scheme design):
 
 - `SCHEME_SECP256K1` (`0x00`): Standard ECDSA. Same address derivation as legacy Ethereum, so existing EOAs can use the new tx format without address change.
-- `SCHEME_EPHEMERAL_K1` (`0x01`): Quantum-safe one-time ECDSA keys. The user pre-generates 2^20 key pairs from a BIP-39 seed, commits to them via a Merkle tree, and embeds the root in the sender address. Each transaction uses key `i` at nonce `i` with a Merkle proof. After use, a quantum attacker recovering `sk_i` can't forge the next transaction because that requires inverting `keccak256(pk_{i+1})`, a Keccak-256 preimage attack (128-bit security against Grover's).
+- `SCHEME_P256` (`0x01`): P256/secp256r1 for passkey/WebAuthn support. Requires EIP-7951 (P256 precompile).
+- `SCHEME_FALCON512` (`0x02`): Falcon-512 post-quantum signatures. First native PQ scheme defined at the transaction layer.
+
+The original design included an ephemeral secp256k1 scheme (Merkle-committed one-time keys for PQ safety via Keccak-256 preimage resistance). The current PR description lists P256 and Falcon-512 as the second and third schemes, indicating a shift from the hash-based PQ approach toward direct PQ cryptography.
 
 **Extension System**: The `extensions` list contains typed `[extension_id, extension_payload]` entries, unique by ID. Two initial extensions:
 
@@ -332,7 +336,8 @@ The core thesis is the opposite of EIP-8141's frame model: **flat composition, n
 EIP-8202's mempool model is close to today's transaction processing:
 
 - **secp256k1**: Identical to current: ecrecover the sender, check nonce and balance. No EVM execution.
-- **Ephemeral secp256k1**: ecrecover + Merkle proof verification (20 Keccak-256 hashes). No EVM execution, no contract calls. Deterministic cost.
+- **P256**: P256VERIFY precompile call. Deterministic cost.
+- **Falcon-512**: Falcon signature verification. Deterministic cost.
 
 Because there are no frames and no arbitrary EVM validation, the mempool doesn't need banned opcode lists, validation gas caps, or prefix simulation. Validation is purely cryptographic.
 
@@ -343,13 +348,13 @@ The spec explicitly notes: "This EIP allows multiple orthogonal capabilities, bu
 | Aspect | EIP-8202 | EIP-8141 |
 |---|---|---|
 | **Composition model** | Flat: one execution payload + typed extensions | Recursive: multiple frames with modes |
-| **New opcodes** | None | 4 (`APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`) |
+| **New opcodes** | None | 5 (`APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`, `FRAMEPARAM`) |
 | **Tx type** | `0x05` | `0x06` |
 | **Signature agility** | `scheme_id` in authorization — scheme as a capability | Account code calls `APPROVE` — scheme as EVM logic |
-| **PQ strategy** | Ephemeral secp256k1 (Merkle-committed one-time keys) | Arbitrary sig schemes in VERIFY frames |
+| **PQ strategy** | Falcon-512 native (scheme_id `0x02`), P256 for passkeys (scheme_id `0x01`) | Arbitrary sig schemes in VERIFY frames |
 | **Validation model** | Cryptographic only — no EVM during validation | Programmable EVM in VERIFY frames |
 | **Mempool complexity** | Minimal: ecrecover + Merkle proof, deterministic cost | High: validation prefix, banned opcodes, gas caps |
-| **Atomic batching** | Not supported (single execution payload) | Mode flag bit 11 on consecutive SENDER frames |
+| **Atomic batching** | Not supported (single execution payload) | Flags field bit 2 on consecutive SENDER frames |
 | **Gas sponsorship** | `ROLE_PAYER` reserved but not yet defined | VERIFY frame for sponsor, canonical paymaster |
 | **EIP-7702 integration** | `EXT_SET_CODE` extension (scheme-agile delegations) | No authorization list (PQ incompatible) |
 | **EIP-4844 integration** | `EXT_BLOB` extension | Not addressed |
@@ -360,14 +365,15 @@ The spec explicitly notes: "This EIP allows multiple orthogonal capabilities, bu
 
 ### Activity
 
-- **1 PR** ([ethereum/EIPs#11438](https://github.com/ethereum/EIPs/pull/11438)), opened by Giulio2002, currently open
+- **1 PR** ([ethereum/EIPs#11438](https://github.com/ethereum/EIPs/pull/11438)), opened by Giulio2002, currently open (not yet merged, CI errors from Mar 23)
 - **6 EthMagicians posts** at [ethereum-magicians.org/t/eip-8202-schemed-transaction/28044](https://ethereum-magicians.org/t/eip-8202-schemed-transaction/28044)
 - Key participants: Giulio2002 (author), SirSpudlington (raised duplication concerns with EIP-7932/8197), bbjubjub (noted EIP-7702 interop gap for new EOAs), shemnon (EIP-8197 author, argued EIP-8202 lacks flexible tx bodies and signature substitution protection)
+- **Recent**: The PR description now lists three initial schemes (secp256k1, P256, Falcon-512) instead of the original two (secp256k1, ephemeral secp256k1), plus EIP-7951 in the requires list. The spec is not yet on `master`.
 
 ### Strengths
 
 - **Stops tx type proliferation**: one envelope composes features (blobs + set-code + sig scheme all stay `0x05`) instead of minting a new tx type per combination.
-- **Immediately deployable PQ path**: ephemeral secp256k1 uses existing ECDSA infrastructure and Keccak-256. No new crypto primitives, no contract deployment.
+- **Direct PQ path**: Falcon-512 native at the transaction layer. P256 for passkeys. New schemes added as `scheme_id` values without envelope changes.
 - **Minimal mempool disruption**: purely cryptographic validation. Deterministic cost, no EVM, async-compatible. Existing secp256k1 EOAs keep their address.
 - **Scheme-agile EIP-7702 upgrade**: set-code authorizations become scheme-agile, so delegations can use non-ECDSA schemes.
 
@@ -375,9 +381,8 @@ The spec explicitly notes: "This EIP allows multiple orthogonal capabilities, bu
 
 - **No programmable validation or batching**: fixed cryptographic check only. Complex policies (time-based, state-dependent, social recovery) cannot be expressed. Batching requires multicall wrappers.
 - **No gas sponsorship yet**: `ROLE_PAYER` is reserved but undefined.
-- **Ephemeral key UX**: new address on migration (Merkle root changes derivation), and a per-account cap of ~1M transactions after which users must migrate again.
 - **Scheme-agility overlap**: community feedback notes functional overlap with EIP-7932 (crypto agility registry) and EIP-8197 (CATX). Risk of fragmentation across multiple scheme-agility proposals.
-- **Early stage**: 6 discussion posts, no merged PRs.
+- **Early stage**: 6 discussion posts, 1 PR with CI errors, not yet merged to `master`.
 
 ---
 
@@ -453,12 +458,12 @@ The bounded signature sizes (`MAX_WEBAUTHN_SIG_SIZE = 2,049 bytes`) and determin
 | Aspect | EIP-XXXX (Tempo-like) | EIP-8141 |
 |---|---|---|
 | **Philosophy** | Constrained primitives for common UX needs | General-purpose programmable framework |
-| **New opcodes** | None | 4 (`APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`) |
+| **New opcodes** | None | 5 (`APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`, `FRAMEPARAM`) |
 | **Tx type** | `0x76` | `0x06` |
 | **Composition model** | Flat call list, all-or-nothing | Recursive frames with modes and per-frame gas |
 | **Signature schemes** | Fixed set: secp256k1, P-256, WebAuthn | Arbitrary via account code + `APPROVE` |
 | **Validation model** | Cryptographic only — fixed scheme detection | Programmable EVM in VERIFY frames |
-| **Atomic batching** | Native: `calls` list, entire tx reverts on failure | Mode flag bit 11 on consecutive SENDER frames |
+| **Atomic batching** | Native: `calls` list, entire tx reverts on failure | Flags field bit 2 on consecutive SENDER frames |
 | **Gas sponsorship** | `fee_payer_signature` field (secp256k1 only) | VERIFY frame for sponsor, canonical paymaster |
 | **Validity windows** | Native: `valid_after` / `valid_before` | Not addressed |
 | **2D nonces** | Native: `nonce_key` + `nonce` | Not addressed (single nonce) |
@@ -547,12 +552,12 @@ This is strictly compatible with **FOCIL inclusion lists** and **VOPS partial st
 | Aspect | EIP-8223 | EIP-8141 |
 |---|---|---|
 | **Scope** | Gas sponsorship only, via static payer registry | General-purpose AA: validation, execution, sponsorship |
-| **New opcodes** | None | 4 (`APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`) |
+| **New opcodes** | None | 5 (`APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`, `FRAMEPARAM`) |
 | **System contracts** | Canonical payer registry at `0x13` | Canonical paymaster (mempool policy only, not consensus) |
 | **Validation model** | 1 SLOAD + balance check, no EVM | Programmable EVM in VERIFY frames |
 | **Signature schemes** | secp256k1 sender only | Arbitrary via account code |
 | **Sponsorship binding** | Via `tx.to` (no extra field) | VERIFY frame authorizing payer |
-| **Atomic batching** | Not addressed | Mode flag bit 11 on SENDER frames |
+| **Atomic batching** | Not addressed | Flags field bit 2 on consecutive SENDER frames |
 | **VOPS/FOCIL compatibility** | Native (adds only `0x13` storage trie to VOPS baseline) | Requires bounded state access discipline |
 | **Async execution** | Compatible (no EVM in validation) | Incompatible |
 | **EIP-7702 interop** | Composable (EOA delegates, then authorizes sponsor) | No authorization list |
@@ -641,7 +646,7 @@ Validation is bounded cryptographic computation plus a canonical code-hash check
 | Aspect | EIP-8224 | EIP-8141 |
 |---|---|---|
 | **Scope** | Shielded gas funding via ZK proofs against fee-note contracts | General-purpose AA: validation, execution, sponsorship |
-| **New opcodes** | None | 4 (`APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`) |
+| **New opcodes** | None | 5 (`APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`, `FRAMEPARAM`) |
 | **Validation model** | fflonk proof + code-hash check + fixed storage reads, no EVM | Programmable EVM in VERIFY frames |
 | **Privacy model** | Private commitment (Poseidon), nullifier consumption | None natively; relies on out-of-protocol mixers |
 | **Bootstrap problem** | Solved (fresh EOA can pay gas without traceable funding) | Not addressed |

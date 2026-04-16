@@ -38,7 +38,7 @@ A frame transaction (`0x06`) consists of multiple **frames**, each with a mode t
 
 No bundler, no EntryPoint contract, no off-chain infrastructure. The protocol handles validation, gas payment, and execution natively through frames. SENDER frames execute with `msg.sender = tx.sender`, so existing contracts see the original account as the caller. Token approvals, NFT ownership, and all on-chain state work as-is.
 
-EOAs benefit directly without EIP-7702. The protocol has built-in fallback behavior for codeless accounts: VERIFY frames verify signatures (ECDSA or P256) and call `APPROVE` natively, while SENDER frames decode frame data as a list of calls. No code is ever deployed to the EOA. With bit 11 (atomic batch flag) set on consecutive SENDER frames, they become all-or-nothing, protecting users from partial execution.
+EOAs benefit directly without EIP-7702. The protocol has built-in fallback behavior for codeless accounts: VERIFY frames verify signatures (ECDSA or P256) and call `APPROVE` natively, while SENDER frames decode frame data as a list of calls. No code is ever deployed to the EOA. With the atomic batch flag set in the `flags` field on consecutive SENDER frames, they become all-or-nothing, protecting users from partial execution.
 
 ### Example A: Gasless Approve + Swap
 
@@ -68,7 +68,7 @@ An EOA at address A rebalances a Uniswap v4 liquidity position, paying for gas i
 
 ## New Opcodes
 
-EIP-8141 introduces four new opcodes that give frame transactions their power:
+EIP-8141 introduces five new opcodes that give frame transactions their power:
 
 | Opcode | Purpose |
 |---|---|
@@ -76,5 +76,6 @@ EIP-8141 introduces four new opcodes that give frame transactions their power:
 | `TXPARAM` | Reads transaction parameters (sender, nonce, fees) from inside a frame. Replaces `ORIGIN` for introspection. |
 | `FRAMEDATALOAD` | Loads 32 bytes from the current frame's `data` field. How account code reads signatures and calldata passed to a frame. |
 | `FRAMEDATACOPY` | Copies frame data to memory. Bulk version of `FRAMEDATALOAD` for larger payloads. |
+| `FRAMEPARAM` | Reads frame-level metadata (mode, flags, resolved target). Enables frame code to introspect its own execution context. |
 
-`APPROVE` is the central innovation: it's how account code tells the protocol "I've verified this transaction, proceed." The other three opcodes give frame code access to the transaction and frame context it needs to make that decision.
+`APPROVE` is the central innovation: it's how account code tells the protocol "I've verified this transaction, proceed." The other four opcodes give frame code access to the transaction and frame context it needs to make that decision.

@@ -195,7 +195,29 @@ From lightclient's PR description:
 
 ---
 
-## Active Open PRs (as of April 14, 2026)
+## Broad Spec Tightening — April 14, 2026
+
+### PR #11521: Tighten spec
+
+**Author**: benaadams (Ben Adams) | **Merged**: Apr 14
+
+A 295-line spec-hardening PR consolidating several open threads. Changes:
+
+- **Frame model**: Split the packed `mode` field into separate `mode` + `flags` fields. Added `FRAMEPARAM (0xb3)` opcode for frame introspection (renamed from `FRAMEINFO` at derekchiang's suggestion for consistency with `TXPARAM`). Introduced explicit `resolved_target` used consistently throughout execution.
+- **APPROVE/VERIFY semantics**: Defined approval scopes as a bitmask with double-approval prevention. Aligned public-mempool prefixes. Made the VERIFY/STATICCALL carve-out explicit. Clarified that payment scopes collect `TXPARAM(0x06)`. Allowed third-party EOA paymasters in the default-code path.
+- **Default code hardening**: Low-`s` enforcement for secp256k1. Reject failed `ecrecover`. Added P256 address-domain separation (`0x04` prefix before `qx|qy`). Require `P256VERIFY` to reject invalid public keys.
+- **Limits and accounting**: Reduced `MAX_FRAMES` from `10^3` to `64`. Added `FRAME_TX_PER_FRAME_COST` (475 gas). Bounded frame gas totals. Clarified gas semantics for `FRAMEDATACOPY` and `TXPARAM`/blob access.
+- **Deployment**: Locked deterministic deployment to EIP-7997. Made EIP-7702 interaction explicit. Added EIP-7997 to the `requires` header.
+- **Security notes**: Stronger warnings around VERIFY-data malleability, `DELEGATECALL` + `APPROVE`, deploy-frame front-running, explicit-sender state-read amplification, and validation-time cross-frame data visibility.
+- **Canonical paymaster**: Updated to use `TXPARAM(0x08)`. Documented that the current canonical implementation is single-signer secp256k1 only.
+
+Key review discussion: fjl questioned lowering MAX_FRAMES from 1000 to 64, noting the high limit was intentional for native batching/bundling. benaadams responded that journaling carries across frames, creating up to 2000 effective call depth, and that it's easier to increase later after empirical measurement than to decrease. lightclient and derekchiang both approved.
+
+This is the broadest restructuring since PR #11401 (approval bits) and the first PR to add a fifth opcode to the spec.
+
+---
+
+## Active Open PRs (as of April 16, 2026)
 
 These PRs represent active design proposals that may change the spec in the near future.
 
@@ -233,7 +255,7 @@ From lightclient's PR description:
 
 - **Why**: Allow both EOAs and contract accounts to use precompiles for verification, enabling key rotation and shared verification logic.
 - **Proposed change**: Designate "signature precompiles" that VERIFY frames can target natively. The precompile reads the public key commitment from storage.
-- **All reviewers approved** (as of April 14), awaiting merge.
+- **All reviewers approved** (as of April 14), awaiting merge. May need rebasing after the PR #11521 merge.
 
 From derekchiang's PR description:
 
@@ -248,21 +270,7 @@ From derekchiang's PR description:
   - Fix stale APPROVE scope values in structural rules: `self_verify` → `APPROVE(0x3)`, `only_verify` → `APPROVE(0x1)`, `pay` → `APPROVE(0x2)`
   - Remove `frame.target != tx.sender` check from default VERIFY code to allow any EOA as paymaster
 - Inspired by node.cm's observations on the EthMagicians thread (posts #135-136)
+- Some of these fixes overlap with changes already merged in PR #11521
 - No reviews yet from core authors
 
-### PR #11521: Tighten spec (open since Apr 13)
-
-**Author**: benaadams (Ben Adams)
-
-A broad spec-hardening PR (295 additions, 184 deletions) consolidating several open threads. Proposed changes:
-
-- **Frame model**: Split packed `mode` field into `mode` + `flags`; add `FRAMEPARAM` opcode; introduce explicit `resolved_target` used consistently throughout execution.
-- **APPROVE/VERIFY semantics**: Define approval scopes as a bitmask; align public-mempool prefixes; make VERIFY/STATICCALL carve-out explicit; clarify that payment scopes collect `TXPARAM(0x06)`; allow third-party EOA paymasters in the default-code path.
-- **Default code hardening**: Low-`s` enforcement for secp256k1; reject failed `ecrecover`; add P256 address-domain separation; require `P256VERIFY` to reject invalid public keys.
-- **Limits and accounting**: Reduce `MAX_FRAMES` from `10^3` to `64`; add `FRAME_TX_PER_FRAME_COST`; bound frame gas totals; clarify gas semantics for `FRAMEDATACOPY` and `TXPARAM`/blob access.
-- **Deployment**: Lock deterministic deployment to EIP-7997; make EIP-7702 interaction explicit.
-- **Security notes**: Stronger warnings around VERIFY-data malleability, `DELEGATECALL` + `APPROVE`, deploy-frame front-running, explicit-sender state-read amplification, validation-time cross-frame data visibility.
-- **Canonical paymaster**: Update to use `TXPARAM(0x08)`; document that current canonical implementation is single-signer secp256k1 only.
-
-This is the broadest restructuring proposal since PR #11401 (approval bits). It overlaps with #11481 (signatures list), #11482 (precompile VERIFY), and #11488 (consistency fixes); will likely need coordination with those before merge.
 

@@ -32,6 +32,7 @@
 | Mar 25 | [#11415](https://github.com/ethereum/EIPs/pull/11415) | lightclient | Add mempool policy |
 | Mar 26 | [#11448](https://github.com/ethereum/EIPs/pull/11448) | derekchiang | Update default code for approval bits |
 | Apr 8 | [#11251](https://github.com/ethereum/EIPs/pull/11251) | BonyHanter83 | Add EIP-1559 to requires header |
+| Apr 14 | [#11521](https://github.com/ethereum/EIPs/pull/11521) | benaadams | Tighten spec (mode/flags split, FRAMEPARAM, MAX_FRAMES=64, per-frame cost, default code hardening) |
 
 ### Open
 
@@ -42,7 +43,6 @@
 | Apr 2 | [#11481](https://github.com/ethereum/EIPs/pull/11481) | lightclient | Add signatures list to outer tx (PQ aggregation) |
 | Apr 2 | [#11482](https://github.com/ethereum/EIPs/pull/11482) | derekchiang | Allow precompiles for VERIFY frames (all reviewers approved) |
 | Apr 6 | [#11488](https://github.com/ethereum/EIPs/pull/11488) | chiranjeev13 | Fix spec inconsistencies (APPROVE scopes, VERIFY count) |
-| Apr 13 | [#11521](https://github.com/ethereum/EIPs/pull/11521) | benaadams | Tighten spec (mode/flags split, FRAMEPARAM, resolved_target, MAX_FRAMES reduction, P256 hardening) |
 
 ### Related
 
@@ -85,14 +85,14 @@
 | rmeissner | @rmeissner | Safe team representative, value-in-frames advocate |
 | node.cm | @node.cm | Spec reviewer, VERIFY frame count observation |
 | Chiranjeev Mishra | @chiranjeev13 | Spec consistency fixes |
-| Ben Adams | @benaadams | Spec tightening (PR #11521), author of EIP-8223 (Contract Payer Transaction) |
+| Ben Adams | @benaadams | Spec tightening (PR #11521, merged Apr 14), author of EIP-8223 (Contract Payer Transaction) and EIP-8224 (Counterfactual Transaction) |
 | Jacopo | @jacopo-eth | Proposed FRAMERETURNDATASIZE/FRAMERETURNDATACOPY for multi-step flows |
 | Franco Victorio | @fvictorio | Raised question about validation-frame execution ordering vs non-frame txs |
 
 ## EthMagicians Discussion
 
 - **Thread**: [Frame Transaction](https://ethereum-magicians.org/t/frame-transaction/27617)
-- **Total posts**: 138 (as of April 14, 2026)
+- **Total posts**: 138 (as of April 16, 2026)
 - **Last documented coverage**: Posts 1-138
 
 ## External Resources

@@ -106,7 +106,7 @@ The [canonical paymaster](/current-spec#mempool-policy) is a protocol-blessed co
 
 ### Atomic Batching in the Transaction Format
 
-Atomic batching is expressed via bit 11 of `frame.mode` on consecutive SENDER frames ([spec](/current-spec)). Apps do not need a wallet-level RPC standard to batch, and wallets do not need to agree on a separate ERC for batching behavior. The transaction format itself carries the batch semantics.
+Atomic batching is expressed via bit 2 of `frame.flags` on consecutive SENDER frames ([spec](/current-spec)). Apps do not need a wallet-level RPC standard to batch, and wallets do not need to agree on a separate ERC for batching behavior. The transaction format itself carries the batch semantics.
 
 ### The Escape Hatch
 
@@ -120,7 +120,7 @@ Protocol defaults cover batching, ECDSA and P256 signatures, and ERC-20 gas spon
 
 | Feature area | Default covers? | ERC work still needed? |
 |---|---|---|
-| Atomic batching | Yes (mode flag, bit 11) | No |
+| Atomic batching | Yes (flags field, bit 2) | No |
 | Gas sponsorship, native ETH | Yes (canonical paymaster) | No for basic case |
 | Gas sponsorship, ERC-20 | Yes (default code + spec example 4) | No for basic case |
 | secp256k1 and P256 signatures | Yes (default code) | No |
