@@ -1,6 +1,9 @@
 <template>
   <footer class="custom-footer">
     <div class="footer-container">
+      <div class="footer-col footer-title">
+        <h4>EIP-8141 Frame Transaction</h4>
+      </div>
       <div class="footer-col">
         <h4>Spec</h4>
         <ul>
@@ -16,21 +19,21 @@
         <ul>
           <li><a href="/eoa-support">EOA Support</a></li>
           <li><a href="/pq-roadmap">PQ Roadmap</a></li>
-          <li><a href="/developer-tooling">Developer Tooling</a></li>
           <li><a href="/mempool-strategy">Mempool Strategy</a></li>
           <li><a href="/vops-compatibility">VOPS Compatibility</a></li>
+          <li><a href="/developer-tooling">Developer Tooling</a></li>
           <li><a href="/competing-standards">Competing Standards</a></li>
         </ul>
       </div>
       <div class="footer-col">
         <h4>Alternatives</h4>
         <ul>
-          <li><a href="/eip-8175">EIP-8175</a></li>
-          <li><a href="/eip-8130">EIP-8130</a></li>
-          <li><a href="/eip-8202">EIP-8202</a></li>
-          <li><a href="/eip-xxxx">EIP-XXXX (Tempo)</a></li>
-          <li><a href="/eip-8223">EIP-8223</a></li>
-          <li><a href="/eip-8224">EIP-8224</a></li>
+          <li><a href="/eip-8175">EIP-8175: Composable Transaction</a></li>
+          <li><a href="/eip-8130">EIP-8130: AA by Account Configuration</a></li>
+          <li><a href="/eip-8202">EIP-8202: Scheme-Agile Transactions</a></li>
+          <li><a href="/eip-8223">EIP-8223: Contract Payer Transaction</a></li>
+          <li><a href="/eip-8224">EIP-8224: Counterfactual Transaction</a></li>
+          <li><a href="/eip-xxxx">EIP-XXXX: Tempo-like Transactions</a></li>
         </ul>
       </div>
       <div class="footer-col">
@@ -92,7 +95,7 @@
   max-width: calc(var(--vp-layout-max-width) - 64px);
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 32px;
 }
 
@@ -125,6 +128,10 @@
 }
 
 @media (max-width: 1024px) {
+  .footer-title {
+    display: none;
+  }
+
   .footer-container {
     grid-template-columns: repeat(2, 1fr);
   }

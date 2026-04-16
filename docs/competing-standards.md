@@ -131,7 +131,7 @@ On tracing requirements: EIP-8141 is the only proposal that requires full EVM tr
 Each proposal is covered in detail on its own page:
 
 - [EIP-8175: Composable Transaction](/eip-8175)
-- [EIP-8130: Account Abstraction by Account Configuration](/eip-8130)
+- [EIP-8130: AA by Account Configuration](/eip-8130)
 - [EIP-8202: Scheme-Agile Transactions](/eip-8202)
 - [EIP-XXXX: Tempo-like Transactions](/eip-xxxx)
 - [EIP-8223: Contract Payer Transaction](/eip-8223)

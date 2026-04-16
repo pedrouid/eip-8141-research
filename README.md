@@ -20,9 +20,9 @@ Comprehensive analysis of [EIP-8141](https://eips.ethereum.org/EIPS/eip-8141) (F
 |---|---|
 | [EOA Support](./docs/eoa-support.md) | How protocol-level default code replaces EIP-7702 delegation for common-case EOAs |
 | [PQ Roadmap](./docs/pq-roadmap.md) | Seven-stage roadmap from EIP-8141 foundation to full post-quantum and private L1 settlement |
-| [Developer Tooling](./docs/developer-tooling.md) | Bear and bull cases for wallet/app developer adoption, protocol defaults vs ERC fragmentation |
 | [Mempool Strategy](./docs/mempool-strategy.md) | Two-tier mempool architecture, VOPS extension, merkle escape hatch, why no relayers are needed |
 | [VOPS Compatibility](./docs/vops-compatibility.md) | How frame transactions interact with VOPS, state growth, FOCIL, and witnesses |
+| [Developer Tooling](./docs/developer-tooling.md) | Bear and bull cases for wallet/app developer adoption, protocol defaults vs ERC fragmentation |
 | [Competing Standards](./docs/competing-standards.md) | EIP-8130, EIP-8175, EIP-8202, EIP-8223, EIP-8224, Tempo - design, tradeoffs, comparative analysis |
 
 ### Resources
