@@ -46,8 +46,8 @@ frames = [[mode, flags, target, gas_limit, data], ...]
 **Stack**: `[offset, length, scope]` (with double-approval prevention: once a scope bit is set, it cannot be set again)
 
 **Scopes**:
-- `0x1`: Approve execution — sets `sender_approved = true` (only valid when `frame.target == tx.sender`)
-- `0x2`: Approve payment — increments nonce, collects gas fees from the account, sets `payer_approved = true`
+- `0x1`: Approve payment — increments nonce, collects gas fees from the account, sets `payer_approved = true`
+- `0x2`: Approve execution — sets `sender_approved = true` (only valid when `frame.target == tx.sender`)
 - `0x3`: Approve both execution and payment
 
 **Security**: Only `frame.target` can call `APPROVE` (`ADDRESS == frame.target` check). `sender_approved` must be true before `payer_approved` can be set.
@@ -233,7 +233,7 @@ If the swap reverts, the ERC-20 approval is also reverted.
 | EIP-7997 | Deterministic deployer, used for account deployment frames |
 | EIP-7392 | Signature registry; PR #11455 proposes making default code interoperable |
 
-## Pending Proposals (as of April 16, 2026)
+## Pending Proposals (as of April 16, 2026) {#pending-proposals}
 
 Five significant proposals are under active discussion that would change the spec:
 

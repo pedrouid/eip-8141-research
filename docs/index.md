@@ -13,17 +13,17 @@ hero:
       link: https://demo.eip-8141.ethrex.xyz/
 features:
   - title: Programmable Validation
-    details: Accounts define their own signature verification (ECDSA, P256/passkeys, post-quantum) using the APPROVE opcode in VERIFY frames
+    details: Accounts define their own signature verification (ECDSA, P256, post-quantum) via the APPROVE opcode
   - title: Gas Sponsorship
-    details: Third parties pay gas through sponsor VERIFY frames and canonical paymasters. No bundlers or relayers needed.
+    details: Third parties pay gas through sponsor VERIFY frames. No bundlers or relayers needed.
   - title: Atomic Batching
-    details: Group multiple operations into atomic batches that succeed or revert together, natively at the protocol level
+    details: Group multiple operations into atomic batches that succeed or revert together at the protocol level
   - title: Post-Quantum Ready
-    details: No ECDSA dependency in the transaction format. Accounts choose their own cryptographic scheme with signature aggregation built in.
+    details: No ECDSA dependency in the transaction format. Accounts choose their own scheme with aggregation.
   - title: EOA Compatible
-    details: Built-in behavior for codeless accounts. EOAs get native AA without delegations, contract deployments, or state changes.
+    details: Built-in behavior for codeless accounts. EOAs get native AA without delegations or deployments.
   - title: Dual-Model Design
-    details: The execution model allows arbitrary validation. The mempool model constrains it to propagatable shapes.
+    details: Execution model allows arbitrary validation. Mempool model constrains it to propagatable shapes.
 ---
 
 ## How It Works
@@ -72,7 +72,7 @@ EIP-8141 introduces five new opcodes that give frame transactions their power:
 
 | Opcode | Purpose |
 |---|---|
-| `APPROVE` | Terminates a VERIFY frame and sets transaction-scoped approval flags. Scope `0x1` approves execution, `0x2` approves payment, `0x3` approves both. |
+| `APPROVE` | Terminates a VERIFY frame and sets transaction-scoped approval flags. Scope `0x1` approves payment, `0x2` approves execution, `0x3` approves both. |
 | `TXPARAM` | Reads transaction parameters (sender, nonce, fees) from inside a frame. Replaces `ORIGIN` for introspection. |
 | `FRAMEDATALOAD` | Loads 32 bytes from the current frame's `data` field. How account code reads signatures and calldata passed to a frame. |
 | `FRAMEDATACOPY` | Copies frame data to memory. Bulk version of `FRAMEDATALOAD` for larger payloads. |

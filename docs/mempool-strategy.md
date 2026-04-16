@@ -6,185 +6,137 @@
 
 EIP-8141 separates **what is consensus-valid** (programmable, broad) from **what the public mempool propagates** (constrained, opinionated). The proposed strategy uses two tiers in parallel:
 
-- **Restrictive mempool** ships in clients first. Covers status-quo accounts plus a small set of high-value, low-complexity cases: post-quantum signatures, P256 (r1) signatures, and gas sponsorship via canonical paymasters. This is the [public mempool policy already specified](/current-spec#mempool-policy) in the [current EIP-8141 spec](https://eips.ethereum.org/EIPS/eip-8141).
-- **Expansive mempool** develops in parallel, opt-in per node. Built on the [ERC-7562](https://eips.ethereum.org/EIPS/eip-7562) (validation rules for ERC-4337 bundlers) / paymaster-extended lineage. Handles the long tail (privacy protocols, complex validation policies). FOCIL (Fork-Choice enforced Inclusion Lists) nodes default to the restrictive set and may add expansive ingress channels at their discretion.
+- **Restrictive mempool** ships in clients first. Covers status-quo accounts plus PQ signatures, P256, and gas sponsorship via canonical paymasters. This is the [public mempool policy already specified](/current-spec#mempool-policy) in the current spec.
+- **Expansive mempool** develops in parallel, opt-in per node. Built on the [ERC-7562](https://eips.ethereum.org/EIPS/eip-7562) lineage. Handles privacy protocols and complex validation. FOCIL nodes default to the restrictive set and may add expansive channels at their discretion.
 
-For state, the proposal extends the [VOPS (Validity-Only Partial Statelessness)](/pending-concerns#2-vops-nodes-and-the-state-growth-problem) baseline to include **nonce, balance, code, and the first 4 storage slots per account**. Use cases that fall outside this VOPS extension (privacy protocols are the canonical example) pay an explicit cost: they include a **merkle branch** (4-8 kB today, 1-2 kB after a binary tree migration) proving the specific extra-VOPS state items they read. This per-tx cost falls only on the transactions that need it. See the [AA-VOPS discussion thread](https://ethresear.ch/t/a-pragmatic-path-towards-validity-only-partial-statelessness-vops/22236) for the origin of this framing.
+For state, the proposal extends the [VOPS](/vops-compatibility#state-growth-at-scale) baseline to include **nonce, balance, code, and the first 4 storage slots per account**. Use cases outside this extension pay an explicit cost: a **merkle branch** (4-8 kB today, 1-2 kB after binary tree migration) per extra-VOPS state item. See the [AA-VOPS thread](https://ethresear.ch/t/a-pragmatic-path-towards-validity-only-partial-statelessness-vops/22236) for origin.
 
-The framing is borrowed from Bitcoin: **let consensus rules do a lot, but restrict at the mempool layer**. [Bitcoin Core's policy rules](https://github.com/bitcoin/bitcoin/tree/master/doc/policy) are upgradable without hardforks, which is why Bitcoin has been able to evolve for 15+ years while keeping the consensus footprint narrow. EIP-8141 applies the same pattern to native AA.
+The framing is borrowed from Bitcoin: **let consensus rules do a lot, but restrict at the mempool layer**. Bitcoin Core's policy rules are upgradable without hardforks, which is why Bitcoin has evolved for 15+ years while keeping the consensus footprint narrow. EIP-8141 applies the same pattern.
 
-A consequence of this design: **the proposal claims frame transactions remove the need for off-chain relayers**. Privacy rebroadcasters and "front ETH so users can pay gas in ERC-20" are designed to be expressible as pure onchain smart contracts, with no live third-party actors required in the transaction supply chain. This is the proposal's structural claim, not yet observed in production.
+A consequence: **the proposal claims frame transactions remove the need for off-chain relayers**. Privacy rebroadcasters and ERC-20 gas fronting are designed to be expressible as pure onchain smart contracts, with no live third-party actors required in the transaction supply chain.
 
 ---
 
 ## Two Tiers in One Mempool
 
-> **Note**: The restrictive tier is what's **in the current EIP-8141 spec** today ([spec mempool section](https://eips.ethereum.org/EIPS/eip-8141#mempool)). The expansive tier is a **proposed framework** for how the ecosystem grows beyond the restrictive floor, not a shipped protocol feature.
+> **Note**: The restrictive tier is in the current EIP-8141 spec. The expansive tier is a proposed framework, not a shipped feature.
 
-The fundamental asymmetry: a frame transaction that does not match the mempool rules is still **consensus-valid on-chain**. It just cannot be gossiped through the public p2p network and must reach a block builder through private channels. This separation is what makes the two-tier strategy possible.
+A frame transaction that does not match the mempool rules is still **consensus-valid on-chain**. It just cannot be gossiped through the public p2p network. This separation makes the two-tier strategy possible.
 
 | Tier | What it carries | Validation cost | Status |
 |---|---|---|---|
-| **Restrictive mempool** | Status-quo accounts, PQ signatures, P256 (r1), canonical paymaster sponsorship, non-canonical paymaster (≤ 1 pending tx) | Bounded: validation prefix matches one of four shapes, ≤ 100,000 gas, banned opcodes, sender-only storage reads | **Specified in EIP-8141**, ships with frame transactions |
-| **Expansive mempool** | Privacy protocols, multi-paymaster sponsorship, arbitrary VERIFY-frame validation policies | Higher: [ERC-7562](https://eips.ethereum.org/EIPS/eip-7562)-style staking/reputation, full simulation, multi-paymaster accounting | **Proposed**, develops in parallel, opt-in per node, no hardfork required |
-
-A FOCIL node defaults to restrictive. It may opt into expansive ingress (ERC-7562, direct connections to wallet servers, block builders, TEE mempools) and any other channel it chooses. The more channels a FOCIL node accepts, the more transactions it can include. That decision is local to each node.
+| **Restrictive** | Status-quo accounts, PQ sigs, P256, canonical paymaster, non-canonical (1 pending tx) | Bounded: 4 prefix shapes, 100k gas, banned opcodes, sender-only reads | **Specified in EIP-8141** |
+| **Expansive** | Privacy protocols, multi-paymaster, arbitrary VERIFY policies | Higher: ERC-7562 staking/reputation, full simulation | **Proposed**, opt-in per node |
 
 ---
 
 ## Restrictive Mempool: What Ships First
 
-The restrictive mempool is the [public mempool policy currently specified in EIP-8141](/current-spec#mempool-policy). It deliberately covers a small surface:
+The restrictive tier covers a small surface:
 
-- **Self relay**: an account validates itself and pays its own gas
-- **Canonical paymaster sponsorship**: a paymaster matching the canonical runtime code sponsors gas, with reserved-balance accounting
-- **Account deployment**: deterministic deployment as the first frame, before validation
-- **Non-canonical paymaster sponsorship**: bounded to a single pending transaction per paymaster, to cap mempool revalidation cost
+- **Self relay**: account validates itself and pays its own gas
+- **Canonical paymaster sponsorship**: paymaster matching canonical runtime code sponsors gas
+- **Account deployment**: deterministic deployment as the first frame
+- **Non-canonical paymaster**: bounded to 1 pending tx per paymaster
 
-Validation is constrained by:
+Validation constraints: one of four prefix shapes, gas 100k, banned opcodes (ORIGIN, TIMESTAMP, BLOCKHASH, CREATE, BALANCE, SSTORE, etc.), storage reads only on `tx.sender`, no calls to non-existent contracts.
 
-- A validation prefix must match one of four shapes (`self_verify`, `deploy → self_verify`, `only_verify → pay`, `deploy → only_verify → pay`)
-- Sum of validation-prefix gas ≤ `MAX_VERIFY_GAS` (100,000)
-- A list of banned opcodes (`ORIGIN`, `TIMESTAMP`, `BLOCKHASH`, `CREATE`, `BALANCE`, `SELFBALANCE`, `SSTORE`, `TLOAD`, `TSTORE`, etc.)
-- Storage reads only on `tx.sender`
-- No calls to non-existent contracts or EIP-7702 delegations (with the explicit `tx.sender` default-code carve-out)
-
-These constraints were chosen so that one transaction's validity depends on a small, predictable set of state items. That property is what makes mempool revalidation tractable when blocks land. It is also what makes the restrictive tier compatible with FOCIL inclusion lists out of the box.
-
-**What the restrictive tier intentionally enables, even with these constraints:**
-
-- secp256k1 signatures (status quo)
-- P256 / passkey signatures
-- Post-quantum signatures (any account-defined scheme that fits the validation budget)
-- ERC-20 gas payment via canonical paymaster (see [EIP-8141 spec example 4](https://eips.ethereum.org/EIPS/eip-8141#practical-use-cases))
-- Smart account validation that reads only its own storage
-
-The intent is to cover what most wallets and users need at the protocol layer. The restrictive tier deliberately targets the common case; richer use cases route through the expansive tier.
+What this enables: secp256k1, P256/passkeys, PQ signatures fitting the validation budget, ERC-20 gas payment via canonical paymaster, smart account validation reading only its own storage.
 
 ---
 
 ## Expansive Mempool: What Develops in Parallel
 
-The expansive tier is for use cases that legitimately need more than the restrictive policy allows. The principal example is **privacy protocols**: a privacy-preserving withdrawal must read state outside `tx.sender` to verify a nullifier or membership proof. That violates the restrictive rule "no storage reads outside `tx.sender`."
+For use cases exceeding restrictive policy. The principal example: privacy protocols that must read state outside `tx.sender` to verify nullifiers.
 
-The expansive tier handles this by accepting:
-
-- [ERC-7562](https://eips.ethereum.org/EIPS/eip-7562)-style validation with staking and reputation
-- Paymaster-extended policies (sponsoring more accounts than the restrictive `MAX_PENDING_TXS_USING_NON_CANONICAL_PAYMASTER` limit)
-- Arbitrary VERIFY-frame validation logic, subject to the node's own resource budget
-
-Critically, the expansive tier is **not** a precondition for shipping EIP-8141. Clients ship the restrictive tier, and the privacy/complex-validation community develops the expansive tier independently. There is no hardfork dependency between the two.
-
-This is the Bitcoin pattern: the mempool is a permissioned filter over the consensus rules, and that filter can evolve without coordinated network upgrades.
+The expansive tier accepts ERC-7562-style validation with staking/reputation, paymaster-extended policies, and arbitrary VERIFY logic subject to the node's resource budget. It is not a precondition for shipping EIP-8141. Clients ship restrictive first; the privacy/complex-validation community develops expansive independently. No hardfork dependency between the two.
 
 ---
 
 ## The State Side: VOPS + 4 Slots
 
-The [Validity-Only Partial Statelessness (VOPS) baseline](/pending-concerns#2-vops-nodes-and-the-state-growth-problem) is the minimum state footprint a node needs after ZKEVMs replace re-execution. The current VOPS proposal carries the full account trie (~10 GB for ~400M accounts).
-
-The [proposed extension](https://ethresear.ch/t/a-pragmatic-path-towards-validity-only-partial-statelessness-vops/22236) for frame transactions:
+The proposed extension for frame transactions:
 
 | State item | Per account | Notes |
 |---|---|---|
 | Nonce | Already in VOPS | Standard EOA validation |
 | Balance | Already in VOPS | Standard EOA validation |
 | Code | Already in VOPS | Needed to detect smart accounts |
-| **First 4 storage slots** | New | Covers the most common AA validation reads (signing key commitments, owner addresses, etc.) |
+| **First 4 storage slots** | New | Covers most common AA validation reads |
 
-This is a small constant-factor increase over the current VOPS baseline, not a regression to full state. It covers the validation reads of well-designed AA wallets, whose validation logic is typically a tight loop over a few canonical slots (signer set, sequencer key, replay-protection counter).
+A small constant-factor increase over the VOPS baseline, covering the validation reads of well-designed AA wallets (signer set, sequencer key, replay-protection counter).
 
 ---
 
 ## The Merkle Branch Escape Hatch
 
-For use cases that read state outside the VOPS+4 baseline (privacy protocols are the canonical case, but any AA pattern using more than the first 4 slots qualifies), the proposal is straightforward: **the transaction includes a merkle branch proving the specific state items it reads**.
+For use cases reading state outside VOPS+4, the transaction includes a merkle branch proving the state items it reads.
 
-| Property | Today (MPT) | After binary tree migration |
+| Property | Today (MPT) | After binary tree |
 |---|---|---|
-| Branch size per state item | 4-8 kB | 1-2 kB |
+| Branch size per item | 4-8 kB | 1-2 kB |
 | Items typically proved | 1-2 | 1-2 |
 
-This is the explicit cost-of-doing-business for non-VOPS-friendly transactions:
-
-- Pure status-quo and AA-VOPS-friendly transactions pay zero extra
-- Privacy protocol transactions pay one or two branches per tx
-- The cost falls on the transactions that need it, not on every transaction
-
-The infrastructure already exists. Clients implement the witness machinery for sync today, and RPC methods for users to obtain witnesses are already standardized. Binary tree migration further compresses the cost.
+Status-quo and AA-VOPS-friendly transactions pay zero extra. Privacy protocol transactions pay one or two branches. The infrastructure already exists in clients (witness machinery for sync, standardized RPC methods for users to obtain witnesses).
 
 ---
 
 ## Resolving the Trilemma
 
-The ["choose 2 of 3" trilemma](/pending-concerns#7-the-choose-2-of-3-trilemma) (Frames + FOCIL + VOPS) resolves under this strategy as follows:
+The ["choose 2 of 3" trilemma](/vops-compatibility#the-frames-focil-vops-trilemma) (Frames + FOCIL + VOPS) resolves under this strategy:
 
-| Transaction class | Restrictive mempool? | FOCIL? | VOPS+4? | Extra cost |
+| Transaction class | Restrictive? | FOCIL? | VOPS+4? | Extra cost |
 |---|---|---|---|---|
-| Status-quo accounts (secp256k1) | Yes | Yes | Yes | None |
-| AA wallets reading ≤ 4 own slots | Yes | Yes | Yes | None |
-| AA wallets reading > 4 own slots | Yes | Yes | Yes (with witness) | 1-2 merkle branches |
-| Canonical paymaster sponsorship | Yes | Yes | Yes | None |
-| Non-canonical paymaster, low volume | Yes (≤ 1 pending) | Yes | Yes | None |
-| Non-canonical paymaster, high volume | No (expansive only) | Opt-in | N/A | Expansive tier |
-| Privacy protocol | No (expansive only) | Opt-in | Yes (with witness) | 1-2 merkle branches + expansive tier |
+| Status-quo accounts | Yes | Yes | Yes | None |
+| AA wallets reading 4 own slots | Yes | Yes | Yes | None |
+| AA wallets reading > 4 own slots | Yes | Yes | Yes (witness) | 1-2 branches |
+| Canonical paymaster | Yes | Yes | Yes | None |
+| Non-canonical, low volume | Yes (1 pending) | Yes | Yes | None |
+| Non-canonical, high volume | No (expansive) | Opt-in | N/A | Expansive tier |
+| Privacy protocol | No (expansive) | Opt-in | Yes (witness) | Branches + expansive |
 
-**Under this framework, the trilemma resolves by paying real costs in the cases that need them**, not by forcing every transaction into a single one-size-fits-all policy. Frames + FOCIL + VOPS can coexist for the majority of traffic. Edge cases pay an explicit per-tx cost or move to the expansive tier. The framework itself is a proposal, not adopted policy.
-
----
-
-## The Bitcoin Pattern: Permissive Consensus, Restrictive Mempool
-
-The architectural pattern underlying this strategy is borrowed by analogy from Bitcoin. The analogy is not equivalence: Bitcoin's scripting model and Ethereum's EVM differ substantially. The borrowed idea is the layering itself.
-
-In Bitcoin, **consensus rules** (what's valid on-chain) and **standardness rules** (what gets relayed by the mempool) are deliberately separate layers. The mempool filters are maintained in [Bitcoin Core's policy code](https://github.com/bitcoin/bitcoin/tree/master/doc/policy) and evolve without consensus-level changes:
-
-- **Consensus rules are permissive**: anything that can be validated by the protocol is valid on-chain
-- **Mempool rules are restrictive**: nodes filter the propagation network down to a safer subset
-- **The mempool can evolve without hardforks**: tightening or loosening the filter is a node-policy change, not a consensus change
-
-Bitcoin has used this pattern for over 15 years. Standardness rules, replace-by-fee policy ([BIP 125](https://github.com/bitcoin/bips/blob/master/bip-0125.mediawiki)), [package relay](https://github.com/bitcoin/bitcoin/blob/master/doc/policy/packages.md), and many other improvements landed without consensus-level changes.
-
-For EIP-8141, this means:
-
-- Ship frame transactions with the restrictive mempool today
-- Loosen the mempool over time as the expansive tier matures, without requiring a hardfork
-- Tighten policy if a new DoS vector emerges, also without a hardfork
-
-The cost is conceptual: developers must understand that "consensus-valid" and "publicly-relayable" are different categories. The benefit is enormous flexibility in how the network evolves.
-
-(Bitcoin already has a form of "AA": its scripting language is exposed at the verification layer and mempool nodes execute it. The two-tier mempool pattern is what makes that workable in production.)
+Frames + FOCIL + VOPS coexist for the majority of traffic. Edge cases pay per-tx cost or move to the expansive tier.
 
 ---
 
 ## Why Frame Transactions Don't Need Relayers
 
-A common assumption inherited from EIP-4337 / EIP-7702 deployments is that AA requires off-chain relayer infrastructure: bundlers, paymaster operators, privacy rebroadcasters. The proposed strategy argues this is no longer structurally necessary.
+Anything a relayer does for EIP-4337 can be expressed as a pure onchain smart contract under EIP-8141.
 
-The proposed mechanism: anything a relayer does for an EIP-4337 deployment can be expressed as a pure onchain smart contract under EIP-8141.
+**Privacy rebroadcasters** become onchain contracts observing the canonical mempool and repackaging transactions with witness branches. **ERC-20 gas fronting** becomes a canonical paymaster accepting token payment in a SENDER frame and paying ETH gas.
 
-**Privacy rebroadcasters** could become onchain contracts that observe the canonical mempool, repackage transactions with the necessary witness branches, and submit them. No live operator would be required.
+This is the structural argument against EIP-4337 + EIP-7702: in those designs, the relayer is required because validation does not run in-protocol. EIP-8141 brings validation in-protocol, which the proposal claims removes the structural need for out-of-protocol actors. Whether on-chain substitutes match bundlers' operational properties in practice is an open question.
 
-**"Front ETH so users can pay gas in ERC-20"** could become a canonical paymaster (or non-canonical paymaster within the limit) that:
-- Accepts an ERC-20 payment in a SENDER frame
-- Pays the transaction's ETH gas cost
-- Settles the rate at execution time
+The practical implication is central to the [Developer Tooling bull case](/developer-tooling#bull-case-native-aa-with-powerful-defaults): the wallet adoption cost reduces to "implement a new transaction type."
 
-If the design works as proposed, the contract carries the role the off-chain actor carried before, without a separate operator.
+---
 
-This is the structural argument the proposal makes against [EIP-4337](https://eips.ethereum.org/EIPS/eip-4337) + [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702): in those designs, the relayer/bundler is required because validation does not run in-protocol. EIP-8141 brings validation into the protocol, which the proposal claims removes the structural need for an out-of-protocol actor to validate, package, and submit. Whether the on-chain substitutes match the operational properties of bundlers in practice is an open question for production deployments.
+## Open Questions
 
-The practical implication is one of the strongest claims in the [Developer Tooling bull case](/developer-tooling#bull-case-native-aa-with-powerful-defaults): the wallet adoption cost reduces to "implement a new transaction type," because there is no per-chain relayer infrastructure to operate.
+### Mempool Health and Censorship Resistance
+
+Nodes that cannot validate frame transactions cannot maintain healthy mempools, propagate them, or enforce FOCIL inclusion lists covering them. This degrades to reliance on specialized infrastructure. The two-tier architecture mitigates this: the restrictive tier is validatable by minimal nodes, and FOCIL nodes default to that tier. Whether this is sufficient depends on FOCIL adoption breadth.
+
+### Canonical Paymaster Adoption
+
+The restrictive tier relies on a canonical paymaster recognized by runtime code match. If wallets prefer non-canonical paymasters (richer features, multi-token payment), those transactions are limited to 1 pending tx each and cannot be enforced by FOCIL. Historical precedent: ERC-4337 paymaster diversity is high, with no dominant canonical variant. The expansive tier is the proposed long-term answer, but it is opt-in. This remains market-driven, not protocol-enforceable.
+
+### Encrypted Mempool Compatibility
+
+Encrypted mempools (like [LUCID/EIP-8184](https://eips.ethereum.org/EIPS/eip-8184)) encrypt transaction contents before inclusion. Nodes cannot check even minimal fields for DOS prevention. The proposed answer routes encrypted transactions through the expansive tier and [onchain rebroadcasters](#why-frame-transactions-dont-need-relayers), not the restrictive tier. See also [PQ Roadmap → Stage 4](/pq-roadmap#4-encrypted-mempools).
+
+### Transaction Propagation Fragility
+
+The restrictive tier's propagation guarantee rests on every client implementing the same policy rules. If implementation drift occurs (one client ships early, another is slow, a third adds tweaks), the effective propagation surface shrinks to the intersection. This is a well-known failure mode for non-consensus policy rules. Mitigations are social: reference implementations, conformance tests, client-developer consensus on canonical paymaster bytecode.
 
 ---
 
 ## Summary
 
-The framework is a **proposal** assembled around a specification baseline (the restrictive tier). The shipped piece is the restrictive mempool policy in the EIP-8141 spec; the rest (expansive tier, VOPS+4, witness escape hatch, the no-relayer claim) is the proposed framework around it.
-
-- **Two-tier mempool** (proposed): Restrictive (in spec, covers the common case) and Expansive (proposed parallel layer, opt-in, handles privacy and complex validation).
-- **VOPS extension** (proposed): adds the first 4 storage slots per account to the VOPS baseline. Small constant factor, intended to cover most AA validation patterns.
-- **Merkle branch escape hatch** (proposed): use cases outside VOPS+4 include witness data (4-8 kB today, 1-2 kB after binary tree). Cost falls on the transactions that need it.
-- **Trilemma**: under this framework, Frames + FOCIL + VOPS can coexist for the majority of traffic. Edge cases pay an explicit per-tx cost or move to the expansive tier. The framework is not yet adopted policy.
-- **Bitcoin pattern** (analogy, not equivalence): permissive consensus + restrictive mempool gives upgradability without hardforks. The architectural lesson is the layering itself, not the specifics of Bitcoin Script.
-- **No relayers** (proposed claim): privacy rebroadcasters and ERC-20 gas fronting are designed to be expressible as pure onchain smart contracts. Whether the substitute matches bundlers' operational properties in practice is open.
+- **Two-tier mempool** (proposed): Restrictive (in spec, common case) and Expansive (parallel, opt-in, privacy and complex validation).
+- **VOPS extension** (proposed): nonce, balance, code, first 4 slots per account.
+- **Merkle branch escape hatch** (proposed): 4-8 kB today, 1-2 kB after binary tree. Cost falls on transactions that need it.
+- **Trilemma**: Frames + FOCIL + VOPS coexist for majority of traffic. Edge cases pay per-tx cost or use the expansive tier.
+- **Bitcoin pattern** (analogy): permissive consensus + restrictive mempool gives upgradability without hardforks.
+- **No relayers** (proposed claim): privacy rebroadcasters and ERC-20 gas fronting are expressible as onchain contracts. Whether they match bundler operational properties is open.
+- **Open questions**: canonical paymaster adoption (market-driven), propagation fragility (cross-client alignment), encrypted mempool routing (expansive tier), mempool health (FOCIL adoption).

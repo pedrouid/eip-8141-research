@@ -20,11 +20,12 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 │   ├── merged-changes.md           # Every PR (merged, closed, open) with rationale
 │   ├── original-vs-latest.md       # Side-by-side diff of structural changes
 │   ├── competing-standards.md      # EIP-8130, EIP-8175, EIP-8202, Tempo - design + comparison
-│   ├── pending-concerns.md         # Open concerns (statelessness, mempool, trilemma, complexity)
+│   ├── vops-compatibility.md         # VOPS compatibility (validation state, state growth, trilemma, witnesses)
 │   ├── faq.md                      # Indexed Q&A (section.question format, e.g. 2.3)
 │   ├── mempool-strategy.md         # Two-tier mempool architecture, VOPS extension, merkle escape hatch, no-relayers
 │   ├── developer-tooling.md        # Bear/bull cases for wallet/app dev adoption, protocol defaults vs ERC fragmentation
 │   ├── eoa-support.md              # EOA support via default code, replacing EIP-7702 for common cases
+│   ├── pq-roadmap.md               # Seven-stage PQ roadmap from EIP-8141 foundation to private L1
 │   └── .vitepress/
 │       ├── config.ts                  # Nav, sidebar, social links
 │       └── theme/
@@ -45,7 +46,7 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 | Category | Purpose | Current docs |
 |---|---|---|
 | **Spec** | How EIP-8141 works and how it got here | Current Spec, Feedback Evolution, Original Spec, Merged Changes, Original vs Latest |
-| **Topics** | Analytical deep-dives beyond the spec itself | Competing Standards, Pending Concerns, Mempool Strategy, Developer Tooling, EOA Support |
+| **Topics** | Analytical deep-dives beyond the spec itself | EOA Support, PQ Roadmap, Developer Tooling, Mempool Strategy, VOPS Compatibility, Competing Standards |
 | **Resources** | Reference material, index, Q&A | FAQ, Appendix |
 
 - `appendix.md` is always **last** in the Resources group
@@ -83,6 +84,7 @@ This repo tracks the evolution of EIP-8141 (Frame Transaction). It is a VitePres
 - Below frontmatter: markdown sections with frame mode table, examples, opcode table
 - Frame modes table lists DEFAULT first (it is mode 0 in the spec)
 - Examples that include gas sponsorship should include a DEFAULT post-op frame for sponsor refund
+- Feature card `details` strings in the YAML frontmatter must be 100 characters or fewer to keep the grid visually balanced
 
 ### Formatting Rules
 
@@ -133,11 +135,12 @@ Each document has a specific scope. Update only the relevant ones:
 | `merged-changes.md` | New PRs merged, closed, or opened. Update status of existing open PRs. |
 | `original-vs-latest.md` | Spec changed structurally (new PRs merged that alter behavior) |
 | `competing-standards.md` | New competing EIPs, new PRs on existing competitors, new comparison threads |
-| `pending-concerns.md` | New concerns raised in ethresear.ch, EthMagicians, or private discussions |
+| `vops-compatibility.md` | New VOPS/statelessness developments, state growth data, witness cost changes |
 | `faq.md` | New questions arise from community, or answers change due to spec updates |
 | `mempool-strategy.md` | New mempool tier proposals, VOPS-extension changes, witness-cost analysis, relayer-substitute patterns |
 | `developer-tooling.md` | New bear/bull arguments emerge from wallet/app developers, or protocol defaults expand |
 | `eoa-support.md` | Default code spec changes (new sig schemes, scope rules), or new comparisons to EIP-7702 surfaces |
+| `pq-roadmap.md` | New PQ precompile EIPs, ephemeral key research updates, encrypted mempool progress, secp256k1 revocability proposals, strawmap updates |
 | `appendix.md` | Always - update PR timeline, post count, contributor list, external resources |
 
 ### 3. Update Infrastructure
@@ -152,7 +155,7 @@ After updates, check:
 - All internal links between docs are valid (root-relative paths match filenames)
 - PR numbers, post numbers, and dates are consistent across documents
 - The appendix PR timeline matches what's described in `merged-changes.md`
-- FAQ cross-references to `pending-concerns.md` use correct anchor slugs
+- FAQ cross-references to `vops-compatibility.md` and `mempool-strategy.md` use correct anchor slugs
 
 **Distinguish event-timestamp dates from sync-snapshot dates:**
 
@@ -177,9 +180,11 @@ A common stale-date trap: phase-range headers in `feedback-evolution.md` get ext
 
 ### Topic-doc structure
 
-Topic docs (the Topics category: Competing Standards, Pending Concerns, Mempool Strategy, Developer Tooling) follow a fixed shape:
+Topic docs (the Topics category) have a **2,000-word maximum**. If a topic doc exceeds this limit, tighten the prose before adding new content.
 
-- **TL;DR at the top** (problem statement + key positions + how the doc resolves them). Analyses that lead the doc are more useful than ones that close it. Example: `competing-standards.md` opens with the Comparative Analysis; `pending-concerns.md` opens with the Summary of Open Questions.
+Topic docs follow a fixed shape:
+
+- **TL;DR at the top** (problem statement + key positions + how the doc resolves them). Analyses that lead the doc are more useful than ones that close it. Example: `competing-standards.md` opens with the Comparative Analysis; `vops-compatibility.md` opens with the Status table.
 - **Numbered or named sections** in the middle.
 - **Summary at the end** that mirrors the TL;DR with any additional nuance.
 
@@ -191,7 +196,7 @@ Attribution rules vary by document, set deliberately:
 
 | Document | Attribution policy |
 |---|---|
-| `pending-concerns.md` | **Never attribute** to named individuals. Present arguments, not people. |
+| `vops-compatibility.md` | **Never attribute** to named individuals. Present tradeoffs, not people. |
 | `developer-tooling.md` | **Always attribute** Bear and Bull positions via a `[source](URL)` link next to the position header. |
 | All other docs | Cite PR numbers, post numbers, commits per the **Traceability** principle. |
 
@@ -199,8 +204,8 @@ Attribution rules vary by document, set deliberately:
 
 When a new framework doc (e.g. `mempool-strategy.md`) addresses existing concerns:
 
-1. Add a `**Counterpoint**:` paragraph at the end of each affected concern in `pending-concerns.md`, linking to the relevant section of the framework doc.
-2. Update that concern's row in the Summary of Open Questions table to reflect the resolution (e.g. "Resolved under [VOPS+4 extension](/mempool-strategy#...)").
+1. Update the relevant section in `vops-compatibility.md` with the new resolution, linking to the framework doc.
+2. Update that topic's row in the Status table to reflect the resolution.
 
 This keeps the concerns doc self-contained while routing readers to the framework when they want depth.
 
@@ -235,19 +240,24 @@ This keeps the concerns doc self-contained while routing readers to the framewor
 4. Add link in `appendix.md` under Competing Standards
 5. Update `Footer.vue` Competing Standards column if needed
 
-### Adding a new pending concern
+### Adding a new VOPS/statelessness topic
 
-1. Add numbered section in `pending-concerns.md` following existing pattern
-2. Add row to the Summary of Open Questions table at the top of the doc
+1. Add section in `vops-compatibility.md` following existing pattern
+2. Add row to the Status table at the top of the doc
 3. Add cross-reference in `faq.md` if a relevant question exists (use anchor slug format)
-4. Do not attribute concerns to named individuals
+4. Do not attribute to named individuals
+
+### Adding a new mempool open question
+
+1. Add subsection under "Open Questions" in `mempool-strategy.md`
+2. Add cross-reference in `faq.md` if relevant
 
 ### Adding a new topic doc that addresses existing concerns
 
 When the new doc proposes a framework, resolution, or counterargument that touches existing pending concerns:
 
 1. Write the topic doc following the [Topic-doc structure](#topic-doc-structure) conventions
-2. Audit `pending-concerns.md` for concerns the doc resolves or reframes
+2. Audit `vops-compatibility.md` and `mempool-strategy.md` for topics the doc resolves or reframes
 3. For each affected concern, follow the [Counterpoint convention](#counterpoint-convention): add a `**Counterpoint**:` paragraph linking to the relevant section, and update that concern's row in the Summary table
 4. Cross-link from related FAQ entries to the new doc's relevant sections
 5. If the new doc reframes content already in `current-spec.md` (e.g. mempool policy), open the relevant section with a short paragraph pointing to the new framework

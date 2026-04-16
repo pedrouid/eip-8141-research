@@ -14,46 +14,23 @@
       <div class="footer-col">
         <h4>Topics</h4>
         <ul>
-          <li><a href="/competing-standards">Competing Standards</a></li>
-          <li><a href="/pending-concerns">Pending Concerns</a></li>
-          <li><a href="/mempool-strategy">Mempool Strategy</a></li>
-          <li><a href="/developer-tooling">Developer Tooling</a></li>
           <li><a href="/eoa-support">EOA Support</a></li>
+          <li><a href="/pq-roadmap">PQ Roadmap</a></li>
+          <li><a href="/developer-tooling">Developer Tooling</a></li>
+          <li><a href="/mempool-strategy">Mempool Strategy</a></li>
+          <li><a href="/vops-compatibility">VOPS Compatibility</a></li>
+          <li><a href="/competing-standards">Competing Standards</a></li>
         </ul>
       </div>
       <div class="footer-col">
-        <h4>Competing Standards</h4>
+        <h4>Alternatives</h4>
         <ul>
-          <li>
-            <a
-              href="/competing-standards#eip-8130-account-abstraction-by-account-configuration"
-              >EIP-8130 — Account Configuration</a
-            >
-          </li>
-          <li>
-            <a
-              href="/competing-standards#eip-8202-scheme-agile-transactions-schemed-transactions"
-              >EIP-8202 — Schemed Transactions</a
-            >
-          </li>
-          <li>
-            <a
-              href="/competing-standards#eip-xxxx-tempo-like-transactions"
-              >EIP-XXXX — Tempo-like Transactions</a
-            >
-          </li>
-          <li>
-            <a
-              href="/competing-standards#eip-8223-contract-payer-transaction"
-              >EIP-8223 — Contract Payer Transaction</a
-            >
-          </li>
-          <li>
-            <a
-              href="/competing-standards#eip-8224-counterfactual-transaction"
-              >EIP-8224 — Counterfactual Transaction</a
-            >
-          </li>
+          <li><a href="/eip-8175">EIP-8175</a></li>
+          <li><a href="/eip-8130">EIP-8130</a></li>
+          <li><a href="/eip-8202">EIP-8202</a></li>
+          <li><a href="/eip-xxxx">EIP-XXXX (Tempo)</a></li>
+          <li><a href="/eip-8223">EIP-8223</a></li>
+          <li><a href="/eip-8224">EIP-8224</a></li>
         </ul>
       </div>
       <div class="footer-col">

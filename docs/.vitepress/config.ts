@@ -112,14 +112,14 @@ export default defineConfig({
       {
         text: "Topics",
         items: [
-          { text: "Competing Standards", link: "/competing-standards" },
-          { text: "Pending Concerns", link: "/pending-concerns" },
-          { text: "Mempool Strategy", link: "/mempool-strategy" },
-          { text: "Developer Tooling", link: "/developer-tooling" },
           { text: "EOA Support", link: "/eoa-support" },
+          { text: "PQ Roadmap", link: "/pq-roadmap" },
+          { text: "Developer Tooling", link: "/developer-tooling" },
+          { text: "Mempool Strategy", link: "/mempool-strategy" },
+          { text: "VOPS Compatibility", link: "/vops-compatibility" },
+          { text: "Competing Standards", link: "/competing-standards" },
         ],
       },
-
       { text: "FAQ", link: "/faq" },
       { text: "Demo", link: "https://demo.eip-8141.ethrex.xyz/" },
     ],
@@ -137,11 +137,23 @@ export default defineConfig({
       {
         text: "Topics",
         items: [
-          { text: "Competing Standards", link: "/competing-standards" },
-          { text: "Pending Concerns", link: "/pending-concerns" },
-          { text: "Mempool Strategy", link: "/mempool-strategy" },
-          { text: "Developer Tooling", link: "/developer-tooling" },
           { text: "EOA Support", link: "/eoa-support" },
+          { text: "PQ Roadmap", link: "/pq-roadmap" },
+          { text: "Developer Tooling", link: "/developer-tooling" },
+          { text: "Mempool Strategy", link: "/mempool-strategy" },
+          { text: "VOPS Compatibility", link: "/vops-compatibility" },
+          { text: "Competing Standards", link: "/competing-standards" },
+        ],
+      },
+      {
+        text: "Alternatives",
+        items: [
+          { text: "EIP-8175", link: "/eip-8175" },
+          { text: "EIP-8130", link: "/eip-8130" },
+          { text: "EIP-8202", link: "/eip-8202" },
+          { text: "EIP-XXXX (Tempo)", link: "/eip-xxxx" },
+          { text: "EIP-8223", link: "/eip-8223" },
+          { text: "EIP-8224", link: "/eip-8224" },
         ],
       },
       {

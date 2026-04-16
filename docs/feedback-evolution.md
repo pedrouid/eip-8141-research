@@ -267,7 +267,7 @@ In parallel with the tightening PR, Ben Adams submitted EIP-8223 (PR #11509), a 
 
 *derekchiang — ethresear.ch post #12, Apr 15*
 
-derekchiang proposed adding contract bytecodes to the VOPS baseline, noting that total contract bytecode is ~10.55 GB (as of 2024). Including it roughly doubles the VOPS size but stays well below the ~280 GB full state. This directly addresses the bytecode availability gap identified in [concern #2](/pending-concerns#2-vops-nodes-and-the-state-growth-problem) and the [AA-VOPS discussion](https://ethresear.ch/t/a-pragmatic-path-towards-validity-only-partial-statelessness-vops/22236): the original VOPS proposal bounded storage reads to N slots per account but did not address how AA-VOPS nodes obtain delegate bytecodes. Including bytecodes in the baseline resolves this without new opcodes or rent mechanisms.
+derekchiang proposed adding contract bytecodes to the VOPS baseline, noting that total contract bytecode is ~10.55 GB (as of 2024). Including it roughly doubles the VOPS size but stays well below the ~280 GB full state. This directly addresses the bytecode availability gap identified in [VOPS state growth](/vops-compatibility#state-growth-at-scale) and the [AA-VOPS discussion](https://ethresear.ch/t/a-pragmatic-path-towards-validity-only-partial-statelessness-vops/22236): the original VOPS proposal bounded storage reads to N slots per account but did not address how AA-VOPS nodes obtain delegate bytecodes. Including bytecodes in the baseline resolves this without new opcodes or rent mechanisms.
 
 ### Counterfactual Transaction (EIP-8224)
 

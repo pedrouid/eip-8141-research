@@ -18,11 +18,12 @@ Comprehensive analysis of [EIP-8141](https://eips.ethereum.org/EIPS/eip-8141) (F
 
 | Document | Description |
 |---|---|
-| [Competing Standards](./docs/competing-standards.md) | EIP-8130, EIP-8175, EIP-8202, Tempo - design, tradeoffs, comparative analysis |
-| [Pending Concerns](./docs/pending-concerns.md) | Open concerns - statelessness, mempool health, the "choose 2 of 3" trilemma |
-| [Mempool Strategy](./docs/mempool-strategy.md) | Two-tier mempool architecture, VOPS extension, merkle escape hatch, why no relayers are needed |
-| [Developer Tooling](./docs/developer-tooling.md) | Bear and bull cases for wallet/app developer adoption, protocol defaults vs ERC fragmentation |
 | [EOA Support](./docs/eoa-support.md) | How protocol-level default code replaces EIP-7702 delegation for common-case EOAs |
+| [PQ Roadmap](./docs/pq-roadmap.md) | Seven-stage roadmap from EIP-8141 foundation to full post-quantum and private L1 settlement |
+| [Developer Tooling](./docs/developer-tooling.md) | Bear and bull cases for wallet/app developer adoption, protocol defaults vs ERC fragmentation |
+| [Mempool Strategy](./docs/mempool-strategy.md) | Two-tier mempool architecture, VOPS extension, merkle escape hatch, why no relayers are needed |
+| [VOPS Compatibility](./docs/vops-compatibility.md) | How frame transactions interact with VOPS, state growth, FOCIL, and witnesses |
+| [Competing Standards](./docs/competing-standards.md) | EIP-8130, EIP-8175, EIP-8202, EIP-8223, EIP-8224, Tempo - design, tradeoffs, comparative analysis |
 
 ### Resources
 
@@ -43,7 +44,7 @@ The agent will check master spec, new PRs since the last documented one, EthMagi
 
 ## Website
 
-Browse the research at [eip-8141-research](https://pedrouid.github.io/eip-8141-research/) or try the [live demo](https://demo.eip-8141.ethrex.xyz/).
+Browse the research at [eip8141.io](https://eip8141.io) or try the [live demo](https://demo.eip-8141.ethrex.xyz/).
 
 ## License
 

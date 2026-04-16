@@ -267,7 +267,7 @@ From derekchiang's PR description:
 
 - **Proposed changes**:
   - Add static VERIFY frame count check (`<= 2`) to constraints, since `sender_approved` and `payer_approved` are one-shot flags
-  - Fix stale APPROVE scope values in structural rules: `self_verify` → `APPROVE(0x3)`, `only_verify` → `APPROVE(0x1)`, `pay` → `APPROVE(0x2)`
+  - Fix stale APPROVE scope values in structural rules: `self_verify` → `APPROVE(0x3)`, `only_verify` → `APPROVE(0x2)`, `pay` → `APPROVE(0x1)`
   - Remove `frame.target != tx.sender` check from default VERIFY code to allow any EOA as paymaster
 - Inspired by node.cm's observations on the EthMagicians thread (posts #135-136)
 - Some of these fixes overlap with changes already merged in PR #11521

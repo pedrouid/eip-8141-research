@@ -62,7 +62,7 @@ Yes. EIP-7702 accounts can send frame transactions - the two are complementary. 
 
 **3.3. Why is removing the 7702 dependency important?**
 
-EIP-7702 relies on ECDSA for its authorization list, making it incompatible with post-quantum signature schemes. EIP-8141 has no authorization list - accounts choose their own cryptography. [See competing standards →](/competing-standards#key-differences-from-eip-8141)
+EIP-7702 relies on ECDSA for its authorization list, making it incompatible with post-quantum signature schemes. EIP-8141 has no authorization list - accounts choose their own cryptography. [See competing standards →](/competing-standards#ecdsa-decoupling)
 
 ---
 
@@ -130,7 +130,7 @@ The transaction format itself has no ECDSA dependency. Accounts choose their own
 
 **6.2. How does this compare to other proposals?**
 
-EIP-8141 offers the most flexible PQ path (arbitrary schemes). EIP-8202 now includes native Falcon-512 support (updated from its original ephemeral-k1 design). EIP-8130 requires deploying PQ verifier contracts. [Full comparison →](/competing-standards#pq-readiness)
+EIP-8141 offers the most flexible PQ path (arbitrary schemes). EIP-8202 now includes native Falcon-512 support (updated from its original ephemeral-k1 design). EIP-8130 requires deploying PQ verifier contracts. [Full comparison →](/competing-standards#ecdsa-decoupling)
 
 ---
 
@@ -146,11 +146,11 @@ A standardized paymaster contract recognized by mempool policy. Nodes verify it 
 
 **7.3. What if wallets don't adopt the canonical paymaster?**
 
-Transactions using non-canonical paymasters cannot propagate through the public mempool or be enforced by FOCIL inclusion lists - degrading censorship resistance for those users. [See concern #4 →](/pending-concerns#4-the-canonical-paymaster-adoption-risk)
+Transactions using non-canonical paymasters cannot propagate through the public mempool or be enforced by FOCIL inclusion lists - degrading censorship resistance for those users. [See open question →](/mempool-strategy#canonical-paymaster-adoption)
 
 **7.4. Does this affect censorship resistance?**
 
-Potentially. Mempool health is censorship resistance - if minimal nodes can't validate certain frame transactions, those transactions lose public propagation guarantees. [See concern #3 →](/pending-concerns#3-mempool-health-is-censorship-resistance)
+Potentially. Mempool health is censorship resistance - if minimal nodes can't validate certain frame transactions, those transactions lose public propagation guarantees. [See open question →](/mempool-strategy#mempool-health-and-censorship-resistance)
 
 ---
 
@@ -158,11 +158,11 @@ Potentially. Mempool health is censorship resistance - if minimal nodes can't va
 
 **8.1. How does EIP-8141 interact with statelessness goals?**
 
-Frame transaction validation requires more state access than legacy transactions (~100k gas vs ~3k gas). This tensions with VOPS (Validity-Only Partial Statelessness) nodes that carry minimal state. [See concern #1 →](/pending-concerns#1-stateless-validation-is-fundamentally-harder-for-frame-transactions)
+Frame transaction validation requires more state access than legacy transactions (~100k gas vs ~3k gas). This tensions with VOPS (Validity-Only Partial Statelessness) nodes that carry minimal state. [Details →](/vops-compatibility#validation-state-requirements)
 
 **8.2. What is the "choose 2 of 3" trilemma?**
 
-The observation that current designs cannot simultaneously deliver Frames/Native AA, Public Mempool/FOCIL, and Statelessness/VOPS - you can have at most two. [See concern #7 →](/pending-concerns#7-the-choose-2-of-3-trilemma) The proposed resolution under a [two-tier mempool + VOPS+4 + merkle escape hatch](/mempool-strategy#resolving-the-trilemma) is detailed in Mempool Strategy.
+The observation that current designs cannot simultaneously deliver Frames/Native AA, Public Mempool/FOCIL, and Statelessness/VOPS - you can have at most two. [Details →](/vops-compatibility#the-frames-focil-vops-trilemma) The proposed resolution under a [two-tier mempool + VOPS+4 + merkle escape hatch](/mempool-strategy#resolving-the-trilemma) is detailed in Mempool Strategy.
 
 **8.3. Is there a workaround for VOPS compatibility?**
 
@@ -170,11 +170,11 @@ Yes. The proposed [VOPS extension](/mempool-strategy#the-state-side-vops-4-slots
 
 **8.4. What about encrypted mempools?**
 
-Encrypted mempools (e.g., LUCID protocol) are fundamentally incompatible with the public restrictive mempool. The proposed framework routes them through the [expansive tier and onchain rebroadcaster contracts](/mempool-strategy#why-frame-transactions-dont-need-relayers) instead. [See concern #5 →](/pending-concerns#5-encrypted-mempools-are-incompatible)
+Encrypted mempools (e.g., LUCID protocol) are fundamentally incompatible with the public restrictive mempool. The proposed framework routes them through the [expansive tier and onchain rebroadcaster contracts](/mempool-strategy#why-frame-transactions-dont-need-relayers) instead. [See open question →](/mempool-strategy#encrypted-mempool-compatibility)
 
 **8.5. How much extra state do nodes need?**
 
-At full AA adoption with 4 cached storage slots per account, VOPS nodes would need ~72 GB total - an 8x increase from today's ~10 GB floor. [See concern #2 →](/pending-concerns#2-vops-nodes-and-the-state-growth-problem)
+At full AA adoption with 4 cached storage slots per account, VOPS nodes would need ~72 GB total - an 8x increase from today's ~10 GB floor. [Details →](/vops-compatibility#state-growth-at-scale)
 
 ---
 
@@ -186,7 +186,7 @@ Four competing proposals: EIP-8175 (composable capabilities with programmable fe
 
 **9.2. Which is most likely to ship?**
 
-Unclear. EIP-8141 is the most comprehensive but also the most complex. EIP-8130 has strong Base/Coinbase backing. EIP-8175, EIP-8202, and Tempo are earlier stage. [See activity comparison →](/competing-standards#adoption-positioning)
+Unclear. EIP-8141 is the most comprehensive but also the most complex. EIP-8130 has strong Base/Coinbase backing. EIP-8175, EIP-8202, and Tempo are earlier stage. [See activity comparison →](/competing-standards#summary)
 
 **9.3. Can EIP-8130 be built on top of EIP-8141?**
 
@@ -194,11 +194,11 @@ Yes - declared verifiers are a subset of what VERIFY frames can do. The reverse 
 
 **9.4. What is EIP-8223 and how does it relate to EIP-8141?**
 
-A new proposal (PR #11509, Apr 11 2026) for static gas sponsorship via a canonical payer-registry predeploy at `0x13`. Its author explicitly frames it as complementary to EIP-8141 and EIP-8175, covering the narrow case where validation needs only an SLOAD plus a balance check. [See EIP-8223 →](/competing-standards#eip-8223-contract-payer-transaction)
+A new proposal (PR #11509, Apr 11 2026) for static gas sponsorship via a canonical payer-registry predeploy at `0x13`. Its author explicitly frames it as complementary to EIP-8141 and EIP-8175, covering the narrow case where validation needs only an SLOAD plus a balance check. [See EIP-8223 →](/eip-8223)
 
 **9.5. What is EIP-8224 and how does it relate to EIP-8141?**
 
-A follow-up proposal (PR #11518, Apr 12 2026) for shielded gas funding via fflonk ZK proofs against canonical fee-note contracts. Solves the bootstrap problem of funding a fresh EOA without traceable on-chain links. Composes with EIP-8223 (one-shot bootstrap, then sponsored txs). [See EIP-8224 →](/competing-standards#eip-8224-counterfactual-transaction)
+A follow-up proposal (PR #11518, Apr 12 2026) for shielded gas funding via fflonk ZK proofs against canonical fee-note contracts. Solves the bootstrap problem of funding a fresh EOA without traceable on-chain links. Composes with EIP-8223 (one-shot bootstrap, then sponsored txs). [See EIP-8224 →](/eip-8224)
 
 ---
 
@@ -206,7 +206,7 @@ A follow-up proposal (PR #11518, Apr 12 2026) for shielded gas funding via fflon
 
 **10.1. Is implementation complexity a concern?**
 
-Yes. Frame transactions touch consensus, mempool policy, p2p propagation, client state management, and wallet infrastructure simultaneously. This breadth is a contributing factor to Glamsterdam delays. [See concern #9 →](/pending-concerns#9-implementation-complexity-and-scope)
+Yes. Frame transactions touch consensus, mempool policy, p2p propagation, client state management, and wallet infrastructure simultaneously. This breadth is a contributing factor to Glamsterdam delays. [Details →](/vops-compatibility#implementation-complexity)
 
 **10.2. Where can I follow the spec development?**
 
@@ -217,4 +217,4 @@ Yes. Frame transactions touch consensus, mempool policy, p2p propagation, client
 
 ---
 
-*For the full list of open concerns, see [Pending Concerns →](/pending-concerns)*
+*For VOPS and statelessness details, see [VOPS Compatibility →](/vops-compatibility). For mempool open questions, see [Mempool Strategy →](/mempool-strategy#open-questions).*

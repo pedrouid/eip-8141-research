@@ -30,9 +30,11 @@
     { "source": "/06-competing-standards.html", "destination": "/competing-standards", "permanent": true },
     { "source": "/competing-standards.html", "destination": "/competing-standards", "permanent": true },
 
-    { "source": "/07-pending-concerns", "destination": "/pending-concerns", "permanent": true },
-    { "source": "/07-pending-concerns.html", "destination": "/pending-concerns", "permanent": true },
-    { "source": "/pending-concerns.html", "destination": "/pending-concerns", "permanent": true },
+    { "source": "/07-pending-concerns", "destination": "/vops-compatibility", "permanent": true },
+    { "source": "/07-pending-concerns.html", "destination": "/vops-compatibility", "permanent": true },
+    { "source": "/pending-concerns", "destination": "/vops-compatibility", "permanent": true },
+    { "source": "/pending-concerns.html", "destination": "/vops-compatibility", "permanent": true },
+    { "source": "/vops-compatibility.html", "destination": "/vops-compatibility", "permanent": true },
 
     { "source": "/08-faq", "destination": "/faq", "permanent": true },
     { "source": "/08-faq.html", "destination": "/faq", "permanent": true },
@@ -42,6 +44,22 @@
     { "source": "/mempool-strategy.html", "destination": "/mempool-strategy", "permanent": true },
     { "source": "/default-code", "destination": "/eoa-support", "permanent": true },
     { "source": "/default-code.html", "destination": "/eoa-support", "permanent": true },
-    { "source": "/eoa-support.html", "destination": "/eoa-support", "permanent": true }
+    { "source": "/eoa-support.html", "destination": "/eoa-support", "permanent": true },
+
+    { "source": "/pq-roadmap.html", "destination": "/pq-roadmap", "permanent": true },
+
+    { "source": "/eip-8175.html", "destination": "/eip-8175", "permanent": true },
+    { "source": "/eip-8130.html", "destination": "/eip-8130", "permanent": true },
+    { "source": "/eip-8202.html", "destination": "/eip-8202", "permanent": true },
+    { "source": "/eip-xxxx.html", "destination": "/eip-xxxx", "permanent": true },
+    { "source": "/eip-8223.html", "destination": "/eip-8223", "permanent": true },
+    { "source": "/eip-8224.html", "destination": "/eip-8224", "permanent": true },
+
+    { "source": "/competing-standards#eip-8175-composable-transaction", "destination": "/eip-8175", "permanent": true },
+    { "source": "/competing-standards#eip-8130-account-abstraction-by-account-configuration", "destination": "/eip-8130", "permanent": true },
+    { "source": "/competing-standards#eip-8202-scheme-agile-transactions-schemed-transactions", "destination": "/eip-8202", "permanent": true },
+    { "source": "/competing-standards#eip-xxxx-tempo-like-transactions", "destination": "/eip-xxxx", "permanent": true },
+    { "source": "/competing-standards#eip-8223-contract-payer-transaction", "destination": "/eip-8223", "permanent": true },
+    { "source": "/competing-standards#eip-8224-counterfactual-transaction", "destination": "/eip-8224", "permanent": true }
   ]
 }

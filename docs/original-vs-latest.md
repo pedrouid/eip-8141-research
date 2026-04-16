@@ -8,7 +8,7 @@
 |---|---|---|
 | **Opcodes** | `APPROVE`, `TXPARAMLOAD`, `TXPARAMSIZE`, `TXPARAMCOPY` (4) | `APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`, `FRAMEPARAM` (5) |
 | **APPROVE mechanism** | Return codes 0-4 at top-level frame | Transaction-scoped with scope operand (0x1, 0x2, 0x3), callable at any depth, double-approval prevention |
-| **APPROVE scope** | 0x0 (execution), 0x1 (payment), 0x2 (both) | 0x1 (execution), 0x2 (payment), 0x3 (both) |
+| **APPROVE scope** | 0x0 (execution), 0x1 (payment), 0x2 (both) | 0x1 (payment), 0x2 (execution), 0x3 (both) |
 | **APPROVE restriction** | Must be top-level frame | `ADDRESS == frame.target` only |
 | **Frame structure** | `[mode, target, gas_limit, data]` | `[mode, flags, target, gas_limit, data]` (mode/flags split) |
 | **Mode field** | Just mode value (0, 1, 2) | Pure mode (0, 1, 2) with separate `flags` field |
