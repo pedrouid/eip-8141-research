@@ -77,6 +77,8 @@ An EOA at address A rebalances a Uniswap v4 liquidity position, paying for gas i
 | 5 | SENDER | Position Manager | `increaseLiquidity(...)` — add to new range |
 | 6 | DEFAULT | sponsor | Post-op: refund overcharged gas fees |
 
+> This shape is consensus-valid but does **not** propagate through the public mempool. ERC-20 gas repayment requires the sponsor's VERIFY frame to read the user's token balance, which reads external contract state and exceeds the restrictive tier's rules. Wallets submit this flow through the expansive tier, a private mempool, or direct-to-builder. See [Mempool Strategy → ERC-20 limitation](/mempool-strategy#restrictive-no-erc20).
+
 ## New Opcodes
 
 EIP-8141 introduces five new opcodes that give frame transactions their power:

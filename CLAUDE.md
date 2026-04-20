@@ -148,7 +148,7 @@ Each document has a specific scope. Update only the relevant ones:
 
 | Document | When to update |
 |---|---|
-| `current-spec.md` | Any merged PR that changes spec text or constants. Also refresh the pending-proposals section. |
+| `current-spec.md` | Any merged PR that changes spec text or constants. Pending and open proposals are tracked in `merged-changes.md` under `## Active/Open PRs`, not here. |
 | `feedback-evolution.md` | New EthMagicians posts, new ethresear.ch posts, AND every significant merged PR (see criteria in step 1) — add a named entry in the current phase capturing the rationale and review debate, not just the diff. Audit phase length and thematic coherence per §2b; split, rename, or renumber phases when they drift. |
 | `original-spec.md` | Rarely - only if new context about the original submission surfaces |
 | `merged-changes.md` | Every new PR (merged, closed, opened) and every status change on existing open PRs. Significant merged PRs get their own dated section with per-area bullets and a review-discussion paragraph, not a one-liner. Document structure is enforced per §2c: chronological merged sections first, then `## Active/Open PRs`, then `## Rejected/Closed PRs`. The two status buckets always sit at the end. |
@@ -168,7 +168,7 @@ When a PR is classified as significant (step 1 criteria), a partial update is a 
 
 1. **`merged-changes.md`** — add a dedicated section titled by theme and date (e.g. `## Broad Spec Tightening — April 14, 2026`). Include: author + merge date line, per-spec-area bullets (frame model, APPROVE/VERIFY, default code, limits, deployment, security, paymaster, whichever apply), a **Key review discussion** paragraph quoting or naming the reviewers and their objections/approvals, and a one-line significance note comparing it to past structural changes.
 2. **`feedback-evolution.md`** — add a named entry inside the current phase's subsection for the PR (title it descriptively, e.g. `### Broad Spec Tightening (Merged)`). Cite `PR #<num>, submitted <date>, merged <date>`. Summarize the rationale and the review debate, not the diff. This doc is about *why* things moved, not *what* moved.
-3. **`current-spec.md`** — update the spec body to match the new behavior, and remove/adjust the pending-proposals entry if the PR resolved one.
+3. **`current-spec.md`** — update the spec body to match the new behavior. (Pending-proposals tracking lives in `merged-changes.md` under `## Active/Open PRs`; the corresponding move from Active/Open to a chronological merged section happens in step 1 above.)
 4. **`original-vs-latest.md`** — refresh the Latest column for every structural change the PR introduced (new opcodes, renamed fields, changed constants, altered default-code rules).
 5. **Topic docs** — for every area the PR touched, update the matching topic doc:
     - default code / EOA paymaster / signature schemes → `eoa-support.md`
@@ -289,7 +289,7 @@ A common stale-date trap: phase-range headers in `feedback-evolution.md` get ext
 
 ### Topic-doc structure
 
-Topic docs (the Topics category) have a **2,000-word maximum**. If a topic doc exceeds this limit, tighten the prose before adding new content.
+Topic docs (the Topics category) have a **2,500-word maximum**. If a topic doc exceeds this limit, tighten the prose before adding new content.
 
 Topic docs follow a fixed shape, enforced in this order:
 

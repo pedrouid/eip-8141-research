@@ -8,7 +8,7 @@ This is the primary reference for what EIP-8141 does today and how a frame trans
 
 Background assumed: comfortable reading an EIP, know what ECDSA and EOAs are. No prior exposure to ERC-4337, EIP-7702, or FOCIL needed; those are introduced where they come up.
 
-## Transaction Lifecycle in Plain English
+## Transaction Lifecycle
 
 A frame transaction arrives at a node and goes through four conceptual stages:
 
@@ -172,7 +172,7 @@ Rules enforced during validation prefix:
 - No storage reads outside `tx.sender`
 - No calls to non-existent contracts or EIP-7702 delegations
 
-**Canonical paymaster**: verified by runtime code match, uses reserved balance accounting:
+**Canonical paymaster**: verified by runtime code match, uses reserved balance accounting. The canonical paymaster pays gas from its own ETH balance; ERC-20 repayment flows are not supported on the public mempool because they require reading external contract state during validation. See [Mempool Strategy → ERC-20 limitation](/mempool-strategy#restrictive-no-erc20).
 ```python
 available = balance(paymaster) - reserved_pending_cost - pending_withdrawal_amount
 ```
@@ -190,15 +190,16 @@ available = balance(paymaster) - reserved_pending_cost - pending_withdrawal_amou
 
 Frame 0 verifies the signature and calls `APPROVE(0x3)`. Frame 1 executes.
 
-### 2. Gas Sponsorship (ERC-20 fees)
+### 2. Gas Sponsorship (ETH-funded, canonical paymaster)
 
 | Frame | Mode | Target | Data |
 |---|---|---|---|
 | 0 | VERIFY | sender | Signature (approve execution) |
-| 1 | VERIFY | sponsor | Sponsor data (approve payment) |
-| 2 | SENDER | ERC-20 | transfer(sponsor, fees) |
-| 3 | SENDER | target | User's call |
-| 4 | DEFAULT | sponsor | Post-op (refund overcharge) |
+| 1 | VERIFY | canonical paymaster | Sponsor data (approve payment) |
+| 2 | SENDER | target | User's call |
+| 3 | DEFAULT | canonical paymaster | Post-op (settle gas refund) |
+
+The canonical paymaster pays gas in ETH; the user pays nothing.
 
 ### 3. Atomic Approve + Swap
 
@@ -218,6 +219,8 @@ If the swap reverts, the ERC-20 approval is also reverted.
 | 1 | VERIFY | sender | Signature |
 | 2 | SENDER | target | User's call |
 
+Frame 0 deploys the account; frames 1-2 validate and execute.
+
 ### 5. EOA Paying Gas in ERC-20s
 
 | Frame | Mode | Target | Data |
@@ -226,6 +229,10 @@ If the swap reverts, the ERC-20 approval is also reverted.
 | 1 | VERIFY | sponsor | Sponsor signature — approve payment |
 | 2 | SENDER | ERC-20 | transfer(sponsor, fees) |
 | 3 | SENDER | target | User's call |
+
+The sponsor pays ETH gas; frame 2 repays the sponsor in ERC-20 tokens.
+
+> **Mempool note**: this shape is consensus-valid on-chain but does **not** propagate through the public (restrictive) mempool. A sponsor that wants assurance they will actually be repaid in ERC-20 must check the user's token balance during validation, which requires reading the ERC-20 contract's storage and therefore exceeds the restrictive tier. Unlike Example 2 (ETH-funded via the canonical paymaster), ERC-20 repayment flows route through the expansive tier, a private mempool, or direct-to-builder submission. See [Mempool Strategy → ERC-20 limitation](/mempool-strategy#restrictive-no-erc20).
 
 ## Key Design Properties
 
@@ -237,7 +244,7 @@ If the swap reverts, the ERC-20 approval is also reverted.
 - **Warm/cold state shared across frames**: Gas accounting for storage access is shared.
 - **Requires**: EIP-1559, EIP-2718, EIP-4844, EIP-7997 (deterministic deployer).
 
-## Relationship to Other Proposals
+## Related Proposals
 
 | Proposal | Relationship |
 |---|---|
@@ -248,36 +255,6 @@ If the swap reverts, the ERC-20 approval is also reverted.
 | EIP-8130 | Coinbase/Base's alternative: declared verifiers (no wallet code exec), 14 PRs, active development. See [Competing Standards](./competing-standards) |
 | EIP-7997 | Deterministic deployer, used for account deployment frames |
 | EIP-7392 | Signature registry; PR #11455 proposes making default code interoperable |
-
-## Pending Proposals (as of April 20, 2026) {#pending-proposals}
-
-Six proposals are under active discussion that would change the spec:
-
-### 1. Signatures List in Outer Transaction (PR #11481)
-
-lightclient proposes adding a `signatures` field to the outer transaction for PQ signature aggregation forward-compatibility. Signatures would be verified before frame execution, enabling future block-level aggregation that elides individual signatures. This would change the transaction format. All reviewers approved, but derekchiang raised an open concern (Apr 9): smart contracts can't know which index their signature is at in the list, forcing default code to loop through all entries, a gas and ergonomic weakness.
-
-### 2. Precompile-Based VERIFY Frames (PR #11482)
-
-derekchiang proposes allowing VERIFY frames to target designated "signature precompiles" directly. This enables contract accounts to use precompiles for verification (previously only available via EOA default code) and enables key rotation via storage-based public key commitments. All reviewers approved as of April 14, awaiting merge. May need rebasing after PR #11521 (Apr 14) and PR #11534 (Apr 16).
-
-### 3. Spec Consistency Fixes (PR #11488)
-
-chiranjeev13 proposes: explicit VERIFY frame count check (`<= 2`), fixing stale APPROVE scope values in structural rules, and allowing any EOA as paymaster by removing the `frame.target != tx.sender` check from default VERIFY code. Some of these fixes overlap with changes already merged in PR #11521.
-
-### 4. Transaction-Type Prefix in Sighash (PR #11544)
-
-derekchiang proposes prefixing `FRAME_TX_TYPE` before the RLP payload in `compute_sig_hash`, aligning EIP-8141 with the EIP-2718 typed-transaction convention and preventing cross-type signature replay. All reviewers approved as of Apr 18, awaiting auto-merge.
-
-### 5. Hegotá CFI Inclusion (PR #11537)
-
-dionysuzx opened a PR against EIP-8081 (Hegotá fork meta) adding EIP-8141 to the `Considered for Inclusion` list, formalizing the CFI status captured at ACDE #233. Not a spec change, but a fork-inclusion governance milestone. Awaiting one more reviewer approval.
-
-### 6. Frame Return Data Opcodes (Discussion, no PR yet)
-
-jacopo-eth (post #137, Apr 10) proposed native access to frame returndata via `FRAMERETURNDATASIZE` and `FRAMERETURNDATACOPY` opcodes, motivated by ERC-8211-style multi-step flows where one frame consumes the output of another without wrapper contracts. No author response yet.
-
----
 
 ## Key Takeaway
 

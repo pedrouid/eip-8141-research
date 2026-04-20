@@ -155,57 +155,43 @@ Each proposal is covered in detail on its own page:
 
 ### What EIP-8175's Ecosystem Says About EIP-8141
 
-In the [Frame Transactions vs. SchemedTransactions comparison thread](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056), Giulio2002 ([post #1](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056/1)) argues that frame transactions impose a "smart wallet tax" of ~30,000-48,000 gas for contract dispatch, storage reads, and EVM context, making PQ verification via VERIFY frames (~63,000 gas) roughly 2x more expensive than direct SchemedTransaction verification (~29,500 gas for Falcon).
+In the [Frame Transactions vs. SchemedTransactions comparison thread](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056), Giulio2002 ([post #1](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056/1)) argues that frame transactions impose a "smart wallet tax" of ~30,000-48,000 gas for contract dispatch, storage reads, and EVM context, making PQ verification via VERIFY frames (~63,000 gas) roughly 2x more expensive than direct SchemedTransaction verification (~29,500 gas for Falcon). The deeper argument: every real signature scheme ends up needing a precompile anyway, so frames become "an unnecessary indirection."
 
-The deeper argument: every real signature scheme ends up needing a precompile anyway (P256 → RIP-7212, Falcon → EIP-8052, Dilithium → EIP-8051). Frames become "an unnecessary indirection" over precompiles that were going to be needed regardless.
-
-EIP-8141 defenders counter that: (1) the gas comparison is contested. ch4r10t33r ([post #17](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056/17)) argues "the 30,000–48,000 gas 'smart wallet tax' figure is substantially inflated when applied to a natively-validated Frame Transaction", because the figure conflates ERC-4337 EntryPoint overhead with frame transaction overhead. (2) existing EOAs cannot use new crypto schemes under SchemedTransactions without changing addresses, which matt ([post #15](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056/15)) characterized as *"an almost certain guarantee that there will be very little adoption"*. (3) NIST-recommended hybrid classical+PQ signing is trivial in VERIFY frames but impossible in flat signature schemes.
-
-*Analysis*: EIP-8175 and EIP-8202 share overlapping authors (rakita and Giulio2002 cross-pollinate across both). The two proposals advocate a consistent "flat composition, not recursive" design position against EIP-8141's frame model.
+EIP-8141 defenders counter that the gas figure conflates ERC-4337 EntryPoint overhead with frame overhead (ch4r10t33r, [post #17](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056/17)); that existing EOAs cannot use new crypto schemes under SchemedTransactions without changing addresses, which matt ([post #15](https://ethereum-magicians.org/t/frame-transactions-vs-schemedtransactions-for-post-quantum-ethereum/28056/15)) flagged as an adoption blocker; and that hybrid classical+PQ signing is trivial in VERIFY frames but impossible in flat schemes. EIP-8175 and EIP-8202 share overlapping authors and advocate a consistent "flat composition" position against EIP-8141.
 
 ### What EIP-8130's Author Says About EIP-8141
 
 From the [Biconomy blog analysis](https://blog.biconomy.io/native-account-abstraction-state-of-art-and-pending-proposals-q1-26/):
 > "Base's position: 'We can heavily optimize this and build out performant mempool/block builder implementations,' something they can't do with EIP-8141's arbitrary validation frames."
 
-The EIP-8130 author's position is that EIP-8141 loses on most operational metrics: higher gas cost for non-EOA validation, mempool tracing requirements, no native key rotation, larger EVM surface area (5 new opcodes), and weaker developer experience unless the ecosystem aligns on follow-on ERCs. EIP-8130 offers comparable programmability (any logic can be expressed in a verifier) with better performance characteristics (native hot-path implementations, no tracing, minimal validation state) and built-in account management (onchain owner configuration, cross-chain portability).
+The EIP-8130 position: EIP-8141 loses on most operational metrics (higher gas cost for non-EOA validation, mempool tracing, no native key rotation, 5 new opcodes), while verifier contracts deliver comparable programmability with native hot-path implementations, no tracing, and built-in account management.
 
-EIP-8141 supporters counter that: (1) EIP-8130 can be built atop EIP-8141 (verifiers are a subset of what VERIFY frames can do) but not vice versa, (2) default code gives EOAs immediate AA without registration or contract deployment, and (3) the generality of VERIFY frames enables use cases that the verifier interface cannot express (stateful validation, multi-step authorization flows).
-
-The tension is structural: EIP-8130 constrains validation to a pure function interface and gains performance and predictability in return. EIP-8141 preserves maximum expressiveness and accepts the mempool complexity cost. Whether the constrained or general approach better serves the ecosystem depends on which use cases dominate in practice.
+EIP-8141 supporters counter that EIP-8130 can be built atop EIP-8141 (verifiers are a subset of what VERIFY frames can do) but not vice versa; that default code gives EOAs immediate AA without registration; and that VERIFY frames enable stateful and multi-step validation the pure verifier interface cannot express. The tension is structural: constrained pure-function validation for performance, or general EVM validation for expressiveness.
 
 ### What EIP-8202's Authors Say About EIP-8141
 
-From the spec's motivation:
-> "This EIP is intentionally not a frame transaction system. It does not introduce recursive transactions, multiple execution payloads, new execution modes, or new opcodes."
+From the spec's motivation and security considerations:
+> "This EIP is intentionally not a frame transaction system. [...] It intentionally forbids recursive transaction composition. That avoids drifting into frame-transaction validation complexity, where mempool validation may require richer execution-aware processing before inclusion."
 
-And from the security considerations:
-> "This EIP [...] intentionally forbids recursive transaction composition. That avoids drifting into frame-transaction validation complexity, where mempool validation may require richer execution-aware processing before inclusion."
-
-However, EIP-8202 explicitly acknowledges EIP-8141 as a potential extension:
-> "An EIP-8141-style frame extension could attach nested execution frames to the same transaction envelope without requiring a new top-level transaction type."
-
-The positioning is complementary-but-skeptical: EIP-8202 solves the envelope and signature agility problem first, and frames could be layered on top later as an extension, but the authors are clearly concerned about the mempool complexity that frame execution introduces.
+EIP-8202 also explicitly acknowledges EIP-8141 as a potential extension: "An EIP-8141-style frame extension could attach nested execution frames to the same transaction envelope without requiring a new top-level transaction type." The positioning is complementary-but-skeptical: solve the envelope and signature agility problem first, add frames later if needed.
 
 ---
 
 ## Summary
 
-The competing landscape splits along two axes:
+The landscape splits along two axes:
 
-**Generality vs. deployability** (the spectrum at the top of this doc): EIP-8141 is the most general (arbitrary EVM in VERIFY frames), and the constraint level rises as you move through EIP-8175 (programmable fee_auth), EIP-8130 (declared verifiers, no wallet code), EIP-8202 (flat scheme-agile envelope), to EIP-XXXX/Tempo-like (fixed UX primitives, no programmable validation).
+**Generality vs. deployability**: EIP-8141 is the most general (arbitrary EVM in VERIFY frames); constraint rises through EIP-8175, EIP-8130, EIP-8202, and EIP-XXXX. More generality means richer validation at the cost of mempool complexity and async-execution tradeoffs.
 
-**Scope** (general-purpose AA vs. narrower complementary proposals): EIP-8223 and EIP-8224 are intentionally scoped narrower than the other five. They address only sponsored gas and shielded gas funding respectively, and explicitly compose with whatever general-purpose AA design ships.
+**Scope**: EIP-8223 and EIP-8224 sit off the generality spectrum entirely. They address only sponsored gas and shielded gas funding, and compose with whatever general-purpose AA design ships.
 
-What to take away:
+Key practical splits:
 
-- **ECDSA decoupling and PQ readiness**: EIP-8141 and EIP-8130 are both fully PQ-ready and offer programmable validation, through different mechanisms (arbitrary EVM vs. verifier contracts). EIP-8175, EIP-8202, and EIP-XXXX restrict sender authentication to fixed cryptographic schemes, requiring hard forks for new ones. For the full PQ roadmap implications, see [PQ Roadmap](/pq-roadmap).
-- **Performance and mempool complexity** favor EIP-8130 over EIP-8141 for non-EOA accounts. EIP-8130 requires no EVM tracing, supports native hot-path verifier implementations, and has minimal validation state. EIP-8141 requires full EVM tracing during validation (banned opcodes, storage access tracking) with higher gas overhead for smart account validation. EIP-8141's advantage is that codeless EOAs get the cheapest path via default code. EIP-8202 / EIP-XXXX / EIP-8223 / EIP-8224 all prioritize mempool simplicity further, at the cost of programmable validation.
-- **Gas sponsorship** has the widest design variance. EIP-8141 uses VERIFY frames with a canonical paymaster. EIP-8175 uses programmable fee_auth contracts. EIP-8130 uses the same verifier infrastructure for payers. EIP-8223 takes the narrowest approach with a static payer registry. EIP-8202 has no sponsorship yet.
-- **Transaction batching** separates the general-purpose proposals from the envelope-only ones. EIP-8141 (frames), EIP-8175 (capabilities), EIP-8130 (call phases), and EIP-XXXX (calls list) all support native batching with different atomicity models. EIP-8202, EIP-8223, and EIP-8224 do not.
-- **Developer tooling and EVM surface**: EIP-8141 requires 5 new opcodes and a new frame execution model, the largest EVM change of any proposal. EIP-8130 achieves comparable programmability with zero EVM modifications. EIP-8141's default code advantage (EOAs get AA for free) is weighed against EIP-8130's simpler client implementation burden and native account management (onchain owner config, key rotation, cross-chain portability).
-- **Key rotation**: EIP-8130 has native onchain key rotation via `owner_config` changes. EIP-8141 delegates key management entirely to account code, with no protocol-level rotation mechanism. EIP-8223 offers key rotation for sponsored accounts via `authorize(newEOA)`.
-- **Complementary stack possibility**: the benaadams stack (EIP-8141 + EIP-8223 + EIP-8224) is the only proposal cluster designed to layer general-purpose AA, static sponsorship, and shielded gas funding into a single coherent design. The other proposals are more standalone.
+- **PQ readiness**: only EIP-8141 and EIP-8130 are fully PQ-ready through programmable validation. The others fix sender authentication to a known scheme set and need a hard fork to add more. See [PQ Roadmap](/pq-roadmap).
+- **Mempool simplicity**: EIP-8130 and the envelope-only proposals avoid EVM tracing during validation. EIP-8141 requires it, bounded by the restrictive tier's rules.
+- **EOA support**: EIP-8141's default code gives codeless EOAs the cheapest path. Other proposals require smart accounts, new addresses for new schemes, or delegation.
+- **Key rotation**: EIP-8130 has it natively (onchain `owner_config`). EIP-8141 delegates to account code. EIP-8223 offers it for sponsored accounts.
+- **Complementary stack**: the benaadams cluster (EIP-8141 + EIP-8223 + EIP-8224) is the only grouping designed to layer general AA, static sponsorship, and shielded bootstrap into a coherent whole.
 
 ---
 

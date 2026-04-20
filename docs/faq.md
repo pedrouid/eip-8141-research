@@ -78,7 +78,7 @@ Yes. EOAs work natively with frame transactions - no code deployment, no delegat
 
 **4.3. Can I pay gas in ERC-20 tokens?**
 
-Yes. A sponsor pays ETH gas on your behalf, and a SENDER frame transfers ERC-20 tokens to compensate them - all within one atomic transaction. [Example →](/current-spec#practical-use-cases)
+On-chain yes, but the shape does not propagate through the public mempool. A sponsor pays ETH gas on your behalf and a SENDER frame transfers ERC-20 tokens to compensate them; that transaction is consensus-valid. However, for the sponsor to gain assurance they will be repaid before committing to pay gas, the sponsor's VERIFY frame must check the user's ERC-20 balance, which reads external contract state and exceeds the public mempool's restrictive rules. Wallets offering this feature today route those transactions through the expansive tier, a non-canonical paymaster (one pending tx at a time publicly), or a private mempool. [See Mempool Strategy → ERC-20 limitation →](/mempool-strategy#restrictive-no-erc20)
 
 **4.4. Can I batch multiple actions in one transaction?**
 
@@ -114,7 +114,7 @@ Yes. Today, wallets depend on bundler providers (Pimlico, Alchemy, etc.) for AA 
 
 **5.4. What about gas sponsorship infrastructure?**
 
-Wallets interact with the canonical paymaster directly at the protocol level. No paymaster service API, no vendor SDK, no third-party uptime dependency for basic sponsorship flows.
+For ETH-funded sponsorship (the sponsor pays the user's gas from its own ETH balance), wallets interact with the canonical paymaster directly at the protocol level. No paymaster service API, no vendor SDK, no third-party uptime dependency. For ERC-20 gas repayment the sponsorship path still requires out-of-protocol routing (expansive tier, non-canonical paymaster, or private mempool) because VERIFY-time external state reads are not allowed on the public mempool. [See 4.3 →](#4-users)
 
 **5.5. Can wallets still build custom validation logic?**
 

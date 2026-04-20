@@ -4,7 +4,7 @@
 
 ## TL;DR
 
-When AA ships without protocol-level defaults, every common feature (batching, sponsorship, permissions) must be standardized as an ERC. Those ERCs converge slowly and often fragment across wallet vendors. EIP-8141 addresses the most common features via default EOA code (signatures, batching, ERC-20 sponsorship) at the protocol level, but permissions, session keys, and recovery remain outside protocol defaults and will still need ERC standardization.
+When AA ships without protocol-level defaults, every common feature (batching, sponsorship, permissions) must be standardized as an ERC. Those ERCs converge slowly and often fragment across wallet vendors. EIP-8141 addresses the most common features via default EOA code (signatures, batching, ETH-funded gas sponsorship) at the protocol level, but permissions, session keys, recovery, and ERC-20 gas repayment remain outside protocol defaults and will still need ERC standardization or routing through the expansive/private mempool (see [ERC-20 limitation](/mempool-strategy#restrictive-no-erc20)).
 
 ---
 
@@ -14,11 +14,13 @@ When AA ships without protocol-level defaults, every common feature (batching, s
 - Plan to drop bundler, EntryPoint, and UserOperation infrastructure from the 8141 path. Frame transactions enter the public mempool directly.
 - Existing EOA addresses keep working. No migration, no smart-account deployment, and no 7702 delegation required. Default code handles secp256k1, P256 (passkeys), and ETH transfer out of the box.
 - Session keys, multisig, social recovery, and richer permissions still need account code or ERC standardization. Protocol defaults do not cover these.
-- For gas sponsorship, prefer the canonical paymaster for the public-mempool path; use EOA-as-paymaster (default VERIFY with payment scope) where one sponsor + one user is sufficient.
+- For gas sponsorship, prefer the canonical paymaster for the public-mempool path (ETH-funded only). Use EOA-as-paymaster (default VERIFY with payment scope) where one ETH-funded sponsor + one user is sufficient.
+- **ERC-20 gas repayment does not propagate through the public mempool.** If you want users to pay gas in tokens, plan for expansive-tier or private-mempool submission, or use a non-canonical paymaster (limited to 1 pending tx each publicly). See [Mempool Strategy → ERC-20 limitation](/mempool-strategy#restrictive-no-erc20).
 
 **If you're building an app:**
 - Your contracts keep seeing `msg.sender = tx.sender` in SENDER frames, so token approvals, NFT ownership checks, and access control all work unchanged.
-- "Gas paid in ERC-20" and "approve + swap atomic" become standard patterns, no RPC negotiation with a specific wallet vendor required.
+- "Approve + swap atomic" is a first-class public-mempool pattern, no RPC negotiation with a specific wallet vendor required.
+- "Gas paid in ERC-20" is a valid on-chain pattern but does **not** propagate through the public mempool today; expect users routing these flows through private/expansive paths.
 - Post-quantum migration is handled at the account level, not the app level. No app-side changes needed to support users migrating to PQ signatures.
 
 **If you want the reasoning behind these claims:** the bull/bear cases and fragmentation analysis below.
@@ -61,12 +63,13 @@ EIP-8141 already provides protocol-level defaults for the most common features:
 
 - **Default code for EOAs**: secp256k1 and P256 signature verification without account migration, smart account deployment, or EIP-7702 delegation. Existing EOAs send frame transactions and the protocol handles verification automatically.
 - **Native ETH transfers**: SENDER frames carry a `frame.value` field (PR #11534, Apr 16), so wallets build simple ETH sends as one SENDER frame with `target = destination, value = amount` rather than shipping RLP call-list boilerplate in default code.
-- **Permissionless ERC-20 paymasters**: existing EOA wallets get "pay gas with any token" by adding a new tx type, without trusting a smart account or running relayer infrastructure ([spec example 4](/current-spec#practical-use-cases)).
-- **Canonical paymaster**: a protocol-blessed sponsorship contract that the public mempool validates efficiently. Wallets routing through it inherit FOCIL compatibility. Adoption risk is tracked as an [open question](/mempool-strategy#canonical-paymaster-adoption).
+- **ETH-funded gas sponsorship via the canonical paymaster**: a protocol-blessed sponsorship contract that the public mempool validates efficiently. Wallets routing through it inherit FOCIL compatibility. The canonical paymaster pays gas from its own ETH balance; ERC-20 repayment is not on the public-mempool path (see caveat below). Adoption risk is tracked as an [open question](/mempool-strategy#canonical-paymaster-adoption).
 - **Atomic batching**: expressed via bit 2 of `frame.flags` on consecutive SENDER frames. No wallet-level RPC standard needed, no separate ERC for batch semantics.
-- **Escape hatch**: arbitrary EVM in VERIFY/SENDER frames for the configurability cases.
+- **Escape hatch**: arbitrary EVM in VERIFY/SENDER frames for the configurability cases, routed via the expansive tier or private mempool when it exceeds restrictive rules.
 
-The adoption cost reduces to "implement a new transaction type" rather than "deploy/audit a smart account and run relayer infrastructure on every chain." The "no relayer" claim is structural: privacy rebroadcasters and ERC-20 gas fronting are expressible as pure onchain contracts (including, in principle, shielded-pool sponsorship once the [three mempool/FOCIL/VOPS gates](/mempool-strategy#privacy-pools-three-gates) are relaxed). See [Mempool Strategy](/mempool-strategy#why-frame-transactions-dont-need-relayers).
+The adoption cost reduces to "implement a new transaction type" rather than "deploy/audit a smart account and run relayer infrastructure on every chain." The "no relayer" claim is structural: privacy rebroadcasters and ERC-20 gas-fronting flows are expressible as pure onchain contracts, running through the expansive tier or private mempool rather than through a bundler (including, in principle, shielded-pool sponsorship once the [three mempool/FOCIL/VOPS gates](/mempool-strategy#privacy-pools-three-gates) are relaxed). See [Mempool Strategy](/mempool-strategy#why-frame-transactions-dont-need-relayers).
+
+> **ERC-20 gas repayment caveat**: earlier versions of this site described ERC-20 gas repayment as a public-mempool default. That was incorrect. The canonical paymaster handles ETH-funded sponsorship only. An ERC-20 repayment flow requires the sponsor's VERIFY frame to read the user's token balance, which reads external contract state and therefore exceeds the restrictive tier. The flow is consensus-valid and works via the expansive tier, a non-canonical paymaster (one pending tx publicly), or direct-to-builder submission. See [Mempool Strategy → ERC-20 limitation](/mempool-strategy#restrictive-no-erc20).
 
 **"Bundler Bottleneck" framing** (dicethedev): the central wallet-developer claim is that ERC-4337 requires a bundler because validation runs off-protocol. Frame transactions run validation in-protocol, which removes the structural need for the bundler/EntryPoint/paymaster-service triad for the common cases. This is the same argument stated from the wallet side rather than the mempool side.
 
@@ -78,26 +81,27 @@ The adoption cost reduces to "implement a new transaction type" rather than "dep
 
 ## Where Fragmentation Risk Still Lives
 
-Protocol defaults cover batching, signatures, and ERC-20 sponsorship. They do not cover everything:
+Protocol defaults cover batching, signatures, and ETH-funded sponsorship. They do not cover everything:
 
-| Feature area | Default covers? | ERC work still needed? |
-|---|---|---|
-| Atomic batching | Yes (flags field, bit 2) | No |
-| Gas sponsorship, native ETH | Yes (canonical paymaster) | No for basic case |
-| Gas sponsorship, ERC-20 | Yes (default code + spec example 4) | No for basic case |
-| secp256k1 and P256 signatures | Yes (default code) | No |
-| Post-quantum signatures | Via account code or precompiles | Scheme-by-scheme ERCs expected |
-| Permissions / session keys | No | Yes (ERC-7710/7715 vs ERC-7895 divergence exists) |
-| Social recovery | No | Yes |
-| Multisig policies | No | Yes |
-| Wallet-to-app communication | Out of scope | Yes (ERC-5792 and successors) |
+| Feature area | Default covers? | Public-mempool? | ERC work still needed? |
+|---|---|---|---|
+| Atomic batching | Yes (flags field, bit 2) | Yes | No |
+| Gas sponsorship, native ETH | Yes (canonical paymaster) | Yes | No for basic case |
+| Gas sponsorship, ERC-20 repayment | Consensus-valid, not a protocol default | **No** (expansive/private only) | Yes, or expansive-tier deployment |
+| secp256k1 and P256 signatures | Yes (default code) | Yes | No |
+| Post-quantum signatures | Via account code or precompiles | Depends on scheme cost vs 100k cap | Scheme-by-scheme ERCs expected |
+| Permissions / session keys | No | Depends on validation shape | Yes (ERC-7710/7715 vs ERC-7895 divergence exists) |
+| Social recovery | No | Typically no | Yes |
+| Multisig policies | No | Depends on validation shape | Yes |
+| Wallet-to-app communication | Out of scope | N/A | Yes (ERC-5792 and successors) |
 
-The bear case is not wrong, it is partially absorbed. Protocol defaults remove fragmentation pressure on the most common features. They do not remove it for permissions, recovery, or the wallet-to-app RPC layer.
+The bear case is not wrong, it is partially absorbed. Protocol defaults remove fragmentation pressure on the most common features. They do not remove it for permissions, recovery, ERC-20 gas repayment, or the wallet-to-app RPC layer.
 
 ---
 
 ## Summary
 
 - The fragmentation concern is real. Wallet-level ERCs converge slowly and fragment across vendors.
-- EIP-8141 addresses the features most likely to fragment via protocol defaults: batching, signatures, and ERC-20 sponsorship, all reachable from existing EOAs.
-- Permissions, session keys, recovery, and the wallet RPC layer remain outside protocol defaults. ERC-level fragmentation continues for those.
+- EIP-8141 addresses several features likely to fragment via protocol defaults: batching, signatures, and ETH-funded gas sponsorship, all reachable from existing EOAs on the public mempool.
+- ERC-20 gas repayment is consensus-valid but not on the public-mempool path. It routes through the expansive tier, non-canonical paymasters (one pending tx each), or private submission.
+- Permissions, session keys, recovery, ERC-20 gas repayment, and the wallet RPC layer remain outside protocol defaults. ERC-level fragmentation continues for those.

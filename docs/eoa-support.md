@@ -78,7 +78,7 @@ The cost of EIP-7702 in production: (1) wallet must develop and audit a smart ac
 
 ## Per-Transaction Composability
 
-EIP-8141's EOA support is **per-transaction, not per-account**. The same EOA can across consecutive transactions: send a simple transfer, do an atomic approve-and-swap, use a paymaster for ERC-20 gas, or deploy a smart account in the same transaction that uses it.
+EIP-8141's EOA support is **per-transaction, not per-account**. The same EOA can, across consecutive transactions: send a simple transfer, do an atomic approve-and-swap, accept ETH-funded gas sponsorship from a canonical paymaster, or deploy a smart account in the same transaction that uses it.
 
 Each composition is a distinct frame transaction. Nothing on the account changes between them. Feature rollout ships in the wallet's frame-construction logic, not in a smart account redeploy. New AA features become available the moment the wallet supports them, for every existing EOA, without any user action.
 
@@ -86,9 +86,13 @@ Each composition is a distinct frame transaction. Nothing on the account changes
 
 ## EOA as Paymaster
 
-Any EOA can act as a paymaster. The default VERIFY logic supports `APPROVE(scope)` for payment scope (`0x1`) and combined scope (`0x3`). A sponsor signs a VERIFY frame with payment scope; default code verifies the signature and approves payment. No paymaster contract needed.
+Any EOA can act as an ETH-funded paymaster. The default VERIFY logic supports `APPROVE(scope)` for payment scope (`0x1`) and combined scope (`0x3`). A sponsor signs a VERIFY frame with payment scope; default code verifies the signature and approves payment. The sponsor's ETH balance covers the user's gas. No paymaster contract needed.
 
-This composes with the [restrictive mempool tier](/mempool-strategy#restrictive-mempool-what-ships-first) under the `MAX_PENDING_TXS_USING_NON_CANONICAL_PAYMASTER = 1` rule. The canonical paymaster contract still exists for high-throughput cases.
+This composes with the [restrictive mempool tier](/mempool-strategy#restrictive-mempool-what-ships-first) under the `MAX_PENDING_TXS_USING_NON_CANONICAL_PAYMASTER = 1` rule per sponsor. The canonical paymaster contract exists for high-throughput ETH-funded sponsorship.
+
+### ERC-20 repayment does not work on the public mempool
+
+A related but distinct pattern is "user pays the sponsor back in ERC-20 tokens" (spec [Examples 2 and 5](/current-spec#practical-use-cases)). That flow is consensus-valid on-chain, but the public restrictive mempool will not propagate it: the sponsor's VERIFY frame would need to check the user's ERC-20 balance, which reads external contract storage and violates the `storage reads only on tx.sender` rule. Wallets offering ERC-20 gas repayment today route those transactions through the expansive tier, a non-canonical paymaster (one pending tx each), or a private mempool. See [Mempool Strategy → ERC-20 limitation](/mempool-strategy#restrictive-no-erc20).
 
 ---
 
@@ -111,7 +115,7 @@ Default code is the floor, not the ceiling. Custom validation that exceeds the r
 
 **Contract deployment**: uses a separate `deploy` frame targeting a deterministic deployer (EIP-7997). Default code's DEFAULT mode reverts.
 
-**7702-delegated EOAs**: if an EOA has signed a `set_code` authorization, the delegate's code runs instead of default code. This is a real interoperability gap [identified by DanielVF](/current-spec#relationship-to-other-proposals): a wallet that 7702-delegates is on the hook for reimplementing what default code provided. EOAs that want default code behavior should not 7702-delegate.
+**7702-delegated EOAs**: if an EOA has signed a `set_code` authorization, the delegate's code runs instead of default code. This is a real interoperability gap [identified by DanielVF](/current-spec#related-proposals): a wallet that 7702-delegates is on the hook for reimplementing what default code provided. EOAs that want default code behavior should not 7702-delegate.
 
 ---
 

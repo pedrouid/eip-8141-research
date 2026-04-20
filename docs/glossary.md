@@ -26,7 +26,7 @@ A reference for the jargon that appears across this site. Entries are grouped by
 
 **Atomic batch** — A run of consecutive SENDER frames with bit 2 of `frame.flags` set. If any frame in the batch reverts, all preceding frames in the batch are reverted and the remaining are skipped. Enables safe "approve + swap" patterns. See [Current Spec → Atomic Batching](/current-spec#atomic-batching).
 
-**Canonical paymaster** — A standardized paymaster contract whose runtime code is recognized by mempool policy via code-hash match. Bypasses the `MAX_PENDING_TXS_USING_NON_CANONICAL_PAYMASTER = 1` limit and enables FOCIL compatibility. Removes ERC-7562's reputation/staking complexity. See [Current Spec → Mempool Policy](/current-spec#mempool-policy).
+**Canonical paymaster** — A standardized paymaster contract whose runtime code is recognized by mempool policy via code-hash match. Pays gas from its own ETH balance (ETH-funded sponsorship); bypasses the `MAX_PENDING_TXS_USING_NON_CANONICAL_PAYMASTER = 1` limit and enables FOCIL compatibility. Removes ERC-7562's reputation/staking complexity. Does **not** support ERC-20 repayment on the public mempool, because that would require VERIFY-time reads of external ERC-20 state. See [Current Spec → Mempool Policy](/current-spec#mempool-policy) and [Mempool Strategy → ERC-20 limitation](/mempool-strategy#restrictive-no-erc20).
 
 **Canonical signature hash (sighash)** — `keccak(bytes([FRAME_TX_TYPE]) + rlp(tx_copy))` where `tx_copy` has VERIFY-frame `data` fields replaced with empty bytes. VERIFY data is elided so signatures can cover the rest of the transaction without covering themselves. The type-byte prefix follows the EIP-2718 convention for cross-type replay protection (PR #11544).
 
@@ -156,7 +156,7 @@ A reference for the jargon that appears across this site. Entries are grouped by
 
 **Paymaster** — A contract that pays gas on behalf of a transaction's sender. In ERC-4337, paymasters implement a `validatePaymasterUserOp` interface and are gated by the EntryPoint. In EIP-8141, paymasters are plain contracts targeted by a VERIFY frame with payment scope; the canonical paymaster is a runtime-code-recognized variant.
 
-**Relayer** — A third-party service that accepts signed user operations off-chain and submits them on-chain. EIP-8141 argues the role is structurally unnecessary: privacy rebroadcasters and ERC-20 gas fronting are expressible as onchain contracts because validation runs in-protocol.
+**Relayer** — A third-party service that accepts signed user operations off-chain and submits them on-chain. EIP-8141 argues the role is structurally unnecessary for common cases: privacy rebroadcasters and ERC-20 gas-fronting flows are expressible as onchain contracts because validation runs in-protocol. Those flows still route through the expansive tier or private mempool rather than the public restrictive mempool.
 
 **Session key** — A scoped, time-bounded key that can sign a limited set of operations on behalf of a primary account. Popular pattern for AI agents, games, and graduated-permission wallets. Not a protocol default; implemented in account code or via ERCs like ERC-7710/7715 and ERC-7895.
 
