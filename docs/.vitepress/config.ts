@@ -160,6 +160,7 @@ export default defineConfig({
         text: "Resources",
         items: [
           { text: "FAQ", link: "/faq" },
+          { text: "Glossary", link: "/glossary" },
           { text: "Appendix", link: "/appendix" },
         ],
       },

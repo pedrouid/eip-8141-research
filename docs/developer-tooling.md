@@ -8,6 +8,23 @@ When AA ships without protocol-level defaults, every common feature (batching, s
 
 ---
 
+## Practical Takeaways
+
+**If you're building a wallet:**
+- Plan to drop bundler, EntryPoint, and UserOperation infrastructure from the 8141 path. Frame transactions enter the public mempool directly.
+- Existing EOA addresses keep working. No migration, no smart-account deployment, and no 7702 delegation required. Default code handles secp256k1, P256 (passkeys), and ETH transfer out of the box.
+- Session keys, multisig, social recovery, and richer permissions still need account code or ERC standardization. Protocol defaults do not cover these.
+- For gas sponsorship, prefer the canonical paymaster for the public-mempool path; use EOA-as-paymaster (default VERIFY with payment scope) where one sponsor + one user is sufficient.
+
+**If you're building an app:**
+- Your contracts keep seeing `msg.sender = tx.sender` in SENDER frames, so token approvals, NFT ownership checks, and access control all work unchanged.
+- "Gas paid in ERC-20" and "approve + swap atomic" become standard patterns, no RPC negotiation with a specific wallet vendor required.
+- Post-quantum migration is handled at the account level, not the app level. No app-side changes needed to support users migrating to PQ signatures.
+
+**If you want the reasoning behind these claims:** the bull/bear cases and fragmentation analysis below.
+
+---
+
 ## The Fragmentation Problem
 
 Without protocol defaults, each AA feature becomes a wallet-level ERC that must be adopted by every major wallet to be useful to app developers. The pattern is well-documented:
@@ -38,17 +55,24 @@ Shipping EIP-8141 in wallet SDKs (e.g. [Viem](https://viem.sh)) depends on confi
 
 ## Bull Case: Native AA With Powerful Defaults
 
-*Position*: EIP-8141 ships with defaults that change the adoption calculus. [Source](https://x.com/decentrek/status/2036697881512701997)
+*Position*: EIP-8141 ships with defaults that change the adoption calculus. Sources: [Decentrek — Powerful Defaults](https://x.com/decentrek/status/2036697881512701997), [Doris G — Your Wallet is About to Change Forever](https://dorisgxyz.substack.com/p/your-ethereum-wallet-is-about-to), [dicethedev — Bundler Bottleneck framing](https://hackmd.io/@dicethedev/HyhbyJA3bg).
 
 EIP-8141 already provides protocol-level defaults for the most common features:
 
 - **Default code for EOAs**: secp256k1 and P256 signature verification without account migration, smart account deployment, or EIP-7702 delegation. Existing EOAs send frame transactions and the protocol handles verification automatically.
+- **Native ETH transfers**: SENDER frames carry a `frame.value` field (PR #11534, Apr 16), so wallets build simple ETH sends as one SENDER frame with `target = destination, value = amount` rather than shipping RLP call-list boilerplate in default code.
 - **Permissionless ERC-20 paymasters**: existing EOA wallets get "pay gas with any token" by adding a new tx type, without trusting a smart account or running relayer infrastructure ([spec example 4](/current-spec#practical-use-cases)).
 - **Canonical paymaster**: a protocol-blessed sponsorship contract that the public mempool validates efficiently. Wallets routing through it inherit FOCIL compatibility. Adoption risk is tracked as an [open question](/mempool-strategy#canonical-paymaster-adoption).
 - **Atomic batching**: expressed via bit 2 of `frame.flags` on consecutive SENDER frames. No wallet-level RPC standard needed, no separate ERC for batch semantics.
 - **Escape hatch**: arbitrary EVM in VERIFY/SENDER frames for the configurability cases.
 
-The adoption cost reduces to "implement a new transaction type" rather than "deploy/audit a smart account and run relayer infrastructure on every chain." The "no relayer" claim is structural: privacy rebroadcasters and ERC-20 gas fronting are expressible as pure onchain contracts. See [Mempool Strategy](/mempool-strategy#why-frame-transactions-dont-need-relayers).
+The adoption cost reduces to "implement a new transaction type" rather than "deploy/audit a smart account and run relayer infrastructure on every chain." The "no relayer" claim is structural: privacy rebroadcasters and ERC-20 gas fronting are expressible as pure onchain contracts (including, in principle, shielded-pool sponsorship once the [three mempool/FOCIL/VOPS gates](/mempool-strategy#privacy-pools-three-gates) are relaxed). See [Mempool Strategy](/mempool-strategy#why-frame-transactions-dont-need-relayers).
+
+**"Bundler Bottleneck" framing** (dicethedev): the central wallet-developer claim is that ERC-4337 requires a bundler because validation runs off-protocol. Frame transactions run validation in-protocol, which removes the structural need for the bundler/EntryPoint/paymaster-service triad for the common cases. This is the same argument stated from the wallet side rather than the mempool side.
+
+**Synthesis framing** (Doris G): EIP-8141 converges programmable validation (ERC-4337), EOA compatibility (EIP-7702), and authorization-as-protocol-primitive (EIP-3074), and adds frame-based atomic batching on top. Prior standards are evolutionary predecessors, not competitors. Session keys and graduated-permission patterns (phone passkey for daily <1 ETH, hardware for ≤50 ETH, AI-agent session keys with expiry, multi-signer treasury policies) move from ERC-4337-smart-account-only to protocol-native; they can be expressed in default-code VERIFY paths plus account code, without a bundler or EntryPoint.
+
+**What frames do not solve** (Doris G): cross-chain identity persistence. Per-transaction validation runs inside a frame; the mapping from "which keys are authorized for this user" to "this user's assets across chains" is a separate layer. A keystore registry is the complementary infrastructure for asset-signer separation. EIP-8141 is silent on this layer by design.
 
 ---
 

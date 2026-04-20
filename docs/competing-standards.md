@@ -8,6 +8,17 @@ Five general-purpose proposals sit on a spectrum from maximum generality (EIP-81
 
 ---
 
+## Competing vs Complementary
+
+"Competing" is not a single relationship. The proposals on this page fall into two groups:
+
+- **Competing general-purpose proposals** (EIP-8175, EIP-8130, EIP-8202, Tempo-like): these overlap with EIP-8141's scope. Each is a different bet on how to deliver native account abstraction, trading along several axes: more generality vs. more constraint, EVM-in-validation vs. declared verifiers, recursive frames vs. flat capabilities. A chain adopts one of these, not several.
+- **Complementary proposals** (EIP-8223, EIP-8224): these sit *off* the generality spectrum and compose with any of the above. EIP-8223 covers static gas sponsorship; EIP-8224 covers shielded gas funding. They do not replace a general-purpose AA format. They plug specific gaps a general-purpose format leaves open.
+
+Read the tables below with this distinction in mind: the first half of the page compares EIP-8141 against its direct competitors; the sections on EIP-8223 and EIP-8224 describe how narrower primitives layer on top rather than replace.
+
+---
+
 ## Comparative Analysis
 
 ### The Fundamental Tradeoff: Generality vs. Deployability
@@ -195,4 +206,13 @@ What to take away:
 - **Developer tooling and EVM surface**: EIP-8141 requires 5 new opcodes and a new frame execution model, the largest EVM change of any proposal. EIP-8130 achieves comparable programmability with zero EVM modifications. EIP-8141's default code advantage (EOAs get AA for free) is weighed against EIP-8130's simpler client implementation burden and native account management (onchain owner config, key rotation, cross-chain portability).
 - **Key rotation**: EIP-8130 has native onchain key rotation via `owner_config` changes. EIP-8141 delegates key management entirely to account code, with no protocol-level rotation mechanism. EIP-8223 offers key rotation for sponsored accounts via `authorize(newEOA)`.
 - **Complementary stack possibility**: the benaadams stack (EIP-8141 + EIP-8223 + EIP-8224) is the only proposal cluster designed to layer general-purpose AA, static sponsorship, and shielded gas funding into a single coherent design. The other proposals are more standalone.
+
+---
+
+## Read Next
+
+- [Current Spec](/current-spec) — what EIP-8141 specifically does, for direct comparison with the alternatives above.
+- [EIP-8130](/eip-8130) or [EIP-8175](/eip-8175) — the two most active competitors.
+- [EIP-8223](/eip-8223) and [EIP-8224](/eip-8224) — the complementary proposals that layer on top of any general-purpose AA.
+- [Developer Tooling](/developer-tooling) — the wallet-adoption angle on why general vs constrained matters.
 

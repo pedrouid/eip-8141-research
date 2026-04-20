@@ -8,6 +8,8 @@ The feedback on EIP-8141 arrived in distinct waves, each pushing the spec along 
 
 ## Phase 1: Conceptual & Compatibility Scrutiny (Jan 29 – Feb 10)
 
+*In this phase, the thread tested whether the `APPROVE` mechanism and the frame abstraction held up under proxy-account, nested-call, and ecosystem-compatibility pressure. The core design question was: does this new opcode actually behave safely across the call-graph shapes real accounts use?*
+
 ### APPROVE Propagation Debate
 
 *nlordell, frangio, fjl — EthMagicians posts #16-32*
@@ -41,9 +43,13 @@ Peter Garamvölgyi identified that EIP-3607 (which rejects transactions from sen
 
 thegaram33 raised the concern that any contract containing the `APPROVE` opcode could potentially be used as a frame target, creating an alternative authorization pathway. fjl responded that `APPROVE` is literally just `RETURN` with extra semantics, and execution approval only works when `frame.target == tx.sender`. This concern actually **reinforced** the design decision to restrict `APPROVE` to `frame.target`.
 
+**What changed because of this phase**: `APPROVE` semantics locked down to transaction-scoped with an `ADDRESS == frame.target` check, then relaxed via PR #11297 to allow `APPROVE` from nested calls so proxy-based accounts (Safe-style) could adopt the spec. EIP-3607 compatibility opened as PR #11272.
+
 ---
 
 ## Phase 2: Adoption & UX Concerns (Feb – Mar 10)
+
+*The thread pivoted from "does this work?" to "will anyone use it?" Monad's adoption data and Derek Chiang's commercial-AA experience reframed the question: if nearly all frame transactions will come from EOAs, the spec has to serve EOAs natively or lose to a simpler alternative.*
 
 ### EIP-7702 Adoption Data Battle
 
@@ -82,9 +88,13 @@ Key quote from derek (post #62):
 
 This led to PR #11379 (merged Mar 10), a pivotal change.
 
+**What changed because of this phase**: EOA default code added via PR #11379 (Mar 10). This was the single biggest shift in the spec's trajectory, moving it from "smart-account-assumed" to "EOA-first." Every downstream design decision (default VERIFY code, default SENDER code, paymaster-by-EOA) followed from here.
+
 ---
 
 ## Phase 3: Operational Constraints & Mempool Safety (Mar 10 – Mar 25)
+
+*With EOA support landed, attention shifted to making frame transactions safely propagatable and performant at the p2p layer. The async-execution critique (from Monad), the atomic-batching debate, and the mempool policy dominated. These are all operational questions about whether clients and builders can actually ship this.*
 
 ### Async Execution Incompatibility
 
@@ -140,19 +150,15 @@ lightclient's mempool policy PR was a turning point. DanielVF called it "a big b
 - **Capped validation gas**: MAX_VERIFY_GAS = 100,000
 - **Structural templates**: four recognized validation prefixes for public mempool acceptance
 
----
+Alternative and competing proposals (EIP-8175, EIP-8130, Tempo) emerged around this period; they are documented in [Competing Standards](/competing-standards) and their per-EIP pages rather than as timeline entries here.
 
-## Phase 4: Alternative Proposals
-
-Several alternative/competing proposals emerged:
-
-- **EIP-8175 "Composable Transaction"** (rakita, PR #11355): A simpler alternative with no new opcodes, no execution frames, no per-frame gas accounting. The payer co-signs the transaction.
-- **EIP-8130** (Base): Structured phases with verifiers instead of EVM-based validation, designed for performance chains.
-- **Tempo Transaction** (Monad): Already shipped their own simpler tx type, rejecting frame transactions.
+**What changed because of this phase**: atomic-batch flag added (PR #11395, Mar 25). Comprehensive mempool policy merged (PR #11415, Mar 25) with canonical paymaster, validation-prefix templates, banned opcodes, and MAX_VERIFY_GAS = 100k. These turned EIP-8141 from a spec into something clients could begin implementing.
 
 ---
 
-## Phase 5: Value, Precompiles, and Signature Aggregation (Mar 26 – Apr 16)
+## Phase 4: Forward-Compatibility Extensions & Open Gaps (Mar 26 – Apr 10)
+
+*With the core spec landed, the thread moved into extension territory: forward-compat hooks for PQ signature aggregation and precompile-based verification, plus a steady stream of open gaps (EIP-7702 interaction, EIP-3607, signature-index discovery, frame-returndata) that needed decisions before the spec could be called complete.*
 
 ### VALUE in SENDER Frames
 
@@ -227,23 +233,43 @@ chiranjeev13 followed up with PR #11488 fixing multiple spec inconsistencies:
 - Fix stale APPROVE scope values in the structural rules
 - Remove `frame.target != tx.sender` check from default VERIFY code to allow any EOA as paymaster
 
-### Signature Index Discovery Problem
-
-*derekchiang — PR #11481 comment, Apr 9*
-
-derekchiang raised a practical concern with lightclient's signatures list proposal (PR #11481): smart contracts leveraging outer signatures have no way to know which index their signature occupies in the list. Since a transaction may have any number of signatures in arbitrary order, a contract can't hardcode an index. The updated default code has to loop through the entire signature list to find the relevant entry, an ergonomic and gas-efficiency weakness that may need addressing before the proposal can be finalized.
-
 ### EIP-3607 Compatibility Status Update
 
 *lightclient — PR #11272, Apr 8*
 
 lightclient's earlier review on the EIP-3607 compatibility PR (#11272, disabling the EIP-3607 check for frame transactions) was dismissed on Apr 8. The PR remains open without resolution. The interaction between EIP-3607's sender-has-code rejection and frame transactions for smart accounts is still an unresolved design question.
 
+### Signature Index Discovery Problem
+
+*derekchiang — PR #11481 comment, Apr 9*
+
+derekchiang raised a practical concern with lightclient's signatures list proposal (PR #11481): smart contracts leveraging outer signatures have no way to know which index their signature occupies in the list. Since a transaction may have any number of signatures in arbitrary order, a contract can't hardcode an index. The updated default code has to loop through the entire signature list to find the relevant entry, an ergonomic and gas-efficiency weakness that may need addressing before the proposal can be finalized.
+
 ### Frame Return Data Access
 
 *jacopo-eth — post #137, Apr 10*
 
 Jacopo raised that access to frame returndata would enable using it as input in multi-step flows without requiring wrapper contracts (similar to the motivation behind ERC-8211). He proposed native support via `FRAMERETURNDATASIZE` and `FRAMERETURNDATACOPY` opcodes, with per-byte gas cost and a cap per frame. No author response yet.
+
+**What changed because of this phase**: community consensus built around adding a per-frame `value` field (posts #124-134). Signature-aggregation (PR #11481) and precompile-VERIFY (PR #11482) proposals entered review, both with all-reviewer approval pending merge. Spec-consistency PR #11488 opened. No merges landed yet. This phase set up the pivot that followed.
+
+---
+
+## Phase 5: Sibling EIPs and Broad Spec Tightening (Apr 11 – Apr 15)
+
+*Ben Adams produced three PRs in five days: two narrower sibling EIPs (EIP-8223 for static sponsorship, EIP-8224 for shielded gas funding) and a 295-line tightening PR that restructured the spec's internal consistency. The character of the thread shifted from "proposals and debates" to "structural changes landing."*
+
+### Contract Payer Transaction (EIP-8223)
+
+*benaadams — PR #11509, Apr 11*
+
+In parallel with the tightening PR, Ben Adams submitted EIP-8223 (PR #11509), a narrower sponsored-transaction proposal where gas fees are charged to `tx.to` via a canonical payer-registry predeploy at `0x13`. Validation requires one SLOAD and one balance check with no EVM execution, making it FOCIL/VOPS-compatible. The PR description explicitly positions EIP-8223 as complementary to EIP-8141 and EIP-8175 rather than competing: EIP-8223 covers the narrow case where static validation is sufficient, while frame-based proposals handle the general case. The registry mechanism could also be expressed as a capability or frame mode within those formats.
+
+### Counterfactual Transaction (EIP-8224)
+
+*benaadams — PR #11518, Apr 12*
+
+A day later, Ben Adams submitted EIP-8224 (PR #11518), addressing the bootstrap problem that remains even after EIP-8223: a fresh EOA with no ETH cannot pay gas privately, because receiving ETH from any source creates a traceable on-chain link. EIP-8224 introduces a new transaction type (`0x08`) carrying an fflonk ZK proof (over BN254) that the sender owns an unspent fee note in a canonical fee-note contract (recognized by code hash). Validation is bounded cryptographic computation plus fixed storage reads, no EVM execution, ~222K gas typical. The intended composition: one-shot bootstrap via EIP-8224 to fund a smart account, then transition to cheap sponsored transactions via EIP-8223. Together with EIP-8141, the three proposals form a layered stack for general-purpose AA, static sponsorship, and shielded gas funding.
 
 ### Validation Frame Ordering Within a Block
 
@@ -257,21 +283,49 @@ Franco Victorio asked whether validation frames of frame transactions are execut
 
 Ben Adams submitted a 295-line spec tightening PR consolidating several open threads: splitting `mode`/`flags`, introducing `FRAMEPARAM` and `resolved_target`, hardening default secp256k1/P256 paths (low-`s`, P256 domain separation), reducing `MAX_FRAMES` from 1000 to 64, adding per-frame gas costs, locking deterministic deployment to EIP-7997, and strengthening security warnings around VERIFY-data malleability and DELEGATECALL + APPROVE. lightclient and derekchiang both approved. fjl questioned lowering MAX_FRAMES, but benaadams argued that journaling carries across frames (up to 2000 effective call depth) and it is easier to increase later after measurement. This is the broadest restructuring since PR #11401 (approval bits) and the first to add a fifth opcode (`FRAMEPARAM`) to the spec.
 
-### Contract Payer Transaction (EIP-8223)
-
-*benaadams — PR #11509, Apr 11*
-
-In parallel with the tightening PR, Ben Adams submitted EIP-8223 (PR #11509), a narrower sponsored-transaction proposal where gas fees are charged to `tx.to` via a canonical payer-registry predeploy at `0x13`. Validation requires one SLOAD and one balance check with no EVM execution, making it FOCIL/VOPS-compatible. The PR description explicitly positions EIP-8223 as complementary to EIP-8141 and EIP-8175 rather than competing: EIP-8223 covers the narrow case where static validation is sufficient, while frame-based proposals handle the general case. The registry mechanism could also be expressed as a capability or frame mode within those formats.
-
 ### Bytecodes in VOPS Proposal
 
 *derekchiang — ethresear.ch post #12, Apr 15*
 
 derekchiang proposed adding contract bytecodes to the VOPS baseline, noting that total contract bytecode is ~10.55 GB (as of 2024). Including it roughly doubles the VOPS size but stays well below the ~280 GB full state. This directly addresses the bytecode availability gap identified in [VOPS state growth](/vops-compatibility#state-growth-at-scale) and the [AA-VOPS discussion](https://ethresear.ch/t/a-pragmatic-path-towards-validity-only-partial-statelessness-vops/22236): the original VOPS proposal bounded storage reads to N slots per account but did not address how AA-VOPS nodes obtain delegate bytecodes. Including bytecodes in the baseline resolves this without new opcodes or rent mechanisms.
 
-### Counterfactual Transaction (EIP-8224)
+**What changed because of this phase**: PR #11521 merged Apr 14, bringing the mode/flags split, the `FRAMEPARAM` opcode (fifth opcode in the spec), `MAX_FRAMES` reduced to 64, per-frame gas cost added, and default-code hardening for secp256k1 and P256. EIP-8223 (PR #11509) and EIP-8224 (PR #11518) submitted as complementary sibling proposals rather than competitors. Bytecodes-in-VOPS reframing surfaced on ethresear.ch.
 
-*benaadams — PR #11518, Apr 12*
+---
 
-A day later, Ben Adams submitted EIP-8224 (PR #11518), addressing the bootstrap problem that remains even after EIP-8223: a fresh EOA with no ETH cannot pay gas privately, because receiving ETH from any source creates a traceable on-chain link. EIP-8224 introduces a new transaction type (`0x08`) carrying an fflonk ZK proof (over BN254) that the sender owns an unspent fee note in a canonical fee-note contract (recognized by code hash). Validation is bounded cryptographic computation plus fixed storage reads, no EVM execution, ~222K gas typical. The intended composition: one-shot bootstrap via EIP-8224 to fund a smart account, then transition to cheap sponsored transactions via EIP-8223. Together with EIP-8141, the three proposals form a layered stack for general-purpose AA, static sponsorship, and shielded gas funding.
+## Phase 6: Value Field, Security, and Fork Inclusion (Apr 16 – Apr 20)
+
+*The pending `value` field consensus landed, a security cleanup aligned the sighash with EIP-2718, and the proposal entered formal fork-inclusion governance. External analysis (Nero_eth's three-gates post) began shaping the next wave of discussion around privacy-pool flows.*
+
+### Per-Frame Value (Merged)
+
+*lightclient — PR #11534, submitted and merged Apr 16*
+
+lightclient merged the long-requested `value` field two days after PR #11521 landed, resolving the consensus that had built up across posts #124-134 (rmeissner, DanielVF, frangio, 0xrcinus, derek, matt). The PR description captures the reversal plainly: the authors originally resisted a frame-level `value` because user operations were expected to be handled by the account itself, but with frames now aimed at delivering a good out-of-the-box experience without wallet-side batching, native `value` became "a critical field for the SENDER frame." Non-zero `value` is restricted to `SENDER` frames so that `VERIFY` remains `STATICCALL`-like and `DEFAULT` does not require `ENTRY_POINT` to fund transfers. A subtle default-code consequence: when a SENDER frame's `resolved_target != tx.sender`, the default code now returns successfully with empty data (matching an empty-code account) rather than reverting, because the top-level `value` transfer has already been applied by the frame call. The PR was auto-merged after all reviewers approved; no debate on the merged diff.
+
+### Three Gates to Privacy
+
+*Nero_eth — [ethresear.ch post](https://ethresear.ch/t/frame-transactions-and-the-three-gates-to-privacy/24666), Apr 16*
+
+Nero_eth framed privacy-pool inclusion as a three-gate problem: public mempool (100k VERIFY cap rejects Groth16 ~250k gas), FOCIL enforcement (250k per-IL budget fits roughly two frame transactions), and VOPS/AA-VOPS node validation (nullifier slots are hash-keyed in an external pool contract, outside the VOPS+4 window). The useful observation for EIP-8141: frames structurally remove relayer trust in privacy flows, because invalid or replayed proofs revert in VERIFY before gas is charged, so a sponsor can be paid from the withdrawn amount itself with zero trust assumption. Five protocol changes proposed: canonical-pool code-hash exemption, ~400k per-tx VERIFY cap for canonical frames, validation-index FOCIL enforcement `(tx_hash, claimed_index)`, `MAX_VERIFY_GAS_PER_INCLUSION_LIST = 2^20`, and relaxed state access for canonical pools. Acknowledged tradeoff: attesters absorb up to ~28% block gas in the worst case under the validation-index model. The proposals are routed into the research repo under [Mempool Strategy → Privacy Pools and the Three Gates](/mempool-strategy#privacy-pools-three-gates).
+
+### Value Field Announced on Forum
+
+*derek (post #139, Apr 17), DanielVF (post #140, Apr 17)*
+
+derek announced the value-field merge on the forum, linking the commit. DanielVF welcomed it and named two remaining priorities he wants addressed before the proposal is production-ready: (1) the default signature-handling path should become an explicit opt-in rather than a protocol default, to future-proof transactions against sig-scheme changes, and (2) atomic batching of frames needs to become practically usable, not just structurally defined. These are framed as the last blockers from the wallet/adoption side before he considers the spec complete for deployment.
+
+### Hegotá CFI Inclusion
+
+*dionysuzx — PR #11537, Apr 17*
+
+dionysuzx opened a PR against EIP-8081 (the Hegotá fork meta EIP) adding EIP-8141 to the `Considered for Inclusion` list, plus EIP-7716 and EIP-8205 to `Proposed for Inclusion`. Decisions were captured at ACDE #233 (timestamp 5871s) and ACDC #177 (timestamps 3532s and 3853s). This formalizes a fork-inclusion status that had been assumed based on strawmap signals but not yet committed to the meta EIP. The PR requires one more reviewer approval from @ralexstokes or @timbeiko.
+
+### Transaction-Type Sighash Fix
+
+*derekchiang — PR #11544, Apr 18*
+
+derekchiang opened a 1-line PR fixing a cross-type signature replay weakness in `compute_sig_hash`: the existing `keccak(rlp(tx_copy))` omits the `FRAME_TX_TYPE` byte that EIP-2718 typed transactions conventionally prefix before RLP. The fix is a direct `keccak(bytes([FRAME_TX_TYPE]) + rlp(tx_copy))`. The change was approved by all reviewers within hours, awaiting auto-merge. This is a small but security-relevant alignment with the EIP-2718 convention that other typed transactions already follow.
+
+**What changed because of this phase**: per-frame `value` merged (PR #11534, Apr 16). Transaction-type sighash prefix fix approved (PR #11544, awaiting merge). EIP-8141 formally submitted to the Hegotá CFI list via PR #11537 (pending one reviewer). The next wave of discussion opened with Nero_eth's three-gates analysis, focused on how frame transactions interact with privacy pools under FOCIL and VOPS constraints.
 

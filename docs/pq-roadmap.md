@@ -14,13 +14,19 @@ EIP-8141 is the foundational primitive that makes the rest possible. Without acc
 
 ## 1. Foundation: Decoupling Accounts from ECDSA
 
-**Status**: EIP-8141 (Draft), targeted for [Hegota fork](https://strawmap.org/) (H2 2026) as CFI.
+**Status**: EIP-8141 (Draft), targeted for [Hegota fork](https://strawmap.org/) (H2 2026) as CFI. Formally submitted to the EIP-8081 meta EIP on Apr 17 via [PR #11537](https://github.com/ethereum/EIPs/pull/11537) (still awaiting final reviewer), per ACDE #233 decisions.
 
 Today every Ethereum account is bound to a secp256k1 key pair. Shor's algorithm can recover the private key from an exposed public key in polynomial time. EIP-8141 breaks this coupling: [VERIFY frames](/current-spec#frame-modes) let any account code define its own signature verification, and [EOA default code](/eoa-support) lets existing EOAs use alternative curves without deploying a smart contract or changing addresses.
 
 The frame architecture is deliberately generic, providing foundational primitives (VERIFY frames, APPROVE, per-frame gas) without prescribing which PQ scheme to use. This gives the ecosystem time to research PQ curves before committing.
 
 **Delivers**: the protocol surface for PQ migration. **Does not deliver**: actual quantum safety. Default code still signs with secp256k1 or P256, both quantum-vulnerable. The ECDSA key remains the master key.
+
+---
+
+> **⎯ Where EIP-8141 ends, the roadmap begins ⎯**
+>
+> Stage 1 above is what EIP-8141 itself delivers and is what the rest of this site documents. Stages 2 through 7 below are **future research**: separate EIPs, separate forks, separate open questions. EIP-8141 is a prerequisite for each of them but does not implement any of them. If you are reading this page for what ships in Hegotá, stop at Stage 1; the rest is the direction of travel.
 
 ---
 
@@ -111,6 +117,8 @@ The PQ roadmap converges with **native privacy via shielded transfers**, another
 
 Proposals pointing in this direction: [EIP-8224](/eip-8224) (fflonk ZK proofs for shielded gas funding), the [expansive mempool tier](/mempool-strategy#expansive-mempool-what-develops-in-parallel) for privacy protocols, and the [merkle branch escape hatch](/mempool-strategy#the-merkle-branch-escape-hatch) for witness data. EIP-8141's frame architecture provides the protocol surface that PQ verification, encrypted propagation, and shielded transfers all build on.
 
+The [three-gates analysis](/mempool-strategy#privacy-pools-three-gates) identifies what must change for shielded-pool withdrawals to reach a block through public infrastructure rather than a private relayer: canonical-pool code-hash exemption, raised VERIFY caps (~400k per tx, 1M per inclusion list), and validation-index FOCIL enforcement.
+
 ---
 
 ## Roadmap Summary
@@ -126,6 +134,14 @@ Proposals pointing in this direction: [EIP-8224](/eip-8224) (fflonk ZK proofs fo
 | 7 | Private L1 settlement | Research direction | Stages 1-6 |
 
 **EIP-8141 is necessary but not sufficient.** It builds the foundational first step by decoupling account authentication from ECDSA and providing the generic transaction primitives that all subsequent PQ work builds on. A long sequence of protocol upgrades, precompiles, and eventually full ECDSA deprecation must follow before Ethereum is truly post-quantum safe. This roadmap is measured in years, not months.
+
+---
+
+## Read Next
+
+- [Current Spec → EOA Default Code](/current-spec#eoa-default-code) — where Stage 1 actually lives, in spec terms.
+- [Mempool Strategy](/mempool-strategy) — how encrypted mempools (Stage 4) interact with the two-tier design.
+- [Competing Standards](/competing-standards) — which alternatives are also PQ-ready, and which are not.
 
 ---
 

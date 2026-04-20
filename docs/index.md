@@ -26,6 +26,17 @@ features:
     details: Execution model allows arbitrary validation. Mempool model constrains it to propagatable shapes.
 ---
 
+## What to read first?
+
+Pick the route that matches why you're here.
+
+- **Just want the overview** → [Current Spec](/current-spec) for the mechanism, then [FAQ](/faq) for common questions.
+- **Building a wallet or app** → [Developer Tooling](/developer-tooling) for the adoption calculus, then [EOA Support](/eoa-support) for what existing accounts get without deploying anything.
+- **Following the discussion** → [Feedback Evolution](/feedback-evolution) for the phase-by-phase debate, [Merged Changes](/merged-changes) for PR history, [Original vs Latest](/original-vs-latest) for the diff.
+- **Comparing alternatives** → [Competing Standards](/competing-standards) for the comparative analysis across all alternative proposals.
+- **FOCIL, VOPS, and statelessness** → [Mempool Strategy](/mempool-strategy) for the two-tier design and trilemma, then [VOPS Compatibility](/vops-compatibility) for the definitions.
+- **Post-quantum readiness** → [PQ Roadmap](/pq-roadmap) for the seven-stage arc from EIP-8141 foundation to private L1 settlement.
+
 ## How It Works
 
 A frame transaction (`0x06`) consists of multiple **frames**, each with a mode that tells the protocol what the frame does:

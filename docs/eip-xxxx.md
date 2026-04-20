@@ -6,6 +6,14 @@
 **Status**: Pre-draft (gist) | **Category**: Core (Standards Track)
 **Requires**: EIP-1559, EIP-2718, EIP-2930, EIP-7702, EIP-2, EIP-2929
 
+## At a Glance
+
+**What it is.** A pre-draft gist for a constrained-scope transaction type (`0x76`) that bundles a fixed set of wallet UX primitives into one transaction format: atomic batching, validity windows, gas sponsorship, parallelizable nonces, passkey signatures (P-256 and WebAuthn), and protocol-enforced access keys.
+
+**Problem it solves.** Standardizes the specific features most wallets need today at the protocol level, where they can be statically reasoned about and mempool-validated without the design space of general account abstraction. No new opcodes, no arbitrary validation logic, no replacement of ERC-4337.
+
+**Why an EIP-8141 reader should care.** This is the "what if you don't need frames?" extreme of the spectrum. If the position is "most users want five specific features and nothing else," Tempo-like is what that design looks like when fully fleshed out. It is the farthest-constrained counterpoint to EIP-8141's expressiveness.
+
 ## Overview
 
 This proposal introduces a new EIP-2718 transaction type (`0x76`) that bundles a **constrained set of wallet UX primitives** into a single transaction format: atomic batching, validity windows, gas sponsorship, parallelizable nonces, passkey signatures (P-256 and WebAuthn), and protocol-enforced access keys.
@@ -112,3 +120,7 @@ The bounded signature sizes (`MAX_WEBAUTHN_SIG_SIZE = 2,049 bytes`) and determin
 - **Access keys deferred to a companion EIP**: the Keychain wrapper is defined, but the actual access-key rules (expiry, spending limits, revocation) are not.
 - **Pre-draft stage**: no EIP number, no community review.
 
+
+---
+
+*Continue with [Competing Standards](/competing-standards) for the comparative analysis, or return to the [Home page](/).*

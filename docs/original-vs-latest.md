@@ -4,13 +4,13 @@
 
 ## Structural Comparison
 
-| Aspect | Original (Jan 29) | Latest (Apr 14) |
+| Aspect | Original (Jan 29) | Latest (Apr 20) |
 |---|---|---|
 | **Opcodes** | `APPROVE`, `TXPARAMLOAD`, `TXPARAMSIZE`, `TXPARAMCOPY` (4) | `APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`, `FRAMEPARAM` (5) |
 | **APPROVE mechanism** | Return codes 0-4 at top-level frame | Transaction-scoped with scope operand (0x1, 0x2, 0x3), callable at any depth, double-approval prevention |
 | **APPROVE scope** | 0x0 (execution), 0x1 (payment), 0x2 (both) | 0x1 (payment), 0x2 (execution), 0x3 (both) |
 | **APPROVE restriction** | Must be top-level frame | `ADDRESS == frame.target` only |
-| **Frame structure** | `[mode, target, gas_limit, data]` | `[mode, flags, target, gas_limit, data]` (mode/flags split) |
+| **Frame structure** | `[mode, target, gas_limit, data]` | `[mode, flags, target, gas_limit, value, data]` (mode/flags split, per-frame `value`) |
 | **Mode field** | Just mode value (0, 1, 2) | Pure mode (0, 1, 2) with separate `flags` field |
 | **Flags field** | N/A | Bits 0-1 = approval scope constraint; bit 2 = atomic batch flag |
 | **Frame modes** | DEFAULT, VERIFY, SENDER | Same three modes |
@@ -18,16 +18,17 @@
 | **MAX_FRAMES** | `10^3` (1,000) | `64` |
 | **Per-frame cost** | None | `FRAME_TX_PER_FRAME_COST = 475` gas |
 | **EOA support** | None | Full default code: ECDSA (low-`s` enforced) + P256 (domain-separated) verification, RLP-encoded call batching |
-| **Signature hash** | VERIFY data NOT elided (bug) | VERIFY data properly elided; direct mode comparison (no masking needed after mode/flags split) |
+| **Signature hash** | VERIFY data NOT elided (bug) | VERIFY data properly elided; direct mode comparison; EIP-2718 type-byte prefix pending (PR #11544) |
 | **Mempool policy** | Not defined (just "Security Considerations" section) | Comprehensive: validation prefixes, canonical paymaster, banned opcodes, MAX_VERIFY_GAS |
 | **Requires header** | `2718, 4844` | `1559, 2718, 4844, 7997` |
 | **Authors** | 7 co-authors | 8 co-authors (derekchiang added) |
 | **Receipt** | Not specified in detail | Includes `payer` field and per-frame `[status, gas_used, logs]` |
 | **SENDER frame requirements** | Could execute without prior approval | Requires `sender_approved == true` |
-| **Value in frames** | Not in frame structure | Handled via default code call encoding, not as frame field |
+| **Value in frames** | Not in frame structure | Per-frame `value` field; non-zero only in SENDER frames. DEFAULT/VERIFY observe `CALLVALUE = 0` |
 | **VERIFY frame behavior** | State changes allowed | Behaves as `STATICCALL`, no state changes |
 | **Target resolution** | Direct use of `frame.target` | Explicit `resolved_target` (null target resolves to `tx.sender`) |
 | **Deterministic deployer** | Not specified | Locked to EIP-7997 |
+| **Fork inclusion status** | N/A | CFI in Hegotá fork meta (EIP-8081 PR #11537, open) |
 
 ## Key Philosophical Shifts
 
@@ -74,17 +75,22 @@ The original spec had no mechanism for atomic multi-call. The latest provides fi
 
 The original spec simply checked `mode == VERIFY` to elide frame data from the signature hash. An intermediate version packed flags into the upper bits of mode, requiring `(frame.mode & 0xFF) == VERIFY` to mask them out. The latest spec (after PR #11521) splits mode and flags into separate fields, so the signature hash check is a direct `frame.mode == VERIFY` comparison again. The split also makes the frame structure more explicit: approval scope and atomic batch are clearly separate from the execution mode, reducing the risk of accidental interactions.
 
+### 7. From "No Value Field" to Per-Frame Value
+
+The original spec deliberately had no `value` field in frames, on the principle that account code could send ETH via its own call encoding. That rationale held as long as every user had a smart account capable of encoding sub-calls. As the spec shifted toward an EOA-first, good-out-of-the-box experience (see Phase 1), the case for native per-frame `value` became hard to resist: a simple ETH transfer should not require the sender to construct an RLP-encoded call list, and wallets should not have to ship batching boilerplate to achieve parity with a regular transaction. PR #11534 (Apr 16) added a `value` field to the frame tuple, restricted to `SENDER` frames so that `VERIFY` stays `STATICCALL`-like and `DEFAULT` does not require `ENTRY_POINT` to fund transfers. The original rationale section was renamed from "No value in frame" to "Per-frame value."
+
 ---
 
 ## Active Proposals That May Change the Comparison
 
-As of April 16, 2026, several open PRs propose changes that would extend this comparison table:
+As of April 20, 2026, several open PRs propose changes that would extend this comparison table:
 
 | Proposal | PR | Impact |
 |---|---|---|
 | **Signatures list in outer tx** | [#11481](https://github.com/ethereum/EIPs/pull/11481) | Would add a `signatures` field to the transaction format, a new top-level field for PQ aggregation forward-compatibility |
 | **Precompile-based VERIFY** | [#11482](https://github.com/ethereum/EIPs/pull/11482) | Would allow VERIFY frames to target signature precompiles directly, changing the verification model (all reviewers approved) |
-| **VALUE in SENDER frames** | Under discussion (posts #124-134) | Strong consensus to add a `value` field to frames, no PR yet |
+| **Transaction-type sighash prefix** | [#11544](https://github.com/ethereum/EIPs/pull/11544) | Would prefix `FRAME_TX_TYPE` before RLP in `compute_sig_hash`, aligning with EIP-2718 and preventing cross-type signature replay (all reviewers approved) |
 | **VERIFY frame count constraint** | [#11488](https://github.com/ethereum/EIPs/pull/11488) | Would add explicit `<= 2` VERIFY frame limit to static constraints (some overlap with merged #11521) |
+| **Hegotá CFI inclusion** | [#11537](https://github.com/ethereum/EIPs/pull/11537) | Governance, not spec: adds EIP-8141 to `Considered for Inclusion` in EIP-8081 Hegotá fork meta |
 | **Frame returndata opcodes** | Under discussion (post #137) | Proposed `FRAMERETURNDATASIZE`/`FRAMERETURNDATACOPY` to enable multi-step flows, no PR yet |
 

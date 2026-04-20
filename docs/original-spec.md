@@ -2,6 +2,12 @@
 
 ---
 
+## Why read this page
+
+The spec that landed on Jan 29 is not the spec that exists today. Reading the original submission is useful for three reasons: it surfaces the core design bets the authors were willing to defend from day one, it makes the Mar-Apr course corrections easier to interpret when you know what they were correcting, and it shows what was *missing* (EOA support, mempool policy, atomic batching) so you can see why community pressure pushed the spec in the direction it did. Pair this page with [Original vs Latest](/original-vs-latest) to see the before-and-after side by side, or [Feedback Evolution](/feedback-evolution) to trace the path between them.
+
+---
+
 ## Context & Motivation
 
 EIP-8141 was submitted as PR [#11202](https://github.com/ethereum/EIPs/pull/11202) by Felix Lange (`@fjl`) on January 29, 2026. It was co-authored by Vitalik Buterin, lightclient, Felix Lange, Yoav Weiss, Alex Forshtat, Dror Tirosh, and Shahaf Nacson.

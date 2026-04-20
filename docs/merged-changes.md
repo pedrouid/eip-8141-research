@@ -4,6 +4,8 @@
 
 ## Day 0 Fixes — January 29, 2026
 
+*Why this mattered: two tiny fixes merged on the same day as the original submission, establishing a fast-review cadence that carried through the rest of the spec's evolution.*
+
 ### PR #11205: Add missing elision of VERIFY frame data from signature hash
 
 **Author**: fjl | **Merged**: Jan 29
@@ -23,6 +25,8 @@
 
 ## APPROVE Relaxation — February 10, 2026
 
+*Why this mattered: unblocked proxy-based smart accounts (Safe-style) from adopting the spec. Without this, accounts whose outer proxy predates `APPROVE` would have been locked out entirely.*
+
 ### PR #11297: Relax requirement that APPROVE must be called by top level call frame
 
 **Author**: lightclient | **Merged**: Feb 10
@@ -38,6 +42,8 @@ From lightclient's PR description:
 
 ## Bug Fixes & Clarifications — February-March 2026
 
+*Why this mattered: caught a refactor-introduced CALLER/ADDRESS bug in APPROVE and settled ambiguities around frame reverts before downstream PRs built on the older, wrong assumptions.*
+
 ### PR #11344: Fix some issues with EIP-8141
 
 **Author**: derekchiang | **Merged**: Mar 2
@@ -50,6 +56,8 @@ From lightclient's PR description:
 ---
 
 ## EOA Support — March 5-10, 2026
+
+*Why this mattered: the pivot. Made EOAs first-class users of frame transactions and reframed the spec from "smart-account-assumed" to "EOA-first." Every downstream design decision traces back to this merge.*
 
 ### PR #11379: Add EOA support
 
@@ -66,6 +74,8 @@ From lightclient's PR description:
 
 ## Opcode Redesign — March 12, 2026
 
+*Why this mattered: gave scalar and variable-length transaction data the opcodes they actually need. Scalar values no longer pay the cost of copy semantics meant for byte strings, and frame input data gets dedicated `FRAMEDATA*` opcodes that match its shape.*
+
 ### PR #11400: Clean up frame access opcodes
 
 **Author**: fjl | **Merged**: Mar 12
@@ -80,6 +90,8 @@ From fjl's PR description:
 ---
 
 ## Approval Bits — March 12-13, 2026
+
+*Why this mattered: let users sign over their intended approval scope as part of the signed transaction payload, so smart accounts don't each have to implement bespoke scope-extraction logic. Simplified the default code and moved trust about scope from frame data to mode bits.*
 
 ### PR #11401: Add approval bits to frame mode
 
@@ -103,6 +115,8 @@ From fjl's PR description:
 
 ## Atomic Batching — March 11-25, 2026
 
+*Why this mattered: settled a month-long debate (atomic-by-default vs opt-in vs group-id) with a flag-based design that gave users atomic "approve + swap" semantics without breaking paymaster flows that need non-atomic defaults.*
+
 ### PR #11395: Add support for atomic batching
 
 **Author**: derekchiang | **Merged**: Mar 25
@@ -123,6 +137,8 @@ From derekchiang's PR description:
 ---
 
 ## Mempool Policy — March 16-25, 2026
+
+*Why this mattered: turned EIP-8141 from a consensus-layer spec into something clients could actually ship. Bounded validation cost, standardized the paymaster shape, and replaced ERC-7562's reputation/staking complexity with a canonical-paymaster code match.*
 
 ### PR #11415: Add mempool policy
 
@@ -146,6 +162,8 @@ From lightclient's PR description:
 
 ## Default Code Update — March 26, 2026
 
+*Why this mattered: kept the reference implementation in sync after approval bits changed how scope is encoded. Without this, every implementer would have had to reconcile an outdated default code against the latest approval-bit semantics on their own.*
+
 ### PR #11448: Update default code to match latest spec
 
 **Author**: derekchiang | **Merged**: Mar 26
@@ -156,6 +174,8 @@ From lightclient's PR description:
 ---
 
 ## Header Metadata Fix — April 8, 2026
+
+*Why this mattered: a simple dependency-header fix that had been open for two months. The merge is notable mostly for how uncontroversial it was, and how long such a trivial change can sit waiting for author attention.*
 
 ### PR #11251: Add EIP-1559 to requires header
 
@@ -168,34 +188,9 @@ From lightclient's PR description:
 
 ---
 
-## Rejected/Closed PRs
-
-### PR #11404: Simplify approval bits (closed Mar 26)
-
-**Author**: derekchiang
-
-- Proposed an alternative approach to approval bit handling
-- Superseded by the mode flags approach (PR #11401)
-- Sparked useful discussion: 0xrcinus questioned whether bits were needed at all, Meyanis95 reviewed edge cases
-
-### PR #11408: Migrate EOA default code to EIP-7932 registry (closed Mar 21)
-
-**Author**: SirSpudlington
-
-- Proposed using EIP-7932's signature registry for default code, citing P256 malleability fixes
-- lightclient rejected: "We want to reserve the ability to define custom behavior in 8141 default contract and we don't want to rely on another EIP/precompile like this."
-
-### PRs #11310, #11314, #11321: Fix broken links (all closed)
-
-**Author**: marukai67
-
-- Three separate PRs attempting to fix allegedly broken links in the spec (to ERC-7562, EIP-2718, and other references)
-- All rejected by lightclient with variants of "It's not broken" / "Not broken, thanks though"
-- The links use relative paths that work in the EIPs rendering system but may look broken locally
-
----
-
 ## Broad Spec Tightening — April 14, 2026
+
+*Why this mattered: the broadest single-PR restructuring since approval bits. Introduced a fifth opcode (`FRAMEPARAM`), hardened both default-code signature paths, reduced `MAX_FRAMES`, and locked deterministic deployment to EIP-7997. Consolidated several open threads into one coherent update.*
 
 ### PR #11521: Tighten spec
 
@@ -217,9 +212,36 @@ This is the broadest restructuring since PR #11401 (approval bits) and the first
 
 ---
 
-## Active Open PRs (as of April 16, 2026)
+## Per-Frame Value — April 16, 2026
 
-These PRs represent active design proposals that may change the spec in the near future.
+*Why this mattered: resolved the longest-running ergonomic ask. Wallets can now build a simple ETH transfer as one SENDER frame with `target = destination, value = amount`, instead of encoding an RLP call list inside default code. Ended the "frames are dumb message pipes" criticism from wallet developers.*
+
+### PR #11534: Add value field to frame
+
+**Author**: lightclient | **Merged**: Apr 16
+
+Resolves the long-running community request for native ETH value transfer in frame transactions. Changes:
+
+- **Frame model**: Extended the frame tuple from `[mode, flags, target, gas_limit, data]` to `[mode, flags, target, gas_limit, value, data]`. The `value` field is interpreted as the top-level call value in wei.
+- **Validity rules**: Added `frame.value < 2**256` and `frame.mode == SENDER or frame.value == 0`. Non-zero `value` is only valid in `SENDER` frames; `DEFAULT` and `VERIFY` frames must set `value = 0`.
+- **Execution semantics**: In the top-level frame call, `CALLVALUE = frame.value`. If the caller lacks sufficient balance to transfer `frame.value`, the frame reverts (ordinary CALL value-transfer semantics). `ENTRY_POINT` is now documented as observing `CALLVALUE = 0` for DEFAULT/VERIFY frames.
+- **FRAMEPARAM extension**: Added `FRAMEPARAM(0x08, frameIndex)` returning the frame's `value`.
+- **TXPARAM clarification**: `TXPARAM(0x06)` (max gas and blob fees) explicitly does not include any `frame.value` transfers.
+- **Default code change**: In `SENDER` mode when `resolved_target != tx.sender`, the default code now returns successfully with empty data instead of reverting, because the top-level `frame.value` transfer has already been applied by the frame call. This matches the behavior of calling an empty-code account.
+- **Signature hash coverage**: Documented that non-`VERIFY` frame metadata, including a `SENDER` frame's `value`, remains covered by the canonical signature hash.
+- **Gas accounting**: Any `frame.value` transferred by a `SENDER` frame is separate from `tx_fee` and follows ordinary CALL value-transfer gas semantics.
+- **Rationale**: Renamed the "No value in frame" rationale section to "Per-frame value" and explained that restricting non-zero `value` to `SENDER` frames keeps `VERIFY` and `DEFAULT` side-effect-free with respect to ETH transfers, preserves the `STATICCALL`-like behavior of `VERIFY`, and avoids requiring `ENTRY_POINT` to fund top-level ETH transfers.
+- **Examples**: All transaction examples updated with a `Value` column. Example 1a (Simple ETH transfer) was restructured: instead of instructing the sender account to send ETH via payload decoding, the `SENDER` frame now sets `target = destination` and `value = amount` directly.
+
+Key review discussion: lightclient's PR description notes the original resistance to a `value` field (preferring user-operation execution to be handled by the account) and the reversal now that frames are targeted at a good out-of-the-box experience without requiring wallet-side batching. Auto-merged after all reviewers approved; no debate on the merged PR.
+
+Context: this resolves the "VALUE in SENDER frames" pending proposal that had accumulated support from rmeissner (Safe), DanielVF, frangio, 0xrcinus, derek, and matt across posts #124-134.
+
+---
+
+## Active/Open PRs
+
+*As of April 20, 2026.* These PRs represent active design proposals that may change the spec in the near future.
 
 ### PR #11272: Disable EIP-3607 check for frame transactions (open since Feb 6)
 
@@ -255,7 +277,7 @@ From lightclient's PR description:
 
 - **Why**: Allow both EOAs and contract accounts to use precompiles for verification, enabling key rotation and shared verification logic.
 - **Proposed change**: Designate "signature precompiles" that VERIFY frames can target natively. The precompile reads the public key commitment from storage.
-- **All reviewers approved** (as of April 14), awaiting merge. May need rebasing after the PR #11521 merge.
+- **All reviewers approved** (as of April 14), awaiting merge. May need rebasing after PR #11521 (Apr 14) and PR #11534 (Apr 16).
 
 From derekchiang's PR description:
 
@@ -273,4 +295,46 @@ From derekchiang's PR description:
 - Some of these fixes overlap with changes already merged in PR #11521
 - No reviews yet from core authors
 
+### PR #11537: Add EIP-8141 to CFI in EIP-8081 Hegotá meta EIP (open since Apr 17)
 
+**Author**: dionysuzx
+
+- **Why**: Adds EIP-8141 to the `Considered for Inclusion` list in the Hegotá fork meta EIP (EIP-8081), formalizing the CFI status that had been assumed based on strawmap and ACDE discussions.
+- **Proposed change**: 3 lines in `EIPS/eip-8081.md` adding EIP-8141 under CFI, plus EIP-7716 and EIP-8205 under PFI.
+- **Rationale links**: decisions captured at ACDE #233 timestamp 5871s ([forkcast](https://forkcast.org/calls/acde/233#t=5871)) and ACDC #177 timestamps 3532s and 3853s.
+- Still needs one more reviewer from @ralexstokes or @timbeiko. This is a fork-inclusion governance milestone, not a spec change.
+
+### PR #11544: Mix in transaction type to the sighash (open since Apr 18)
+
+**Author**: derekchiang
+
+- **Why**: Aligns EIP-8141's canonical signature hash with the EIP-2718 typed-transaction convention where the transaction type byte is prefixed before RLP during hashing. Without this, frame transactions are susceptible to cross-type signature replay.
+- **Proposed change**: 1-line diff replacing `keccak(rlp(tx_copy))` with `keccak(bytes([FRAME_TX_TYPE]) + rlp(tx_copy))` in `compute_sig_hash`.
+- **Status**: All reviewers approved as of Apr 18, awaiting auto-merge.
+
+---
+
+## Rejected/Closed PRs
+
+### PR #11404: Simplify approval bits (closed Mar 26)
+
+**Author**: derekchiang
+
+- Proposed an alternative approach to approval bit handling
+- Superseded by the mode flags approach (PR #11401)
+- Sparked useful discussion: 0xrcinus questioned whether bits were needed at all, Meyanis95 reviewed edge cases
+
+### PR #11408: Migrate EOA default code to EIP-7932 registry (closed Mar 21)
+
+**Author**: SirSpudlington
+
+- Proposed using EIP-7932's signature registry for default code, citing P256 malleability fixes
+- lightclient rejected: "We want to reserve the ability to define custom behavior in 8141 default contract and we don't want to rely on another EIP/precompile like this."
+
+### PRs #11310, #11314, #11321: Fix broken links (all closed)
+
+**Author**: marukai67
+
+- Three separate PRs attempting to fix allegedly broken links in the spec (to ERC-7562, EIP-2718, and other references)
+- All rejected by lightclient with variants of "It's not broken" / "Not broken, thanks though"
+- The links use relative paths that work in the EIPs rendering system but may look broken locally

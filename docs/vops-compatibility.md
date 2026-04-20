@@ -6,7 +6,19 @@
 
 Frame transactions require more validation state than legacy transactions. Legacy validation is a single account-trie lookup (~3,000 gas); frame validation executes arbitrary sender code via VERIFY frames (up to ~100,000 gas), pulling in bytecode, storage slots, and helper libraries. This page covers how EIP-8141 interacts with [VOPS](https://ethresear.ch/t/a-pragmatic-path-towards-validity-only-partial-statelessness-vops/22236) (Validity-Only Partial Statelessness), what state nodes need to carry, and where the boundaries are.
 
-**Acronyms**: **VOPS** (~10 GB baseline for ~400M accounts), **FOCIL** (Fork-Choice enforced Inclusion Lists, [EIP-7805](https://eips.ethereum.org/EIPS/eip-7805)).
+## Terms You'll See On This Page
+
+Three terms do most of the heavy lifting here. Plain-English versions first, links to the formal definitions after.
+
+**Validation state** — the data a node has to read from its copy of the blockchain to decide whether a transaction is well-formed *before* including it in a block. For a legacy Ethereum transaction, that's three fields on the sender's account: balance (can they pay gas?), nonce (is this in order?), and code (is this an EOA or a contract?). That's it, one lookup. For a frame transaction, the `VERIFY` frame can run arbitrary account code, so validation state now includes whatever slots and contracts that code touches. The tension on this page is: how much more state does a node need to hold to safely validate 8141 transactions, and where does the line stop being reasonable?
+
+**VOPS** — short for *Validity-Only Partial Statelessness*. A node design where the node does **not** carry the full ~280 GB Ethereum state. Instead it carries a small "validity slice" that is enough to check that incoming transactions are valid and well-formed, but not enough to execute them. Full execution is delegated to other nodes or ZK proofs. The baseline VOPS slice is nonce + balance per account, ~10 GB for ~400 M accounts. The question for EIP-8141 is how much bigger that slice has to get so VOPS nodes can validate frame transactions, without pushing VOPS back toward "full state." See the [original VOPS thread](https://ethresear.ch/t/a-pragmatic-path-towards-validity-only-partial-statelessness-vops/22236).
+
+**FOCIL** — short for *Fork-Choice-enforced Inclusion Lists*, formalized in [EIP-7805](https://eips.ethereum.org/EIPS/eip-7805). A censorship-resistance mechanism: validators publish inclusion lists of transactions they believe the next block *must* contain, and the fork choice rule penalizes blocks that omit them. For FOCIL to work, the attesters who build those lists have to be able to validate the transactions they're listing. This is why FOCIL and VOPS are tightly coupled, and why a frame transaction that's too expensive for a minimal node to validate also can't be enforced via FOCIL.
+
+**Why the combination matters.** A frame transaction has to pass three gates to be included in a block through public infrastructure: the public mempool admits it, FOCIL attesters can validate it, and VOPS nodes can hold the state needed to check it. When all three conditions are met, the transaction is censorship-resistant and cheaply propagatable. When one fails, the transaction falls back to private channels. The rest of this page is about which classes of frame transaction pass all three, and which don't.
+
+**Acronyms recap**: **VOPS** (~10 GB baseline for ~400M accounts), **FOCIL** (Fork-Choice enforced Inclusion Lists, [EIP-7805](https://eips.ethereum.org/EIPS/eip-7805)).
 
 ---
 
@@ -19,6 +31,7 @@ Frame transactions require more validation state than legacy transactions. Legac
 | State growth at AA scale | Proposed: ~72 GB under VOPS+4; extra-VOPS reads pay [merkle branch cost](/mempool-strategy#the-merkle-branch-escape-hatch) |
 | Frames + FOCIL + VOPS trilemma | Proposed: [two-tier mempool + VOPS+4 + witness escape hatch](/mempool-strategy#resolving-the-trilemma) |
 | Witness-based FOCIL | Proposed: 4-8 kB today, 1-2 kB after binary tree migration |
+| Privacy pool state reads | Blocked: nullifier slots are hash-keyed in an external pool contract, outside VOPS+4. Routed via [canonical-pool exemption + validation-index FOCIL](/mempool-strategy#privacy-pools-three-gates) |
 | Implementation complexity | Open: compounds with other protocol changes |
 
 ---
@@ -46,6 +59,8 @@ The EIP-8141 co-authors argue all three are achievable per-transaction-class. Th
 For storage slots outside the VOPS+4 extension, transactions include a witness proving the state items they read. Simple cases (alternative sig algorithms, key rotation) add zero extra cost since their validation reads fit within VOPS+4. Privacy protocol withdrawals, which must verify nullifiers in external contract storage, add ~4 kB per proven item.
 
 The infrastructure already exists in clients (witness machinery is needed for sync), and binary tree migration further reduces the per-item cost. The framework accepts this as the explicit per-transaction cost of the escape hatch, limited to transactions that need it.
+
+**Counterpoint**: Witnesses solve the on-chain verifiability piece but not the mempool-admission piece. Privacy withdrawals fail three independent gates (public mempool gas caps, FOCIL per-IL budgets, and AA-VOPS node capability), each of which must be relaxed for these transactions to reach a block via public infrastructure. See [Mempool Strategy → Privacy Pools and the Three Gates](/mempool-strategy#privacy-pools-three-gates) for the canonical-pool exemption, raised VERIFY cap, and validation-index FOCIL proposals.
 
 ## Implementation Complexity
 

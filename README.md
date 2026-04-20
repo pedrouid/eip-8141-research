@@ -30,6 +30,7 @@ Comprehensive analysis of [EIP-8141](https://eips.ethereum.org/EIPS/eip-8141) (F
 | Document | Description |
 |---|---|
 | [FAQ](./docs/faq.md) | Common questions with short answers and cross-references |
+| [Glossary](./docs/glossary.md) | Comprehensive glossary of jargon used across the site, grouped by category |
 | [Appendix](./docs/appendix.md) | PR timeline, key contributors, external resources |
 
 ## Updating

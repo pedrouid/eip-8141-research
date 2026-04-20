@@ -2,6 +2,23 @@
 
 ---
 
+## About this page
+
+This is the primary reference for what EIP-8141 does today and how a frame transaction actually flows through the protocol. It's for readers who want the mechanism in detail: what a transaction looks like on the wire, what the EVM does with it, and what the mempool will and won't propagate.
+
+Background assumed: comfortable reading an EIP, know what ECDSA and EOAs are. No prior exposure to ERC-4337, EIP-7702, or FOCIL needed; those are introduced where they come up.
+
+## Transaction Lifecycle in Plain English
+
+A frame transaction arrives at a node and goes through four conceptual stages:
+
+1. **Admission**. The node checks whether the transaction matches a shape the public mempool will propagate. The mempool only admits transactions whose *validation prefix* (the opening frames up to the point a payer is approved) fits one of four recognized patterns, stays under a gas cap, and reads only predictable state. If it doesn't fit, the transaction is still consensus-valid on-chain but has to reach a block builder through a private channel.
+2. **Validation**. The protocol runs the opening frames. These are the frames whose job is to prove "this transaction is authorized and someone is paying for it." Every validation frame must call the `APPROVE` opcode before returning; otherwise the whole transaction is rejected. This is where signature checks, policy checks, and paymaster logic live.
+3. **Execution**. Once a sender has been approved and a payer has been approved, the protocol runs the remaining frames as normal EVM calls. These are the frames that actually do what the user wanted: a token transfer, a swap, a contract deployment. Multiple execution frames can be grouped into an atomic batch so they all-or-none revert together.
+4. **Settlement**. After the last frame runs, the protocol computes gas used, refunds the payer, and writes per-frame receipt entries. The transaction receipt records which address paid, which frames succeeded, and the logs each frame produced.
+
+The rest of this page is the mechanical detail behind these four stages.
+
 ## Core Concept
 
 EIP-8141 introduces **Frame Transactions**, a new transaction type (`0x06`) where a transaction consists of multiple **frames**, each with a purpose (verify identity, execute calls, deploy contracts). The protocol uses frame modes to reason about what each frame does, enabling safe mempool relay and flexible user-defined validation.
@@ -18,11 +35,11 @@ The execution model defines what is *possible*; the mempool model defines what i
 ```
 [chain_id, nonce, sender, frames, max_priority_fee_per_gas, max_fee_per_gas, max_fee_per_blob_gas, blob_versioned_hashes]
 
-frames = [[mode, flags, target, gas_limit, data], ...]
+frames = [[mode, flags, target, gas_limit, value, data], ...]
 ```
 
 - `sender`: the 20-byte address of the account originating the transaction
-- Each frame has a `mode` (lower 8 bits only), a `flags` field (approval scope + atomic batch), a `target` address (or null for sender), a gas limit, and arbitrary data
+- Each frame has a `mode` (lower 8 bits only), a `flags` field (approval scope + atomic batch), a `target` address (or null for sender), a gas limit, a `value` field (ETH to transfer in the top-level frame call, non-zero only in `SENDER` frames), and arbitrary data
 - Up to 64 frames per transaction
 
 ## Frame Modes
@@ -59,10 +76,10 @@ For each frame transaction:
 1. Check `tx.nonce == state[tx.sender].nonce`
 2. Initialize `sender_approved = false`, `payer_approved = false`
 3. For each frame, compute `resolved_target`: if `frame.target` is null, use `tx.sender`; otherwise use `frame.target`
-4. Execute each frame sequentially:
+4. Execute each frame sequentially with `CALLVALUE = frame.value` at the top-level call (which is `0` except in `SENDER` frames):
    - **DEFAULT mode**: caller = `ENTRY_POINT`, execute as regular call to `resolved_target`
    - **VERIFY mode**: caller = `ENTRY_POINT`, execute as STATICCALL to `resolved_target`, must call `APPROVE` or entire tx is invalid
-   - **SENDER mode**: requires `sender_approved == true`, caller = `tx.sender`, target = `resolved_target`
+   - **SENDER mode**: requires `sender_approved == true`, caller = `tx.sender`, target = `resolved_target`. If caller lacks balance for `frame.value`, the frame reverts (ordinary CALL value-transfer semantics).
 5. After all frames: verify `payer_approved == true`, refund unused gas to payer
 
 ## EOA Default Code
@@ -78,9 +95,8 @@ When `frame.target` has no code, the protocol applies built-in "default code" be
 6. Call `APPROVE(scope)`
 
 **SENDER mode:**
-1. Check `frame.target == tx.sender`
-2. Decode `frame.data` as RLP `[[target, value, data], ...]`
-3. Execute each call with `msg.sender = tx.sender`
+1. If `frame.target != tx.sender`, return successfully with empty data (matches an empty-code account; any top-level `frame.value` transfer has already been applied by the frame call itself).
+2. Otherwise, decode `frame.data` as RLP `[[target, value, data], ...]` and execute each call with `msg.sender = tx.sender`.
 
 **DEFAULT mode:** Reverts.
 
@@ -120,10 +136,10 @@ def compute_sig_hash(tx):
     for frame in tx.frames:
         if frame.mode == VERIFY:
             frame.data = Bytes()  # elide VERIFY data
-    return keccak(rlp(tx))
+    return keccak(bytes([FRAME_TX_TYPE]) + rlp(tx))
 ```
 
-Since `mode` and `flags` are now separate fields (PR #11521), the mode check is a direct comparison without masking.
+Since `mode` and `flags` are now separate fields (PR #11521), the mode check is a direct comparison without masking. The transaction-type prefix aligns EIP-8141 with the EIP-2718 typed-transaction convention and prevents cross-type signature replay (PR #11544, awaiting merge as of Apr 20). Non-`VERIFY` frame metadata, including a SENDER frame's `value`, remains covered by this hash.
 
 VERIFY frame data is elided because:
 1. It contains the signature (can't be part of what's signed)
@@ -215,7 +231,7 @@ If the swap reverts, the ERC-20 approval is also reverted.
 
 - **No authorization list**: Unlike EIP-7702, doesn't rely on ECDSA for delegation. Compatible with PQ crypto.
 - **No access list**: Future optimizations covered by block-level access lists (EIP-7928).
-- **No value field in frames**: Account code handles value transfers, keeping frame structure minimal. (Note: strong community consensus to add `value` to SENDER frames; see Pending Proposals below.)
+- **Per-frame `value` field**: SENDER frames may transfer ETH natively via `frame.value` (added by PR #11534, Apr 16). `VERIFY` and `DEFAULT` frames must set `value = 0`, preserving `STATICCALL`-like behavior in `VERIFY` and keeping `ENTRY_POINT` free from funding transfers.
 - **ORIGIN returns frame caller**: Changed from traditional tx.origin behavior (precedent set by EIP-7702).
 - **Transient storage cleared between frames**: TSTORE/TLOAD state doesn't persist across frames.
 - **Warm/cold state shared across frames**: Gas accounting for storage access is shared.
@@ -233,9 +249,9 @@ If the swap reverts, the ERC-20 approval is also reverted.
 | EIP-7997 | Deterministic deployer, used for account deployment frames |
 | EIP-7392 | Signature registry; PR #11455 proposes making default code interoperable |
 
-## Pending Proposals (as of April 16, 2026) {#pending-proposals}
+## Pending Proposals (as of April 20, 2026) {#pending-proposals}
 
-Five significant proposals are under active discussion that would change the spec:
+Six proposals are under active discussion that would change the spec:
 
 ### 1. Signatures List in Outer Transaction (PR #11481)
 
@@ -243,17 +259,33 @@ lightclient proposes adding a `signatures` field to the outer transaction for PQ
 
 ### 2. Precompile-Based VERIFY Frames (PR #11482)
 
-derekchiang proposes allowing VERIFY frames to target designated "signature precompiles" directly. This enables contract accounts to use precompiles for verification (previously only available via EOA default code) and enables key rotation via storage-based public key commitments. All reviewers approved as of April 14, awaiting merge. Now that PR #11521 has been merged, this PR may need rebasing.
+derekchiang proposes allowing VERIFY frames to target designated "signature precompiles" directly. This enables contract accounts to use precompiles for verification (previously only available via EOA default code) and enables key rotation via storage-based public key commitments. All reviewers approved as of April 14, awaiting merge. May need rebasing after PR #11521 (Apr 14) and PR #11534 (Apr 16).
 
-### 3. VALUE in SENDER Frames (Discussion, no PR yet)
-
-Strong consensus from rmeissner (Safe), DanielVF, frangio, 0xrcinus, derek, and matt that SENDER frames should support native ETH value transfers. matt confirmed the authors support this now that atomic batching exists. The preferred approach is adding a `value` field to frames rather than using DELEGATECALL to a precompile.
-
-### 4. Spec Consistency Fixes (PR #11488)
+### 3. Spec Consistency Fixes (PR #11488)
 
 chiranjeev13 proposes: explicit VERIFY frame count check (`<= 2`), fixing stale APPROVE scope values in structural rules, and allowing any EOA as paymaster by removing the `frame.target != tx.sender` check from default VERIFY code. Some of these fixes overlap with changes already merged in PR #11521.
 
-### 5. Frame Return Data Opcodes (Discussion, no PR yet)
+### 4. Transaction-Type Prefix in Sighash (PR #11544)
+
+derekchiang proposes prefixing `FRAME_TX_TYPE` before the RLP payload in `compute_sig_hash`, aligning EIP-8141 with the EIP-2718 typed-transaction convention and preventing cross-type signature replay. All reviewers approved as of Apr 18, awaiting auto-merge.
+
+### 5. Hegotá CFI Inclusion (PR #11537)
+
+dionysuzx opened a PR against EIP-8081 (Hegotá fork meta) adding EIP-8141 to the `Considered for Inclusion` list, formalizing the CFI status captured at ACDE #233. Not a spec change, but a fork-inclusion governance milestone. Awaiting one more reviewer approval.
+
+### 6. Frame Return Data Opcodes (Discussion, no PR yet)
 
 jacopo-eth (post #137, Apr 10) proposed native access to frame returndata via `FRAMERETURNDATASIZE` and `FRAMERETURNDATACOPY` opcodes, motivated by ERC-8211-style multi-step flows where one frame consumes the output of another without wrapper contracts. No author response yet.
 
+---
+
+## Key Takeaway
+
+A frame transaction is a sequence of purpose-labeled sub-calls. The protocol runs validation frames first, refuses to proceed unless they each call `APPROVE`, then runs execution frames. Default code makes EOAs first-class users without deployment. The mempool only propagates transactions whose validation prefix fits a constrained shape, which is what lets a stateless node safely accept them.
+
+## Read Next
+
+- [EOA Support](/eoa-support) — what existing codeless accounts get for free, and how default code replaces EIP-7702 delegation for common cases.
+- [Feedback Evolution](/feedback-evolution) — how the spec got to its current shape through six phases of community review.
+- [Mempool Strategy](/mempool-strategy) — why the validation prefix is the way it is, and how the two-tier mempool handles everything that doesn't fit.
+- [Competing Standards](/competing-standards) — how EIP-8141 compares to EIP-8130, EIP-8175, EIP-8202, and the sibling proposals.

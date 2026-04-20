@@ -33,11 +33,13 @@ Every EOA gets the following behavior without opt-in, deployment, or signed auth
 
 ### SENDER mode
 
-1. Require `frame.target == tx.sender`.
-2. Read `frame.data` as RLP encoding of `calls = [[target, value, data], ...]`.
+1. If `frame.target != tx.sender`, return successfully with empty data. The top-level `frame.value` transfer has already been applied by the frame call, matching how a regular call to an empty-code account behaves (PR #11534, Apr 16).
+2. Otherwise, read `frame.data` as RLP encoding of `calls = [[target, value, data], ...]`.
 3. Execute each call with `msg.sender = tx.sender`. If any call reverts, revert the frame.
 
 Combined with the [atomic batch flag (bit 2 of `flags`)](https://eips.ethereum.org/EIPS/eip-8141#mode-flags) on consecutive SENDER frames, this gives EOAs atomic multi-call without a smart account.
+
+**Native ETH transfer**: Since PR #11534, a simple ETH transfer requires no default-code payload at all. The wallet builds a SENDER frame with `target = destination`, `value = amount`, `data = empty`, and the protocol transfers ETH as part of the top-level call. Default code is never invoked on the sender side, and the destination account is called with `CALLVALUE = frame.value` just like any ordinary CALL.
 
 ### DEFAULT mode
 
@@ -116,3 +118,5 @@ Default code is the floor, not the ceiling. Custom validation that exceeds the r
 ## Summary
 
 EIP-8141 makes EOAs first-class AA users through protocol-level default code, eliminating the authorization-transaction, smart-account-deployment, and relayer overhead that EIP-7702 + EIP-4337 requires. Default code is the floor: accounts that need multisig, recovery, or exotic validation still deploy custom code. DEFAULT frames serve two positional roles (deployment and post-op), both gated on `caller == ENTRY_POINT`.
+
+Default code handles per-transaction validation. It does not handle cross-chain identity persistence, meaning the mapping from "which keys are authorized for this user" to "this user's assets across chains." That layer is addressed by keystore registries, which are complementary to frame transactions rather than a replacement (see [Developer Tooling → Bull Case](/developer-tooling#bull-case-native-aa-with-powerful-defaults) for the asset-signer-separation framing).

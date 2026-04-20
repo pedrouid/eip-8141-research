@@ -30,7 +30,7 @@ Five: `APPROVE` (authorize execution/payment), `TXPARAM` (read tx parameters), `
 
 **2.1. Does EIP-8141 replace ERC-4337?**
 
-Yes. EIP-8141 is the native protocol successor to ERC-4337. It moves account abstraction into the transaction layer, eliminating the need for bundlers, the EntryPoint contract, and off-chain UserOperation infrastructure entirely.
+In the long run, yes. EIP-8141 is the native protocol successor, moving account abstraction into the transaction layer and eliminating bundlers, the EntryPoint contract, and off-chain UserOperation infrastructure for new flows. In the short term, EIP-8141 is still a draft and ERC-4337 remains the production AA stack; existing 4337 wallets do not stop working when 8141 ships.
 
 **2.2. Why are bundlers no longer needed?**
 
@@ -58,7 +58,7 @@ For most use cases, yes. EIP-7702 requires EOAs to permanently delegate to a sma
 
 **3.2. Can 7702-delegated accounts still use EIP-8141?**
 
-Yes. EIP-7702 accounts can send frame transactions - the two are complementary. However, 7702 delegation is no longer necessary for EOAs to access batching, sponsorship, or custom signatures.
+Yes, but with a caveat. A 7702-delegated account sends frame transactions like any other, yet the protocol's default code does not run; the delegated contract's code runs instead. If that contract does not implement the `APPROVE` opcode, the account loses the signature-verification path default code would have given it. This is a real interoperability gap flagged by DanielVF (posts #120, #122). EOAs that want default-code behavior should not 7702-delegate.
 
 **3.3. Why is removing the 7702 dependency important?**
 
@@ -90,7 +90,11 @@ No. The protocol has built-in default behavior for codeless accounts - ECDSA and
 
 **4.6. Is this compatible with passkeys / biometrics?**
 
-Yes. The EOA default code supports P256 signatures natively, which covers Apple/Google passkeys and WebAuthn without any contract deployment.
+Yes. The EOA default code supports P256 signatures natively, which covers Apple/Google passkeys and WebAuthn without any contract deployment. Tradeoff flagged by frangio and shemnon during review: P256 accounts do not support key rotation, so an account set up with a passkey cannot later migrate to a PQ-secure scheme without additional EIPs.
+
+**4.7. How do I send ETH to someone with a frame transaction?**
+
+Build a SENDER frame with `target = destination` and `value = amount`; no payload encoding needed. The per-frame `value` field was added by PR #11534 (Apr 16). Non-zero `value` is only valid in SENDER frames; DEFAULT and VERIFY frames must set `value = 0`. [See current spec →](/current-spec#transaction-structure)
 
 ---
 
@@ -102,7 +106,7 @@ Bundler infrastructure, UserOperation formatting, EntryPoint ABI compatibility, 
 
 **5.2. Do wallets still need to run or depend on bundlers?**
 
-No. Frame transactions enter the public mempool like any other transaction. No separate bundler endpoint, no bundler selection, no bundler availability concerns.
+Not for frame transactions. They enter the public mempool like any other transaction, with no separate bundler endpoint, selection, or availability concerns. Wallets that still serve ERC-4337 UserOperations continue to need bundler infrastructure for that path; 8141 and 4337 can coexist during migration.
 
 **5.3. Does this reduce vendor dependency?**
 
@@ -119,6 +123,10 @@ Yes. VERIFY frames execute arbitrary account code - wallets can implement multis
 **5.6. What's the migration path from ERC-4337?**
 
 Move validation logic from `validateUserOp` into VERIFY frame code that calls `APPROVE`. Replace bundler submission with standard transaction broadcasting. Replace EntryPoint paymaster calls with canonical paymaster VERIFY frames.
+
+**5.7. Can I give an AI agent or session a scoped key that expires?**
+
+Yes, via account code. Default code covers only secp256k1 and P256 on the primary key; richer policies (expiry, per-call caps, allowlists) live in the account's own VERIFY logic and remain valid on-chain. Whether such a transaction propagates publicly depends on the [mempool tier](/mempool-strategy#two-tiers-in-one-mempool) it fits.
 
 ---
 
@@ -176,6 +184,10 @@ Encrypted mempools (e.g., LUCID protocol) are fundamentally incompatible with th
 
 At full AA adoption with 4 cached storage slots per account, VOPS nodes would need ~72 GB total - an 8x increase from today's ~10 GB floor. [Details →](/vops-compatibility#state-growth-at-scale)
 
+**8.6. Can privacy pools use frame transactions today?**
+
+Not through the public mempool or FOCIL. Frames structurally remove relayer trust (invalid or replayed proofs revert in VERIFY before gas is charged), but Groth16 verification exceeds the 100k VERIFY cap, per-IL gas budgets fit only ~2 frame transactions, and nullifier slots live outside VOPS+4. [See the three gates →](/mempool-strategy#privacy-pools-three-gates)
+
 ---
 
 ## 9. Competing Proposals
@@ -190,7 +202,7 @@ Unclear. EIP-8141 is the most comprehensive but also the most complex. EIP-8130 
 
 **9.3. Can EIP-8130 be built on top of EIP-8141?**
 
-Yes - declared verifiers are a subset of what VERIFY frames can do. The reverse is not true. This is a key argument from EIP-8141 proponents.
+In principle yes. Declared verifiers are a subset of what VERIFY frames can do, while the reverse is not true. This is a key argument from EIP-8141 proponents. EIP-8130 authors contest the framing: their case is that a narrower primitive with no EVM in validation is better suited to performance chains regardless of whether it can be rebuilt on 8141. Both proposals remain active.
 
 **9.4. What is EIP-8223 and how does it relate to EIP-8141?**
 
@@ -214,6 +226,15 @@ Yes. Frame transactions touch consensus, mempool policy, p2p propagation, client
 - [All related PRs](https://github.com/ethereum/EIPs/pulls?q=is%3Apr+8141)
 - [Ethereum Magicians discussion](https://ethereum-magicians.org/t/frame-transaction/27617)
 - [Statelessness concerns on ethresear.ch](https://ethresear.ch/t/frame-transactions-through-a-statelessness-lens/24538)
+
+---
+
+## Read Next
+
+- [Current Spec](/current-spec) — the mechanism behind the answers above.
+- [Developer Tooling](/developer-tooling) — if you're building a wallet or app.
+- [Competing Standards](/competing-standards) — if you're evaluating EIP-8141 against alternatives.
+- [Feedback Evolution](/feedback-evolution) — if you want to see how the spec got here.
 
 ---
 
