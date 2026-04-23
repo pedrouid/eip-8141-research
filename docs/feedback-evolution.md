@@ -293,9 +293,9 @@ derekchiang proposed adding contract bytecodes to the VOPS baseline, noting that
 
 ---
 
-## Phase 6: Value Field, Security, and Fork Inclusion (Apr 16 – Apr 23)
+## Phase 6: Value Field, Security, and Fork Inclusion (Apr 16 – Apr 22)
 
-*The pending `value` field consensus landed, a security cleanup aligned the sighash with EIP-2718, and the proposal entered formal fork-inclusion governance. External analysis (Nero_eth's three-gates post) began shaping the next wave of discussion around privacy-pool flows. A late-phase guarantors proposal (PR #11555, Apr 22) introduced a new mempool-policy primitive that could extend the public-mempool reach to transactions reading shared state.*
+*The pending `value` field consensus landed, a security cleanup aligned the sighash with EIP-2718, and the proposal entered formal fork-inclusion governance. External analysis (Nero_eth's three-gates post) began shaping the next wave of discussion around privacy-pool flows.*
 
 ### Per-Frame Value (Merged)
 
@@ -333,11 +333,21 @@ derekchiang opened a 1-line PR fixing a cross-type signature replay weakness in 
 
 DanielVF raised that a 7702-delegated EOA today can choose per-transaction whether to invoke its delegation or send a "regular transaction" that bypasses the delegation code, because the transaction-type envelope encodes that intent explicitly. Under the current EIP-8141 rule ("if there's code, use the code, otherwise use the default code"), a 7702-delegated EOA loses that choice: the delegation code always wins. DanielVF argued for restoring explicit opt-in via a flag byte in `frame.data` selecting between default-code paths and the 7702 delegation. derek agreed the inconsistency is interesting but questioned the implementation. alex-forshtat-tbk observed that the existing `signature_type` first byte already acts as an EOA-scoped flag (`0x0` for ecrecover, `0x1` for P256VERIFY) and proposed extending it with `0x2` meaning "use 7702 code." No PR yet; sits on top of the 7702-delegation + default-code gap already flagged in the current-spec Related Proposals table.
 
+**What changed because of this phase**: per-frame `value` merged (PR #11534, Apr 16). Transaction-type sighash prefix merged (PR #11544, Apr 22). EIP-8141 formally submitted to the Hegotá CFI list via PR #11537 (still pending one reviewer). The next wave of discussion opened with Nero_eth's three-gates analysis, focused on how frame transactions interact with privacy pools under FOCIL and VOPS constraints.
+
+---
+
+## Phase 7: Guarantors and Underwriting as a Mempool Primitive (Apr 22 – Apr 23)
+
+*A proposal late in the April window reframed the constraint that has defined EIP-8141's mempool policy from the start: public-mempool VERIFY frames cannot read shared state, so anything that does (ERC-20 balance checks, environmental opcodes) must route through the expansive tier or a private mempool. The guarantors PR proposes an economic-risk workaround (a payer that commits to paying gas even if sender validation fails) that lets mempool nodes skip sender simulation entirely. The consequence, if adopted, is that ERC-20 gas repayment with trustless onchain verification could finally propagate publicly, without any of the VOPS/statelessness tradeoffs that motivated the original restriction. The underwriting mechanism is a new primitive in the mempool-policy toolkit, not a patch. This phase sits at the beginning of its discussion arc, not the end.*
+
 ### Guarantors Proposal
 
 *derekchiang — PR #11555, Apr 22*
 
 derekchiang opened an early proposal introducing a "guarantor" payer: a payer that covers gas even if sender validation fails. When a transaction has a guarantor, mempool nodes may skip sender-validation simulation entirely, so the sender's VERIFY frame is free to read shared state (ERC-20 balances, environmental opcodes, anything the restrictive-tier rules currently forbid) and still propagate through the public mempool. If inclusion reveals that sender validation would have failed, the guarantor absorbs the gas cost. Guarantors are expected to be either accounts the user controls (self-guarantee) or third parties with a commercial or trust relationship to the user. The PR description explicitly frames the proposal as still iterating. The mempool-strategy impact is substantial: this would open a third path for ERC-20 gas repayment alongside the live (offchain) and permissionless (onchain) paymaster patterns, by moving the shared-state read problem from a mempool-policy violation into an economic-risk problem the guarantor underwrites.
 
-**What changed because of this phase**: per-frame `value` merged (PR #11534, Apr 16). Transaction-type sighash prefix merged (PR #11544, Apr 22). EIP-8141 formally submitted to the Hegotá CFI list via PR #11537 (still pending one reviewer). Guarantors proposal opened (PR #11555, Apr 22), introducing an economic-risk-based mempool-policy relaxation that may substantially expand what sender validation logic can propagate publicly. The next wave of discussion opened with Nero_eth's three-gates analysis, focused on how frame transactions interact with privacy pools under FOCIL and VOPS constraints.
+Why this matters for statelessness: the original reason the restrictive tier bans shared-state reads during validation is VOPS compatibility. A node carrying only a partial-statelessness slice cannot safely validate a transaction whose inclusion depends on state outside its slice. Guarantors route around that by making the guarantor's commitment (which *is* inside every node's slice, since it is a paymaster-like signature check) sufficient grounds to admit the transaction. The VOPS invariant is preserved; the economic risk shifts from the protocol to the guarantor.
+
+**What to watch**: whether guarantors gather author consensus beyond derekchiang; how the economic model handles third-party guarantor markets (AMM-backed, staked, or something else); whether the design generalizes beyond ERC-20 to privacy flows (nullifier reads, shielded withdrawals) and complex AA validation; and the interaction with VOPS/FOCIL. Guarantor-backed transactions sidestep sender simulation, but the guarantor's own validation still has to fit the restrictive tier for the mempool to admit the transaction at all.
 
