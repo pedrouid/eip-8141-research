@@ -239,9 +239,27 @@ Context: this resolves the "VALUE in SENDER frames" pending proposal that had ac
 
 ---
 
+## Sighash Type Prefix — April 22, 2026
+
+*Why this mattered: aligned EIP-8141's canonical sighash with the EIP-2718 typed-transaction convention, closing a cross-type signature replay vector.*
+
+### PR #11544: Mix in transaction type to the sighash
+
+**Author**: derekchiang | **Merged**: Apr 22
+
+One-line change in `compute_sig_hash`:
+
+- Replaced `keccak(rlp(tx_copy))` with `keccak(bytes([FRAME_TX_TYPE]) + rlp(tx_copy))`.
+- Prefixes the type byte (`FRAME_TX_TYPE = 0x06`) before RLP-encoding, matching the EIP-2718 convention used by every other typed transaction type since EIP-1559.
+- Without the prefix, a signature over a frame-transaction sighash could in theory be reused against another transaction type sharing the same RLP body.
+
+All reviewers approved by Apr 18; auto-merged on Apr 22 with no further debate.
+
+---
+
 ## Active/Open PRs
 
-*As of April 20, 2026.* These PRs represent active design proposals that may change the spec in the near future.
+*As of April 23, 2026.* These PRs represent active design proposals that may change the spec in the near future.
 
 ### PR #11272: Disable EIP-3607 check for frame transactions (open since Feb 6)
 
@@ -249,14 +267,6 @@ Context: this resolves the "VALUE in SENDER frames" pending proposal that had ac
 
 - **Why**: EIP-3607 rejects transactions from senders with deployed code, which would block frame transactions for smart accounts.
 - Still open. lightclient's earlier review was dismissed on Apr 8, and the PR remains unresolved.
-
-### PR #11455: Small tweaks to default code for EIP-7392 compatibility (open since Mar 26)
-
-**Author**: SirSpudlington
-
-- Spiritual successor to the closed PR #11408
-- Makes the default code values interoperable with EIP-7392 without introducing a dependency
-- No reviews yet from core authors
 
 ### PR #11481: Add signatures list to outer tx (open since Apr 2)
 
@@ -304,13 +314,18 @@ From derekchiang's PR description:
 - **Rationale links**: decisions captured at ACDE #233 timestamp 5871s ([forkcast](https://forkcast.org/calls/acde/233#t=5871)) and ACDC #177 timestamps 3532s and 3853s.
 - Still needs one more reviewer from @ralexstokes or @timbeiko. This is a fork-inclusion governance milestone, not a spec change.
 
-### PR #11544: Mix in transaction type to the sighash (open since Apr 18)
+### PR #11555: Add support for guarantors (open since Apr 22)
 
 **Author**: derekchiang
 
-- **Why**: Aligns EIP-8141's canonical signature hash with the EIP-2718 typed-transaction convention where the transaction type byte is prefixed before RLP during hashing. Without this, frame transactions are susceptible to cross-type signature replay.
-- **Proposed change**: 1-line diff replacing `keccak(rlp(tx_copy))` with `keccak(bytes([FRAME_TX_TYPE]) + rlp(tx_copy))` in `compute_sig_hash`.
-- **Status**: All reviewers approved as of Apr 18, awaiting auto-merge.
+- **Why**: Provides a public-mempool path for transactions whose sender VERIFY logic reads shared state (ERC-20 balances, environmental opcodes), which otherwise violates the restrictive tier's `storage reads only on tx.sender` rule.
+- **Proposed change**: Introduce a "guarantor" payer that pays for the transaction *even if sender validation fails*. When a guarantor is present, mempool nodes may skip sender-validation simulation entirely and propagate the transaction on the strength of the guarantor's signature alone.
+- **Consequence**: a transaction with a guarantor can use any sender validation logic (including shared-state reads and environmental opcodes) and still propagate through the public mempool. This opens a third path for ERC-20 gas repayment alongside [live (offchain) and permissionless (onchain) paymasters](/mempool-strategy#erc20-paymaster-patterns).
+- **Status**: Early proposal; Derek's description notes the authors are still iterating on the idea.
+
+From derekchiang's PR description:
+
+> The idea is to introduce the concept of a "guarantor," which is a payer that pays for the transaction *even if sender validation fails*. As long as a transaction has a guarantor, mempool nodes do not need to check if the sender validation succeeds, and can skip simulation for sender validation altogether. As a result, transactions with a guarantor can use any sender validation logic, including access to shared state, environmental opcodes, etc., and still safely pass through the public mempool.
 
 ---
 
@@ -330,6 +345,13 @@ From derekchiang's PR description:
 
 - Proposed using EIP-7932's signature registry for default code, citing P256 malleability fixes
 - lightclient rejected: "We want to reserve the ability to define custom behavior in 8141 default contract and we don't want to rely on another EIP/precompile like this."
+
+### PR #11455: Small tweaks to default code for EIP-7392 compatibility (closed Apr 23)
+
+**Author**: SirSpudlington
+
+- Spiritual successor to the closed PR #11408. No dependency introduced; just aligned default-code values with EIP-7392 for interoperability.
+- Never gathered the required reviewer approvals from core authors. Closed without merge after ~4 weeks open.
 
 ### PRs #11310, #11314, #11321: Fix broken links (all closed)
 

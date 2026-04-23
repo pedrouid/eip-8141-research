@@ -6,7 +6,7 @@
 
 - [EIP-8141 Spec](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8141.md)
 - [All Related PRs](https://github.com/ethereum/EIPs/pulls?q=is%3Apr+8141)
-- [Ethereum Magicians Discussion (140 posts)](https://ethereum-magicians.org/t/frame-transaction/27617)
+- [Ethereum Magicians Discussion](https://ethereum-magicians.org/t/frame-transaction/27617)
 
 ---
 
@@ -34,18 +34,18 @@
 | Apr 8 | [#11251](https://github.com/ethereum/EIPs/pull/11251) | BonyHanter83 | Add EIP-1559 to requires header |
 | Apr 14 | [#11521](https://github.com/ethereum/EIPs/pull/11521) | benaadams | Tighten spec (mode/flags split, FRAMEPARAM, MAX_FRAMES=64, per-frame cost, default code hardening) |
 | Apr 16 | [#11534](https://github.com/ethereum/EIPs/pull/11534) | lightclient | Add `value` field to frame (SENDER-only, TXPARAM(0x08), FRAMEPARAM(0x08)) |
+| Apr 22 | [#11544](https://github.com/ethereum/EIPs/pull/11544) | derekchiang | Mix in FRAME_TX_TYPE to sighash (EIP-2718 cross-type replay fix) |
 
 ### Open
 
 | Date | PR | Author | Description |
 |---|---|---|---|
 | Feb 6 | [#11272](https://github.com/ethereum/EIPs/pull/11272) | Thegaram | Disable EIP-3607 for frame transactions |
-| Mar 26 | [#11455](https://github.com/ethereum/EIPs/pull/11455) | SirSpudlington | Default code tweaks for EIP-7392 compatibility |
 | Apr 2 | [#11481](https://github.com/ethereum/EIPs/pull/11481) | lightclient | Add signatures list to outer tx (PQ aggregation) |
 | Apr 2 | [#11482](https://github.com/ethereum/EIPs/pull/11482) | derekchiang | Allow precompiles for VERIFY frames (all reviewers approved) |
 | Apr 6 | [#11488](https://github.com/ethereum/EIPs/pull/11488) | chiranjeev13 | Fix spec inconsistencies (APPROVE scopes, VERIFY count) |
 | Apr 17 | [#11537](https://github.com/ethereum/EIPs/pull/11537) | dionysuzx | Add EIP-8141 to CFI in EIP-8081 Hegotá meta EIP (governance) |
-| Apr 18 | [#11544](https://github.com/ethereum/EIPs/pull/11544) | derekchiang | Mix in FRAME_TX_TYPE to sighash (EIP-2718 alignment, all reviewers approved) |
+| Apr 22 | [#11555](https://github.com/ethereum/EIPs/pull/11555) | derekchiang | Add support for guarantors (payer underwrites risk of sender-validation failure) |
 
 ### Related
 
@@ -64,6 +64,7 @@
 | Feb 25 | [#11352](https://github.com/ethereum/EIPs/pull/11352) | lucemans | Accidental PR | Self-closed |
 | Mar 13 | [#11404](https://github.com/ethereum/EIPs/pull/11404) | derekchiang | Simplify approval bits | Superseded by #11401 |
 | Mar 14 | [#11408](https://github.com/ethereum/EIPs/pull/11408) | SirSpudlington | Migrate default code to EIP-7932 | Rejected: authors want to keep custom behavior |
+| Apr 23 | [#11455](https://github.com/ethereum/EIPs/pull/11455) | SirSpudlington | Default code tweaks for EIP-7392 compatibility | Never gathered reviewer approvals; closed after ~4 weeks |
 
 ## Key Contributors
 

@@ -293,9 +293,9 @@ derekchiang proposed adding contract bytecodes to the VOPS baseline, noting that
 
 ---
 
-## Phase 6: Value Field, Security, and Fork Inclusion (Apr 16 – Apr 20)
+## Phase 6: Value Field, Security, and Fork Inclusion (Apr 16 – Apr 23)
 
-*The pending `value` field consensus landed, a security cleanup aligned the sighash with EIP-2718, and the proposal entered formal fork-inclusion governance. External analysis (Nero_eth's three-gates post) began shaping the next wave of discussion around privacy-pool flows.*
+*The pending `value` field consensus landed, a security cleanup aligned the sighash with EIP-2718, and the proposal entered formal fork-inclusion governance. External analysis (Nero_eth's three-gates post) began shaping the next wave of discussion around privacy-pool flows. A late-phase guarantors proposal (PR #11555, Apr 22) introduced a new mempool-policy primitive that could extend the public-mempool reach to transactions reading shared state.*
 
 ### Per-Frame Value (Merged)
 
@@ -321,11 +321,23 @@ derek announced the value-field merge on the forum, linking the commit. DanielVF
 
 dionysuzx opened a PR against EIP-8081 (the Hegotá fork meta EIP) adding EIP-8141 to the `Considered for Inclusion` list, plus EIP-7716 and EIP-8205 to `Proposed for Inclusion`. Decisions were captured at ACDE #233 (timestamp 5871s) and ACDC #177 (timestamps 3532s and 3853s). This formalizes a fork-inclusion status that had been assumed based on strawmap signals but not yet committed to the meta EIP. The PR requires one more reviewer approval from @ralexstokes or @timbeiko.
 
-### Transaction-Type Sighash Fix
+### Transaction-Type Sighash Fix (Merged)
 
-*derekchiang — PR #11544, Apr 18*
+*derekchiang — PR #11544, submitted Apr 18, merged Apr 22*
 
-derekchiang opened a 1-line PR fixing a cross-type signature replay weakness in `compute_sig_hash`: the existing `keccak(rlp(tx_copy))` omits the `FRAME_TX_TYPE` byte that EIP-2718 typed transactions conventionally prefix before RLP. The fix is a direct `keccak(bytes([FRAME_TX_TYPE]) + rlp(tx_copy))`. The change was approved by all reviewers within hours, awaiting auto-merge. This is a small but security-relevant alignment with the EIP-2718 convention that other typed transactions already follow.
+derekchiang opened a 1-line PR fixing a cross-type signature replay weakness in `compute_sig_hash`: the existing `keccak(rlp(tx_copy))` omits the `FRAME_TX_TYPE` byte that EIP-2718 typed transactions conventionally prefix before RLP. The fix is a direct `keccak(bytes([FRAME_TX_TYPE]) + rlp(tx_copy))`. Approved by all reviewers within hours; auto-merged on Apr 22 with no further debate. A small but security-relevant alignment with the EIP-2718 convention that other typed transactions already follow.
 
-**What changed because of this phase**: per-frame `value` merged (PR #11534, Apr 16). Transaction-type sighash prefix fix approved (PR #11544, awaiting merge). EIP-8141 formally submitted to the Hegotá CFI list via PR #11537 (pending one reviewer). The next wave of discussion opened with Nero_eth's three-gates analysis, focused on how frame transactions interact with privacy pools under FOCIL and VOPS constraints.
+### Default Code vs 7702 Delegation Interaction
+
+*DanielVF, derek, alex-forshtat-tbk — posts #141-145, Apr 17-19*
+
+DanielVF raised that a 7702-delegated EOA today can choose per-transaction whether to invoke its delegation or send a "regular transaction" that bypasses the delegation code, because the transaction-type envelope encodes that intent explicitly. Under the current EIP-8141 rule ("if there's code, use the code, otherwise use the default code"), a 7702-delegated EOA loses that choice: the delegation code always wins. DanielVF argued for restoring explicit opt-in via a flag byte in `frame.data` selecting between default-code paths and the 7702 delegation. derek agreed the inconsistency is interesting but questioned the implementation. alex-forshtat-tbk observed that the existing `signature_type` first byte already acts as an EOA-scoped flag (`0x0` for ecrecover, `0x1` for P256VERIFY) and proposed extending it with `0x2` meaning "use 7702 code." No PR yet; sits on top of the 7702-delegation + default-code gap already flagged in the current-spec Related Proposals table.
+
+### Guarantors Proposal
+
+*derekchiang — PR #11555, Apr 22*
+
+derekchiang opened an early proposal introducing a "guarantor" payer: a payer that covers gas even if sender validation fails. When a transaction has a guarantor, mempool nodes may skip sender-validation simulation entirely, so the sender's VERIFY frame is free to read shared state (ERC-20 balances, environmental opcodes, anything the restrictive-tier rules currently forbid) and still propagate through the public mempool. If inclusion reveals that sender validation would have failed, the guarantor absorbs the gas cost. Guarantors are expected to be either accounts the user controls (self-guarantee) or third parties with a commercial or trust relationship to the user. The PR description explicitly frames the proposal as still iterating. The mempool-strategy impact is substantial: this would open a third path for ERC-20 gas repayment alongside the live (offchain) and permissionless (onchain) paymaster patterns, by moving the shared-state read problem from a mempool-policy violation into an economic-risk problem the guarantor underwrites.
+
+**What changed because of this phase**: per-frame `value` merged (PR #11534, Apr 16). Transaction-type sighash prefix merged (PR #11544, Apr 22). EIP-8141 formally submitted to the Hegotá CFI list via PR #11537 (still pending one reviewer). Guarantors proposal opened (PR #11555, Apr 22), introducing an economic-risk-based mempool-policy relaxation that may substantially expand what sender validation logic can propagate publicly. The next wave of discussion opened with Nero_eth's three-gates analysis, focused on how frame transactions interact with privacy pools under FOCIL and VOPS constraints.
 

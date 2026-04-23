@@ -139,7 +139,7 @@ def compute_sig_hash(tx):
     return keccak(bytes([FRAME_TX_TYPE]) + rlp(tx))
 ```
 
-Since `mode` and `flags` are now separate fields (PR #11521), the mode check is a direct comparison without masking. The transaction-type prefix aligns EIP-8141 with the EIP-2718 typed-transaction convention and prevents cross-type signature replay (PR #11544, awaiting merge as of Apr 20). Non-`VERIFY` frame metadata, including a SENDER frame's `value`, remains covered by this hash.
+Since `mode` and `flags` are now separate fields (PR #11521), the mode check is a direct comparison without masking. The transaction-type prefix aligns EIP-8141 with the EIP-2718 typed-transaction convention and prevents cross-type signature replay (PR #11544, merged Apr 22). Non-`VERIFY` frame metadata, including a SENDER frame's `value`, remains covered by this hash.
 
 VERIFY frame data is elided because:
 1. It contains the signature (can't be part of what's signed)
@@ -254,7 +254,7 @@ The sponsor pays ETH gas; frame 2 repays the sponsor in ERC-20 tokens.
 | EIP-8175 | Competing alternative: flat capabilities + programmable fee_auth, 4 new opcodes |
 | EIP-8130 | Coinbase/Base's alternative: declared verifiers (no wallet code exec), 14 PRs, active development. See [Competing Standards](./competing-standards) |
 | EIP-7997 | Deterministic deployer, used for account deployment frames |
-| EIP-7392 | Signature registry; PR #11455 proposes making default code interoperable |
+| EIP-7392 | Signature registry; interoperability PR #11455 was closed without merge on Apr 23 |
 
 ## Key Takeaway
 
