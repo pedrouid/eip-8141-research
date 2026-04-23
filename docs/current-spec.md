@@ -172,7 +172,7 @@ Rules enforced during validation prefix:
 - No storage reads outside `tx.sender`
 - No calls to non-existent contracts or EIP-7702 delegations
 
-**Canonical paymaster**: verified by runtime code match, uses reserved balance accounting. The canonical paymaster pays gas from its own ETH balance; ERC-20 repayment flows are not supported on the public mempool because they require reading external contract state during validation. See [Mempool Strategy → ERC-20 limitation](/mempool-strategy#restrictive-no-erc20).
+**Canonical paymaster**: verified by runtime code match, uses reserved balance accounting. The canonical paymaster handles ETH-funded sponsorship only (the paymaster covers gas from its own ETH balance, with no token-level repayment flow). ERC-20 gas repayment is a separate design space with two independent patterns under EIP-8141: a live (offchain) variant that propagates through the public mempool as a non-canonical paymaster, and a permissionless (onchain) variant that does not. See [Mempool Strategy → ERC-20 gas repayment: two paymaster patterns](/mempool-strategy#erc20-paymaster-patterns).
 ```python
 available = balance(paymaster) - reserved_pending_cost - pending_withdrawal_amount
 ```
@@ -232,7 +232,7 @@ Frame 0 deploys the account; frames 1-2 validate and execute.
 
 The sponsor pays ETH gas; frame 2 repays the sponsor in ERC-20 tokens.
 
-> **Mempool note**: this shape is consensus-valid on-chain but does **not** propagate through the public (restrictive) mempool. A sponsor that wants assurance they will actually be repaid in ERC-20 must check the user's token balance during validation, which requires reading the ERC-20 contract's storage and therefore exceeds the restrictive tier. Unlike Example 2 (ETH-funded via the canonical paymaster), ERC-20 repayment flows route through the expansive tier, a private mempool, or direct-to-builder submission. See [Mempool Strategy → ERC-20 limitation](/mempool-strategy#restrictive-no-erc20).
+> **Mempool note**: this example is the **permissionless ERC-20 paymaster (onchain)** variant, where the sponsor's VERIFY frame introspects the next SENDER frame to confirm the ERC-20 transfer before approving payment. That introspection reads the ERC-20 contract's storage and exceeds the restrictive tier, so this shape is consensus-valid on-chain but does **not** propagate through the public mempool; it routes through the expansive tier, a private mempool, or direct-to-builder submission. A separate **live ERC-20 paymaster (offchain)** pattern keeps a paymaster signing service in the loop and does propagate through the restrictive public mempool (as a non-canonical paymaster, subject to the 1-pending-tx cap). See [Mempool Strategy → ERC-20 gas repayment: two paymaster patterns](/mempool-strategy#erc20-paymaster-patterns).
 
 ## Key Design Properties
 

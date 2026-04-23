@@ -77,7 +77,7 @@ An EOA at address A rebalances a Uniswap v4 liquidity position, paying for gas i
 | 5 | SENDER | Position Manager | `increaseLiquidity(...)` — add to new range |
 | 6 | DEFAULT | sponsor | Post-op: refund overcharged gas fees |
 
-> This shape is consensus-valid but does **not** propagate through the public mempool. ERC-20 gas repayment requires the sponsor's VERIFY frame to read the user's token balance, which reads external contract state and exceeds the restrictive tier's rules. Wallets submit this flow through the expansive tier, a private mempool, or direct-to-builder. See [Mempool Strategy → ERC-20 limitation](/mempool-strategy#restrictive-no-erc20).
+> This example is the **permissionless ERC-20 paymaster (onchain)** variant, where the sponsor's VERIFY frame introspects the next SENDER frame to confirm the USDC transfer before approving payment. That introspection reads external contract state, so this specific shape is consensus-valid but does **not** propagate through the public (restrictive) mempool; wallets route it through the expansive tier, a private mempool, or direct-to-builder. A separate **live ERC-20 paymaster (offchain)** pattern, in which a paymaster service pre-signs the transaction, does propagate through the public mempool as a non-canonical paymaster (one pending tx per paymaster). Both patterns are native to EIP-8141 and independent of ERC-4337. See [Mempool Strategy → ERC-20 gas repayment: two paymaster patterns](/mempool-strategy#erc20-paymaster-patterns).
 
 ## New Opcodes
 

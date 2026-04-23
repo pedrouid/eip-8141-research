@@ -2,3 +2,25 @@
 .vp-doc table td:first-child {
   white-space: nowrap;
 }
+
+.vp-doc .balanced-columns table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.vp-doc .balanced-columns table th:first-child,
+.vp-doc .balanced-columns table td:first-child {
+  width: 180px;
+}
+
+.vp-doc .balanced-columns table th:nth-child(2),
+.vp-doc .balanced-columns table td:nth-child(2),
+.vp-doc .balanced-columns table th:nth-child(3),
+.vp-doc .balanced-columns table td:nth-child(3) {
+  width: calc((100% - 180px) / 2);
+}
+
+.vp-doc .balanced-columns table code {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

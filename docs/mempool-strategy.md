@@ -13,7 +13,7 @@ For state, the proposal extends the [VOPS](/vops-compatibility#state-growth-at-s
 
 The framing is borrowed from Bitcoin: **let consensus rules do a lot, but restrict at the mempool layer**. Bitcoin Core's policy rules are upgradable without hardforks, which is why Bitcoin has evolved for 15+ years while keeping the consensus footprint narrow. EIP-8141 applies the same pattern.
 
-A consequence: **the proposal claims frame transactions remove the need for off-chain relayers**. Privacy rebroadcasters and ERC-20 gas-fronting flows are designed to be expressible as pure onchain smart contracts, with no live third-party actors required in the transaction supply chain. Note that these flows run through the expansive tier or private mempool, not the public restrictive mempool (see [ERC-20 limitation](#restrictive-no-erc20)).
+A consequence: **the proposal claims frame transactions remove the need for off-chain relayers**. Privacy rebroadcasters and permissionless (onchain) ERC-20 gas-fronting flows are designed to be expressible as pure onchain smart contracts, with no live third-party actors required in the transaction supply chain. These onchain flows run through the expansive tier or a private mempool rather than the public restrictive mempool; the separate live (offchain) ERC-20 paymaster pattern keeps a signing service in the loop and is restrictive-mempool-compatible. See [ERC-20 gas repayment: two paymaster patterns](#erc20-paymaster-patterns).
 
 ---
 
@@ -43,21 +43,32 @@ Validation constraints: one of four prefix shapes, gas 100k, banned opcodes (ORI
 
 What this enables: secp256k1, P256/passkeys, PQ signatures fitting the validation budget, ETH-funded gas sponsorship via the canonical paymaster, smart account validation reading only its own storage.
 
-### What the restrictive tier does NOT enable: ERC-20 gas repayment {#restrictive-no-erc20}
+### ERC-20 gas repayment: two paymaster patterns {#erc20-paymaster-patterns}
 
-A common misreading of EIP-8141 is that the canonical paymaster supports "pay gas in ERC-20 tokens" on the public mempool. It does not. The current spec's canonical paymaster only handles ETH-funded sponsorship, where the paymaster covers gas from its own ETH balance and the transaction contains no token-level repayment flow.
+"Pay gas in ERC-20" is not a single pattern under EIP-8141. The spec supports two distinct paymaster shapes that interact with the restrictive and expansive mempools very differently. The canonical paymaster handles neither; it only covers ETH-funded sponsorship. Both shapes below are native EIP-8141 patterns and do not depend on any ERC-4337 infrastructure.
 
-To repay the sponsor in ERC-20 tokens, a VERIFY frame would need to check the user's ERC-20 balance before approving payment. That check reads the ERC-20 contract's storage, which is outside `tx.sender` and therefore violates the restrictive tier's `storage reads only on tx.sender` rule. Moving the ERC-20 transfer to a post-payment SENDER frame is consensus-valid but leaves the sponsor exposed: they have already committed to paying ETH gas by the time the transfer runs.
+<div class="balanced-columns">
 
-This is deliberate, not an oversight. The restrictive tier intentionally forbids arbitrary external storage reads during validation in order to preserve VOPS compatibility (see [VOPS Compatibility](/vops-compatibility)). A node running with a partial-statelessness slice cannot safely validate a transaction whose inclusion depends on state outside its slice. ERC-20 gas repayment is exactly that kind of transaction.
+| Dimension | Live ERC-20 paymaster (offchain) | Permissionless ERC-20 paymaster (onchain) |
+|---|---|---|
+| VERIFY logic | Checks a signature from the paymaster's offchain service; reads only the paymaster's own storage | Introspects the next SENDER frame and reads the ERC-20 contract's storage to confirm the transfer |
+| Offchain service | Paymaster signing service required | None |
+| Mempool tier | **Restrictive** (public), as a non-canonical paymaster subject to `MAX_PENDING_TXS_USING_NON_CANONICAL_PAYMASTER = 1` per paymaster | **Expansive**, private mempool, or direct-to-builder submission |
+| VOPS-compatible | Yes | No (reads state outside the VOPS+4 slice) |
+| Trust model | Paymaster absorbs front-run risk; user has no rational incentive to exploit, since executing the front-run also burns their own gas | Trustless; frame introspection makes the contract enforce the transfer before approving payment |
+| Unique to EIP-8141 | No (any signature-checking paymaster works this way) | Yes (enabled by frame introspection) |
 
-ERC-20 gas repayment is consensus-valid on-chain. It is not publicly propagatable. Users who want it route through the expansive tier below, a private mempool, or direct-to-builder submission.
+</div>
+
+Example 5 in the spec ([EOA Paying Gas in ERC-20s](/current-spec#5-eoa-paying-gas-in-erc-20s)) is the permissionless onchain variant.
+
+The restriction on the permissionless onchain pattern is deliberate. The restrictive tier forbids arbitrary external storage reads during validation in order to preserve VOPS compatibility (see [VOPS Compatibility](/vops-compatibility)): a node running with a partial-statelessness slice cannot safely validate a transaction whose inclusion depends on state outside its slice. Active design directions for bringing this pattern onto the public mempool in a future revision include **AMM paymaster contracts** (liquidity providers absorb the front-run risk in exchange for a fee) and **ERC-7562-style validation rules** allowing narrowly-scoped shared-state reads under staking or reputation constraints. These are open, not specified.
 
 ---
 
 ## Expansive Mempool: What Develops in Parallel
 
-For use cases exceeding restrictive policy. Principal examples: **privacy protocols** that must read state outside `tx.sender` to verify nullifiers, and **ERC-20 gas repayment** flows where a VERIFY frame reads the user's token balance to authorize payment (see the [ERC-20 limitation note above](#restrictive-no-erc20)).
+For use cases exceeding restrictive policy. Principal examples: **privacy protocols** that must read state outside `tx.sender` to verify nullifiers, and **permissionless (onchain) ERC-20 paymasters** whose VERIFY frames introspect the next SENDER frame and read the ERC-20 contract's storage to authorize payment (see [ERC-20 gas repayment: two paymaster patterns](#erc20-paymaster-patterns)).
 
 The expansive tier accepts ERC-7562-style validation with staking/reputation, paymaster-extended policies, and arbitrary VERIFY logic subject to the node's resource budget. It is not a precondition for shipping EIP-8141. Clients ship restrictive first; the privacy/complex-validation community develops expansive independently. No hardfork dependency between the two.
 
@@ -105,7 +116,8 @@ The ["choose 2 of 3" trilemma](/vops-compatibility#the-frames-focil-vops-trilemm
 | Canonical paymaster (ETH-funded) | Yes | Yes | Yes | None |
 | Non-canonical, low volume | Yes (1 pending) | Yes | Yes | None |
 | Non-canonical, high volume | No (expansive) | Opt-in | N/A | Expansive tier |
-| ERC-20 gas repayment | No (expansive/private) | Opt-in | Yes | Expansive tier or private mempool |
+| Live ERC-20 paymaster (offchain) | Yes (1 pending) | Yes | Yes | Non-canonical cap |
+| Permissionless ERC-20 paymaster (onchain) | No (expansive/private) | Opt-in | Yes | Expansive tier or private mempool |
 | Privacy protocol | No (expansive) | Opt-in | Yes (witness) | Branches + expansive |
 
 Frames + FOCIL + VOPS coexist for the majority of traffic. Edge cases pay per-tx cost or move to the expansive tier.
@@ -116,7 +128,7 @@ Frames + FOCIL + VOPS coexist for the majority of traffic. Edge cases pay per-tx
 
 Anything a relayer does for EIP-4337 can be expressed as a pure onchain smart contract under EIP-8141.
 
-**Privacy rebroadcasters** become onchain contracts observing the canonical mempool and repackaging transactions with witness branches. **ERC-20 gas fronting** becomes a paymaster (non-canonical or expansive-tier) accepting token payment in a SENDER frame and paying ETH gas; this path does not use the public restrictive mempool because ERC-20 repayment requires reading external contract state during validation (see [ERC-20 limitation](#restrictive-no-erc20)).
+**Privacy rebroadcasters** become onchain contracts observing the canonical mempool and repackaging transactions with witness branches. **ERC-20 gas fronting** takes two independent shapes under EIP-8141: a **permissionless ERC-20 paymaster (onchain)** that replaces the relayer entirely via frame introspection (expansive-tier or private-mempool only), and a **live ERC-20 paymaster (offchain)** that keeps a signing service in the loop and propagates through the restrictive mempool as a non-canonical paymaster. See [ERC-20 gas repayment: two paymaster patterns](#erc20-paymaster-patterns).
 
 This is the structural argument against EIP-4337 + EIP-7702: in those designs, the relayer is required because validation does not run in-protocol. EIP-8141 brings validation in-protocol, which the proposal claims removes the structural need for out-of-protocol actors. Whether on-chain substitutes match bundlers' operational properties in practice is an open question.
 
@@ -175,7 +187,7 @@ See [VOPS Compatibility → Status](/vops-compatibility#status) for the state-si
 - **Merkle branch escape hatch** (proposed): 4-8 kB today, 1-2 kB after binary tree. Cost falls on transactions that need it.
 - **Trilemma**: Frames + FOCIL + VOPS coexist for majority of traffic. Edge cases pay per-tx cost or use the expansive tier.
 - **Bitcoin pattern** (analogy): permissive consensus + restrictive mempool gives upgradability without hardforks.
-- **No relayers** (proposed claim): privacy rebroadcasters and ERC-20 gas-fronting flows are expressible as onchain contracts running through the expansive tier or private mempool, not the public restrictive mempool. Whether they match bundler operational properties is open.
+- **No relayers** (proposed claim): privacy rebroadcasters and permissionless (onchain) ERC-20 paymasters are expressible as onchain contracts running through the expansive tier or private mempool. The live (offchain) ERC-20 paymaster pattern keeps a signing service in the loop but does propagate through the restrictive public mempool. Whether onchain variants match bundler operational properties is open.
 - **Open questions**: canonical paymaster adoption (market-driven), propagation fragility (cross-client alignment), encrypted mempool routing (expansive tier), mempool health (FOCIL adoption), privacy pools and the [three gates](#privacy-pools-three-gates) (canonical-pool exemption + validation-index FOCIL + raised VERIFY caps proposed).
 
 ---

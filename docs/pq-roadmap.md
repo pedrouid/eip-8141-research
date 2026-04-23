@@ -79,18 +79,23 @@ EIP-8184 is PQ-forward-compatible: its `signature_id` field is extensible beyond
 
 ## 5. Complete secp256k1 Revocability
 
-**Status**: No proposal yet.
+**Status**: Partial proposals ([EIP-7851](https://eips.ethereum.org/EIPS/eip-7851), [EIP-8151](https://eips.ethereum.org/EIPS/eip-8151), both Draft). Scoped to EIP-7702-delegated EOAs; broader story still open.
 
 As long as the original secp256k1 key retains authority, the account has a quantum-vulnerable surface. Complete revocability means permanently removing the ECDSA key as an authorized signer:
 
 - The protocol must support accounts with no ECDSA fallback
 - Legacy transaction types (0, 1, 2) must be rejected for these accounts
 - Recovery mechanisms for accounts that lose their PQ key must exist
-- The EIP-7702 delegation model (ECDSA-dependent) needs an alternative path
+- Deployed signature-checking contracts (e.g., ERC-2612 `permit` via `ecRecover`) must also stop honoring deactivated keys without needing redeployment
 
-This is likely the last stage before full migration: all preceding infrastructure (PQ auth, key rotation, mempool protection) must be proven before the ECDSA fallback can be safely removed.
+Two draft EIPs cover the revocability path for the subset of accounts that have delegated through [EIP-7702](https://eips.ethereum.org/EIPS/eip-7702):
 
-**Delivers**: elimination of the quantum-vulnerable weak link. Accounts are exclusively PQ-controlled.
+- [EIP-7851](https://eips.ethereum.org/EIPS/eip-7851) (Deactivate a Delegated EOA's Key) — system contract where a 7702-delegated EOA can schedule an irreversible deactivation of its ECDSA key, finalized after a 7-day cancellation window. Once finalized, block processing, the transaction pool, and future 7702 authorizations all reject signatures from the deactivated key.
+- [EIP-8151](https://eips.ethereum.org/EIPS/eip-8151) (Private Key Deactivation Aware `ecRecover`) — modifies the `ecRecover` precompile to return 32 zero bytes for keys deactivated under EIP-7851, so immutable contracts that rely on `ecRecover` for authorization (most visibly ERC-2612 `permit`) stop honoring deactivated keys without having to be redeployed. Requires EIP-7851.
+
+These proposals resolve revocability for 7702-delegated accounts. They do not cover EIP-8141 EOAs that use [default code](/eoa-support) without a 7702 delegation; revocability for that population is still open. This is likely the last stage before full migration: all preceding infrastructure (PQ auth, key rotation, mempool protection) must be proven before the ECDSA fallback can be safely removed protocol-wide.
+
+**Delivers**: elimination of the quantum-vulnerable weak link for 7702-delegated EOAs, including for deployed signature-checking contracts via the `ecRecover` patch. **Does not deliver**: a revocability path for codeless EIP-8141 EOAs, recovery mechanisms for lost PQ keys, or elimination of the ECDSA fallback protocol-wide.
 
 ---
 
@@ -129,7 +134,7 @@ The [three-gates analysis](/mempool-strategy#privacy-pools-three-gates) identifi
 | 2 | PQ precompiles and opcodes | Research (EIP-8051, EIP-8052) | Stage 1 |
 | 3 | Ephemeral key rotation | Research ([ethresear.ch](https://ethresear.ch/t/achieving-quantum-safety-through-ephemeral-key-pairs-and-account-abstraction/24273)) | Stages 1, 2 |
 | 4 | Encrypted mempools | EIP-8184 (Draft) | Stage 1 |
-| 5 | Complete secp256k1 revocability | No proposal yet | Stages 1-4 |
+| 5 | Complete secp256k1 revocability | EIP-7851, EIP-8151 (Draft; scoped to EIP-7702-delegated EOAs) | Stages 1-4 |
 | 6 | Native PQ transactions | [Strawmap](https://strawmap.org/) target (end of 2029) | Stages 1-5 |
 | 7 | Private L1 settlement | Research direction | Stages 1-6 |
 
@@ -145,4 +150,4 @@ The [three-gates analysis](/mempool-strategy#privacy-pools-three-gates) identifi
 
 ---
 
-*Sources: [EIP-8141 Spec](https://eips.ethereum.org/EIPS/eip-8141), [EIP-8184 (LUCID)](https://eips.ethereum.org/EIPS/eip-8184), [Ephemeral Key Pairs (ethresear.ch)](https://ethresear.ch/t/achieving-quantum-safety-through-ephemeral-key-pairs-and-account-abstraction/24273), [Ethereum L1 Strawmap](https://strawmap.org/), [Post-Quantum Ethereum](https://pq.ethereum.org/), [Google Q-Day Timeline](https://blog.google/innovation-and-ai/technology/safety-security/cryptography-migration-timeline/), [EIP-8051](https://eips.ethereum.org/EIPS/eip-8051), [EIP-8052](https://eips.ethereum.org/EIPS/eip-8052)*
+*Sources: [EIP-8141 Spec](https://eips.ethereum.org/EIPS/eip-8141), [EIP-8184 (LUCID)](https://eips.ethereum.org/EIPS/eip-8184), [Ephemeral Key Pairs (ethresear.ch)](https://ethresear.ch/t/achieving-quantum-safety-through-ephemeral-key-pairs-and-account-abstraction/24273), [Ethereum L1 Strawmap](https://strawmap.org/), [Post-Quantum Ethereum](https://pq.ethereum.org/), [Google Q-Day Timeline](https://blog.google/innovation-and-ai/technology/safety-security/cryptography-migration-timeline/), [EIP-8051](https://eips.ethereum.org/EIPS/eip-8051), [EIP-8052](https://eips.ethereum.org/EIPS/eip-8052), [EIP-7851](https://eips.ethereum.org/EIPS/eip-7851), [EIP-8151](https://eips.ethereum.org/EIPS/eip-8151)*

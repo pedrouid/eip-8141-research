@@ -90,9 +90,9 @@ Any EOA can act as an ETH-funded paymaster. The default VERIFY logic supports `A
 
 This composes with the [restrictive mempool tier](/mempool-strategy#restrictive-mempool-what-ships-first) under the `MAX_PENDING_TXS_USING_NON_CANONICAL_PAYMASTER = 1` rule per sponsor. The canonical paymaster contract exists for high-throughput ETH-funded sponsorship.
 
-### ERC-20 repayment does not work on the public mempool
+### ERC-20 repayment: two independent paymaster patterns
 
-A related but distinct pattern is "user pays the sponsor back in ERC-20 tokens" (spec [Examples 2 and 5](/current-spec#practical-use-cases)). That flow is consensus-valid on-chain, but the public restrictive mempool will not propagate it: the sponsor's VERIFY frame would need to check the user's ERC-20 balance, which reads external contract storage and violates the `storage reads only on tx.sender` rule. Wallets offering ERC-20 gas repayment today route those transactions through the expansive tier, a non-canonical paymaster (one pending tx each), or a private mempool. See [Mempool Strategy → ERC-20 limitation](/mempool-strategy#restrictive-no-erc20).
+A related but distinct pattern is "user pays the sponsor back in ERC-20 tokens" (spec [Examples 2 and 5](/current-spec#practical-use-cases)). EIP-8141 supports two independent shapes for it. A **live ERC-20 paymaster (offchain)** runs a signing service that pre-validates the transaction off-chain; the payment VERIFY frame reads only the paymaster's own storage to check the signature, so the transaction propagates through the public restrictive mempool as a non-canonical paymaster (one pending tx per paymaster). A **permissionless ERC-20 paymaster (onchain)** uses frame introspection to confirm the ERC-20 transfer trustlessly; that introspection reads external contract storage and exceeds `storage reads only on tx.sender`, so the transaction is consensus-valid but does not propagate through the public mempool and routes through the expansive tier, a private mempool, or direct-to-builder submission. Both patterns are native to EIP-8141 and do not rely on ERC-4337. See [Mempool Strategy → ERC-20 gas repayment: two paymaster patterns](/mempool-strategy#erc20-paymaster-patterns).
 
 ---
 
