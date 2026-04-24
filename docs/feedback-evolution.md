@@ -337,7 +337,7 @@ DanielVF raised that a 7702-delegated EOA today can choose per-transaction wheth
 
 ---
 
-## Phase 7: Guarantors and Underwriting as a Mempool Primitive (Apr 22 – Apr 23)
+## Phase 7: Guarantors and Underwriting as a Mempool Primitive (Apr 22 – Apr 24)
 
 *A proposal late in the April window reframed the constraint that has defined EIP-8141's mempool policy from the start: public-mempool VERIFY frames cannot read shared state, so anything that does (ERC-20 balance checks, environmental opcodes) must route through the expansive tier or a private mempool. The guarantors PR proposes an economic-risk workaround (a payer that commits to paying gas even if sender validation fails) that lets mempool nodes skip sender simulation entirely. The consequence, if adopted, is that ERC-20 gas repayment with trustless onchain verification could finally propagate publicly, without any of the VOPS/statelessness tradeoffs that motivated the original restriction. The underwriting mechanism is a new primitive in the mempool-policy toolkit, not a patch. This phase sits at the beginning of its discussion arc, not the end.*
 
@@ -350,4 +350,14 @@ derekchiang opened an early proposal introducing a "guarantor" payer: a payer th
 Why this matters for statelessness: the original reason the restrictive tier bans shared-state reads during validation is VOPS compatibility. A node carrying only a partial-statelessness slice cannot safely validate a transaction whose inclusion depends on state outside its slice. Guarantors route around that by making the guarantor's commitment (which *is* inside every node's slice, since it is a paymaster-like signature check) sufficient grounds to admit the transaction. The VOPS invariant is preserved; the economic risk shifts from the protocol to the guarantor.
 
 **What to watch**: whether guarantors gather author consensus beyond derekchiang; how the economic model handles third-party guarantor markets (AMM-backed, staked, or something else); whether the design generalizes beyond ERC-20 to privacy flows (nullifier reads, shielded withdrawals) and complex AA validation; and the interaction with VOPS/FOCIL. Guarantor-backed transactions sidestep sender simulation, but the guarantor's own validation still has to fit the restrictive tier for the mempool to admit the transaction at all.
+
+### Deploy-Frame Factory Relaxation
+
+*derekchiang — PR #11567, Apr 24*
+
+Two days after the guarantors proposal, derekchiang opened a second structural mempool proposal: drop the hard-coded EIP-7997 deterministic factory requirement for `deploy` frames. The current spec pins EIP-7997 both as a `requires` entry and as the only valid `frame.target` a mempool node will propagate a deploy frame to. The PR removes both: any contract can be the factory target provided the deploy frame's execution still satisfies the validation trace rules. The mempool write policy is rewritten as an explicit carve-out: `CREATE`, `CREATE2`, or `SETDELEGATE` operations that install code at `tx.sender`, plus `SSTORE`s to `tx.sender`'s storage. `CREATE` (0xF0) and `SETDELEGATE` (0xF6) join `CREATE2` (0xF5) in the deploy-frame opcode carve-out, and installed code may be either conventional contract code or an EIP-7702 delegation indicator.
+
+Why this matters for the mempool model: EIP-7997 was a convenience dependency, not a safety dependency. The actual safety property the restrictive tier needs is that deploy-frame outcome is independent of chain state outside `tx.sender`. PR #11567 reifies that property directly in the trace rules rather than encoding it as "must call a specific contract." Any stateless factory qualifies. The PR also blurs the line between smart-account deployment and EIP-7702 delegation installation: both now flow through the same deploy-frame primitive, with the mempool treating delegation-indicator installation as a legitimate deployment outcome.
+
+**What to watch**: whether core authors accept the trace-rule framing over a named-contract whitelist; whether reviewers push back on allowing arbitrary `CREATE` and `SETDELEGATE` inside the deploy frame (the original restriction was defensive); and how this interacts with PR #11482's precompile-targeting VERIFY frames and the default-code-vs-7702 discussion from Phase 6. If adopted, EIP-7997 becomes a canonical-but-optional factory and the spec drops its only same-fork hard dependency.
 

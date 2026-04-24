@@ -259,7 +259,7 @@ All reviewers approved by Apr 18; auto-merged on Apr 22 with no further debate.
 
 ## Active/Open PRs
 
-*As of April 23, 2026.* These PRs represent active design proposals that may change the spec in the near future.
+*As of April 24, 2026.* These PRs represent active design proposals that may change the spec in the near future.
 
 ### PR #11272: Disable EIP-3607 check for frame transactions (open since Feb 6)
 
@@ -326,6 +326,15 @@ From derekchiang's PR description:
 From derekchiang's PR description:
 
 > The idea is to introduce the concept of a "guarantor," which is a payer that pays for the transaction *even if sender validation fails*. As long as a transaction has a guarantor, mempool nodes do not need to check if the sender validation succeeds, and can skip simulation for sender validation altogether. As a result, transactions with a guarantor can use any sender validation logic, including access to shared state, environmental opcodes, etc., and still safely pass through the public mempool.
+
+### PR #11567: Relax mempool rules to not require a specific factory (open since Apr 24)
+
+**Author**: derekchiang
+
+- **Why**: The current spec hard-codes the [EIP-7997](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7997.md) deterministic factory predeploy as the only valid target for a `deploy` frame under mempool rules. This couples EIP-8141 to a specific factory contract and blocks senders who want cross-chain-stable addresses through alternative factories, custom CREATE2 deployers, or direct EIP-7702 delegation installation.
+- **Proposed change**: Drop EIP-7997 from `requires`. Rewrite the mempool deploy-frame rule so that any contract may be `frame.target`, provided the frame's execution satisfies the validation trace rules. The write policy expands from "deterministic deployment through a known deployer" to "(a) `CREATE`, `CREATE2`, or `SETDELEGATE` operations that install code at `tx.sender`, or (b) `SSTORE`s to `tx.sender`'s storage." `CREATE` (0xF0) and `SETDELEGATE` (0xF6) join `CREATE2` (0xF5) in the list of opcodes allowed inside the first `deploy` frame. Resulting code may be either conventional contract code or an EIP-7702 delegation indicator.
+- **Consequence**: EIP-7997 becomes the canonical but non-mandatory path. A factory is admissible as long as it is stateless in the validation-trace sense (no reads of mutable state outside `tx.sender`, no per-deploy factory storage such as counters or reentrancy flags). This unifies smart-account deployment and EIP-7702 delegation installation under the same deploy-frame primitive.
+- **Status**: Draft as of Apr 24. No reviews yet.
 
 ---
 
