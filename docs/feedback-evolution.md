@@ -293,9 +293,9 @@ derekchiang proposed adding contract bytecodes to the VOPS baseline, noting that
 
 ---
 
-## Phase 6: Value Field, Security, and Fork Inclusion (Apr 16 – Apr 22)
+## Phase 6: Value Field and Fork Inclusion (Apr 16 – Apr 19)
 
-*The pending `value` field consensus landed, a security cleanup aligned the sighash with EIP-2718, and the proposal entered formal fork-inclusion governance. External analysis (Nero_eth's three-gates post) began shaping the next wave of discussion around privacy-pool flows.*
+*The pending `value` field consensus landed and the proposal entered formal fork-inclusion governance. External analysis (Nero_eth's three-gates post) began shaping the next wave of discussion around privacy-pool flows, and forum debate reopened the default-code-vs-7702 delegation interaction.*
 
 ### Per-Frame Value (Merged)
 
@@ -321,31 +321,31 @@ derek announced the value-field merge on the forum, linking the commit. DanielVF
 
 dionysuzx opened a PR against EIP-8081 (the Hegotá fork meta EIP) adding EIP-8141 to the `Considered for Inclusion` list, plus EIP-7716 and EIP-8205 to `Proposed for Inclusion`. Decisions were captured at ACDE #233 (timestamp 5871s) and ACDC #177 (timestamps 3532s and 3853s). This formalizes a fork-inclusion status that had been assumed based on strawmap signals but not yet committed to the meta EIP. The PR requires one more reviewer approval from @ralexstokes or @timbeiko.
 
-### Transaction-Type Sighash Fix (Merged)
-
-*derekchiang — PR #11544, submitted Apr 18, merged Apr 22*
-
-derekchiang opened a 1-line PR fixing a cross-type signature replay weakness in `compute_sig_hash`: the existing `keccak(rlp(tx_copy))` omits the `FRAME_TX_TYPE` byte that EIP-2718 typed transactions conventionally prefix before RLP. The fix is a direct `keccak(bytes([FRAME_TX_TYPE]) + rlp(tx_copy))`. Approved by all reviewers within hours; auto-merged on Apr 22 with no further debate. A small but security-relevant alignment with the EIP-2718 convention that other typed transactions already follow.
-
 ### Default Code vs 7702 Delegation Interaction
 
 *DanielVF, derek, alex-forshtat-tbk — posts #141-145, Apr 17-19*
 
 DanielVF raised that a 7702-delegated EOA today can choose per-transaction whether to invoke its delegation or send a "regular transaction" that bypasses the delegation code, because the transaction-type envelope encodes that intent explicitly. Under the current EIP-8141 rule ("if there's code, use the code, otherwise use the default code"), a 7702-delegated EOA loses that choice: the delegation code always wins. DanielVF argued for restoring explicit opt-in via a flag byte in `frame.data` selecting between default-code paths and the 7702 delegation. derek agreed the inconsistency is interesting but questioned the implementation. alex-forshtat-tbk observed that the existing `signature_type` first byte already acts as an EOA-scoped flag (`0x0` for ecrecover, `0x1` for P256VERIFY) and proposed extending it with `0x2` meaning "use 7702 code." No PR yet; sits on top of the 7702-delegation + default-code gap already flagged in the current-spec Related Proposals table.
 
-**What changed because of this phase**: per-frame `value` merged (PR #11534, Apr 16). Transaction-type sighash prefix merged (PR #11544, Apr 22). EIP-8141 formally submitted to the Hegotá CFI list via PR #11537 (still pending one reviewer). The next wave of discussion opened with Nero_eth's three-gates analysis, focused on how frame transactions interact with privacy pools under FOCIL and VOPS constraints.
+**What changed because of this phase**: per-frame `value` merged (PR #11534, Apr 16). EIP-8141 formally submitted to the Hegotá CFI list via PR #11537 (still pending one reviewer). The next wave of discussion opened with Nero_eth's three-gates analysis, focused on how frame transactions interact with privacy pools under FOCIL and VOPS constraints.
 
 ---
 
-## Phase 7: Guarantors and Underwriting as a Mempool Primitive (Apr 22 – Apr 24)
+## Phase 7: Guarantors, Sighash Security, and Mempool Relaxations (Apr 22 – Apr 24)
 
-*A proposal late in the April window reframed the constraint that has defined EIP-8141's mempool policy from the start: public-mempool VERIFY frames cannot read shared state, so anything that does (ERC-20 balance checks, environmental opcodes) must route through the expansive tier or a private mempool. The guarantors PR proposes an economic-risk workaround (a payer that commits to paying gas even if sender validation fails) that lets mempool nodes skip sender simulation entirely. The consequence, if adopted, is that ERC-20 gas repayment with trustless onchain verification could finally propagate publicly, without any of the VOPS/statelessness tradeoffs that motivated the original restriction. The underwriting mechanism is a new primitive in the mempool-policy toolkit, not a patch. This phase sits at the beginning of its discussion arc, not the end.*
+*Phase 7 opens with a same-day pairing on Apr 22: a small security cleanup aligning the sighash with EIP-2718, and the first of two mempool-policy proposals from derekchiang that reframe long-standing restrictions. The guarantors PR proposes an economic-risk workaround (a payer that commits to paying gas even if sender validation fails) that lets mempool nodes skip sender simulation entirely, which would open ERC-20 gas repayment with trustless onchain verification to public propagation without the VOPS/statelessness tradeoffs that motivated the original restriction. Two days later, a second PR drops EIP-7997 from `requires` and relaxes the deploy-frame rule so any stateless factory qualifies. Together the two mempool PRs push the restrictive tier toward a more rule-based, less named-contract-dependent policy. This phase sits at the beginning of its discussion arc, not the end.*
+
+### Transaction-Type Sighash Fix (Merged)
+
+*derekchiang — PR #11544, submitted Apr 18, merged Apr 22*
+
+derekchiang opened a 1-line PR fixing a cross-type signature replay weakness in `compute_sig_hash`: the existing `keccak(rlp(tx_copy))` omits the `FRAME_TX_TYPE` byte that EIP-2718 typed transactions conventionally prefix before RLP. The fix is a direct `keccak(bytes([FRAME_TX_TYPE]) + rlp(tx_copy))`. Approved by all reviewers within hours; auto-merged on Apr 22 with no further debate. A small but security-relevant alignment with the EIP-2718 convention that other typed transactions already follow.
 
 ### Guarantors Proposal
 
 *derekchiang — PR #11555, Apr 22*
 
-derekchiang opened an early proposal introducing a "guarantor" payer: a payer that covers gas even if sender validation fails. When a transaction has a guarantor, mempool nodes may skip sender-validation simulation entirely, so the sender's VERIFY frame is free to read shared state (ERC-20 balances, environmental opcodes, anything the restrictive-tier rules currently forbid) and still propagate through the public mempool. If inclusion reveals that sender validation would have failed, the guarantor absorbs the gas cost. Guarantors are expected to be either accounts the user controls (self-guarantee) or third parties with a commercial or trust relationship to the user. The PR description explicitly frames the proposal as still iterating. The mempool-strategy impact is substantial: this would open a third path for ERC-20 gas repayment alongside the live (offchain) and permissionless (onchain) paymaster patterns, by moving the shared-state read problem from a mempool-policy violation into an economic-risk problem the guarantor underwrites.
+derekchiang opened an early proposal introducing a "guarantor" payer: a payer that covers gas even if sender validation fails. When a transaction has a guarantor, mempool nodes may skip sender-validation simulation entirely, so the sender's VERIFY frame is free to read shared state (ERC-20 balances, environmental opcodes, anything the restrictive-tier rules currently forbid) and still propagate through the public mempool. If inclusion reveals that sender validation would have failed, the guarantor absorbs the gas cost. Guarantors are expected to be either accounts the user controls (self-guarantee) or third parties with a commercial or trust relationship to the user. The PR description explicitly frames the proposal as still iterating. The mempool-strategy impact is substantial: this would open a third path for ERC-20 gas repayment alongside the live (offchain) and permissionless (onchain) paymaster patterns, by moving the shared-state read problem from a mempool-policy violation into an economic-risk problem the guarantor absorbs.
 
 Why this matters for statelessness: the original reason the restrictive tier bans shared-state reads during validation is VOPS compatibility. A node carrying only a partial-statelessness slice cannot safely validate a transaction whose inclusion depends on state outside its slice. Guarantors route around that by making the guarantor's commitment (which *is* inside every node's slice, since it is a paymaster-like signature check) sufficient grounds to admit the transaction. The VOPS invariant is preserved; the economic risk shifts from the protocol to the guarantor.
 

@@ -45,7 +45,7 @@
 | Apr 2 | [#11482](https://github.com/ethereum/EIPs/pull/11482) | derekchiang | Allow precompiles for VERIFY frames (all reviewers approved) |
 | Apr 6 | [#11488](https://github.com/ethereum/EIPs/pull/11488) | chiranjeev13 | Fix spec inconsistencies (APPROVE scopes, VERIFY count) |
 | Apr 17 | [#11537](https://github.com/ethereum/EIPs/pull/11537) | dionysuzx | Add EIP-8141 to CFI in EIP-8081 Hegotá meta EIP (governance) |
-| Apr 22 | [#11555](https://github.com/ethereum/EIPs/pull/11555) | derekchiang | Add support for guarantors (payer underwrites risk of sender-validation failure) |
+| Apr 22 | [#11555](https://github.com/ethereum/EIPs/pull/11555) | derekchiang | Add support for guarantors (payer covers gas even if sender validation fails) |
 | Apr 24 | [#11567](https://github.com/ethereum/EIPs/pull/11567) | derekchiang | Relax mempool deploy-frame rule to not require a specific factory (drops EIP-7997 from requires) |
 
 ### Related
