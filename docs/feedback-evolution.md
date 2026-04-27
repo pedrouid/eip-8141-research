@@ -331,7 +331,7 @@ DanielVF raised that a 7702-delegated EOA today can choose per-transaction wheth
 
 ---
 
-## Phase 7: Guarantors, Sighash Security, and Mempool Relaxations (Apr 22 – Apr 24)
+## Phase 7: Guarantors, Sighash Security, and Mempool Relaxations (Apr 22 – Apr 27)
 
 *Phase 7 opens with a same-day pairing on Apr 22: a small security cleanup aligning the sighash with EIP-2718, and the first of two mempool-policy proposals from derekchiang that reframe long-standing restrictions. The guarantors PR proposes an economic-risk workaround (a payer that commits to paying gas even if sender validation fails) that lets mempool nodes skip sender simulation entirely, which would open ERC-20 gas repayment with trustless onchain verification to public propagation without the VOPS/statelessness tradeoffs that motivated the original restriction. Two days later, a second PR drops EIP-7997 from `requires` and relaxes the deploy-frame rule so any stateless factory qualifies. Together the two mempool PRs push the restrictive tier toward a more rule-based, less named-contract-dependent policy. This phase sits at the beginning of its discussion arc, not the end.*
 

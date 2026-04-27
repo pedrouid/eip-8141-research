@@ -259,7 +259,7 @@ All reviewers approved by Apr 18; auto-merged on Apr 22 with no further debate.
 
 ## Active/Open PRs
 
-*As of April 24, 2026.* These PRs represent active design proposals that may change the spec in the near future.
+*As of April 27, 2026.* These PRs represent active design proposals that may change the spec in the near future.
 
 ### PR #11272: Disable EIP-3607 check for frame transactions (open since Feb 6)
 

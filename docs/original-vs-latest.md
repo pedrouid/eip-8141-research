@@ -4,7 +4,7 @@
 
 ## Structural Comparison
 
-| Aspect | Original (Jan 29) | Latest (Apr 20) |
+| Aspect | Original (Jan 29) | Latest (Apr 27) |
 |---|---|---|
 | **Opcodes** | `APPROVE`, `TXPARAMLOAD`, `TXPARAMSIZE`, `TXPARAMCOPY` (4) | `APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`, `FRAMEPARAM` (5) |
 | **APPROVE mechanism** | Return codes 0-4 at top-level frame | Transaction-scoped with scope operand (0x1, 0x2, 0x3), callable at any depth, double-approval prevention |
@@ -18,7 +18,7 @@
 | **MAX_FRAMES** | `10^3` (1,000) | `64` |
 | **Per-frame cost** | None | `FRAME_TX_PER_FRAME_COST = 475` gas |
 | **EOA support** | None | Full default code: ECDSA (low-`s` enforced) + P256 (domain-separated) verification, RLP-encoded call batching |
-| **Signature hash** | VERIFY data NOT elided (bug) | VERIFY data properly elided; direct mode comparison; EIP-2718 type-byte prefix pending (PR #11544) |
+| **Signature hash** | VERIFY data NOT elided (bug) | VERIFY data properly elided; direct mode comparison; EIP-2718 type-byte prefix included (PR #11544, merged Apr 22) |
 | **Mempool policy** | Not defined (just "Security Considerations" section) | Comprehensive: validation prefixes, canonical paymaster, banned opcodes, MAX_VERIFY_GAS |
 | **Requires header** | `2718, 4844` | `1559, 2718, 4844, 7997` |
 | **Authors** | 7 co-authors | 8 co-authors (derekchiang added) |
@@ -83,14 +83,15 @@ The original spec deliberately had no `value` field in frames, on the principle 
 
 ## Active Proposals That May Change the Comparison
 
-As of April 20, 2026, several open PRs propose changes that would extend this comparison table:
+As of April 27, 2026, several open PRs propose changes that would extend this comparison table:
 
 | Proposal | PR | Impact |
 |---|---|---|
 | **Signatures list in outer tx** | [#11481](https://github.com/ethereum/EIPs/pull/11481) | Would add a `signatures` field to the transaction format, a new top-level field for PQ aggregation forward-compatibility |
 | **Precompile-based VERIFY** | [#11482](https://github.com/ethereum/EIPs/pull/11482) | Would allow VERIFY frames to target signature precompiles directly, changing the verification model (all reviewers approved) |
-| **Transaction-type sighash prefix** | [#11544](https://github.com/ethereum/EIPs/pull/11544) | Would prefix `FRAME_TX_TYPE` before RLP in `compute_sig_hash`, aligning with EIP-2718 and preventing cross-type signature replay (all reviewers approved) |
 | **VERIFY frame count constraint** | [#11488](https://github.com/ethereum/EIPs/pull/11488) | Would add explicit `<= 2` VERIFY frame limit to static constraints (some overlap with merged #11521) |
 | **Hegotá CFI inclusion** | [#11537](https://github.com/ethereum/EIPs/pull/11537) | Governance, not spec: adds EIP-8141 to `Considered for Inclusion` in EIP-8081 Hegotá fork meta |
+| **Guarantors** | [#11555](https://github.com/ethereum/EIPs/pull/11555) | Would introduce a "guarantor" payer that pays even if sender validation fails, letting mempool nodes skip sender simulation and admit shared-state-reading VERIFY frames |
+| **Deploy-frame factory relaxation** | [#11567](https://github.com/ethereum/EIPs/pull/11567) | Would drop EIP-7997 from `requires` and rewrite the deploy-frame mempool rule as a stateless-trace policy; any contract may target a deploy frame, and `CREATE` (0xF0) and `SETDELEGATE` (0xF6) join `CREATE2` (0xF5) inside the carve-out |
 | **Frame returndata opcodes** | Under discussion (post #137) | Proposed `FRAMERETURNDATASIZE`/`FRAMERETURNDATACOPY` to enable multi-step flows, no PR yet |
 
