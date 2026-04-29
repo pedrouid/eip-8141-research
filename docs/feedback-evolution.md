@@ -331,9 +331,9 @@ DanielVF raised that a 7702-delegated EOA today can choose per-transaction wheth
 
 ---
 
-## Phase 7: Guarantors, Sighash Security, and Mempool Relaxations (Apr 22 – Apr 27)
+## Phase 7: Guarantors, Sighash Security, and Mempool Relaxations (Apr 22 – Apr 29)
 
-*Phase 7 opens with a same-day pairing on Apr 22: a small security cleanup aligning the sighash with EIP-2718, and the first of two mempool-policy proposals from derekchiang that reframe long-standing restrictions. The guarantors PR proposes an economic-risk workaround (a payer that commits to paying gas even if sender validation fails) that lets mempool nodes skip sender simulation entirely, which would open ERC-20 gas repayment with trustless onchain verification to public propagation without the VOPS/statelessness tradeoffs that motivated the original restriction. Two days later, a second PR drops EIP-7997 from `requires` and relaxes the deploy-frame rule so any stateless factory qualifies. Together the two mempool PRs push the restrictive tier toward a more rule-based, less named-contract-dependent policy. This phase sits at the beginning of its discussion arc, not the end.*
+*Phase 7 opens with a same-day pairing on Apr 22: a small security cleanup aligning the sighash with EIP-2718, and the first of two mempool-policy proposals from derekchiang that reframe long-standing restrictions. The guarantors PR proposes an economic-risk workaround (a payer that commits to paying gas even if sender validation fails) that lets mempool nodes skip sender simulation entirely, which would open ERC-20 gas repayment with trustless onchain verification to public propagation without the VOPS/statelessness tradeoffs that motivated the original restriction. Two days later, a second PR drops EIP-7997 from `requires` and relaxes the deploy-frame rule so any stateless factory qualifies. The phase closes with two follow-ups from lightclient: a cleanup that removes the now-redundant RLP call batching from the default account, and an alternative framing of the guarantors problem (allow payer to approve before sender) that briefly auto-merged in error before being reverted. The two mempool PRs push the restrictive tier toward a more rule-based, less named-contract-dependent policy. This phase sits at the beginning of its discussion arc, not the end.*
 
 ### Transaction-Type Sighash Fix (Merged)
 
@@ -360,4 +360,18 @@ Two days after the guarantors proposal, derekchiang opened a second structural m
 Why this matters for the mempool model: EIP-7997 was a convenience dependency, not a safety dependency. The actual safety property the restrictive tier needs is that deploy-frame outcome is independent of chain state outside `tx.sender`. PR #11567 reifies that property directly in the trace rules rather than encoding it as "must call a specific contract." Any stateless factory qualifies. The PR also blurs the line between smart-account deployment and EIP-7702 delegation installation: both now flow through the same deploy-frame primitive, with the mempool treating delegation-indicator installation as a legitimate deployment outcome.
 
 **What to watch**: whether core authors accept the trace-rule framing over a named-contract whitelist; whether reviewers push back on allowing arbitrary `CREATE` and `SETDELEGATE` inside the deploy frame (the original restriction was defensive); and how this interacts with PR #11482's precompile-targeting VERIFY frames and the default-code-vs-7702 discussion from Phase 6. If adopted, EIP-7997 becomes a canonical-but-optional factory and the spec drops its only same-fork hard dependency.
+
+### RLP Call Batch Removed from Default Code (Merged)
+
+*lightclient — PR #11577, merged Apr 29*
+
+A small cleanup completing the transition of multi-call out of the default-code payload and into the frame list. Default-code `SENDER` mode previously decoded `frame.data` as RLP `[[target, value, data], ...]` and returned successfully on cross-EOA targets; now it simply reverts. The use cases are covered by atomic frame batching (PR #11395) and per-frame `value` (PR #11534). Auto-merged with no debate.
+
+### Payer-Before-Sender Alternative to Guarantors
+
+*lightclient — PRs #11575, #11579, #11580, Apr 28-29*
+
+In parallel with derekchiang's still-iterating guarantors PR (#11555), lightclient floated a simpler framing: rather than introduce a new "guarantor" role, just relax the ordering rule so the payer can call `APPROVE_PAYMENT` before the sender approves execution. A payer that commits to gas before sender validation absorbs the same economic risk a guarantor would, without a new role. PR description: *"I think it is simpler to just allow the payer to approve before the sender instead of adding the full guarantor role."*
+
+PR #11575 auto-merged on Apr 28; lightclient had intended a draft, and opened #11579 the next day reverting. The content is now open as draft #11580. Net spec impact: zero. The next-sync question is which framing (#11555 guarantors or #11580 ordering relaxation) gathers author consensus; both attack the same problem of admitting shared-state sender validation in the public mempool by shifting risk onto a payer.
 

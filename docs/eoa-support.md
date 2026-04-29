@@ -33,13 +33,9 @@ Every EOA gets the following behavior without opt-in, deployment, or signed auth
 
 ### SENDER mode
 
-1. If `frame.target != tx.sender`, return successfully with empty data. The top-level `frame.value` transfer has already been applied by the frame call, matching how a regular call to an empty-code account behaves (PR #11534, Apr 16).
-2. Otherwise, read `frame.data` as RLP encoding of `calls = [[target, value, data], ...]`.
-3. Execute each call with `msg.sender = tx.sender`. If any call reverts, revert the frame.
+Reverts. PR #11577 (merged Apr 29) removed the earlier SENDER-mode logic, which decoded `frame.data` as an RLP-encoded call list and executed each call inline. With native frame batching (PR #11395) and per-frame `value` (PR #11534) both in the spec, wallets now compose multi-call sequences as a sequence of SENDER frames at the transaction level instead of packing calls into a single frame's payload. Atomic semantics come from the [atomic batch flag (bit 2 of `flags`)](https://eips.ethereum.org/EIPS/eip-8141#mode-flags) on consecutive SENDER frames.
 
-Combined with the [atomic batch flag (bit 2 of `flags`)](https://eips.ethereum.org/EIPS/eip-8141#mode-flags) on consecutive SENDER frames, this gives EOAs atomic multi-call without a smart account.
-
-**Native ETH transfer**: Since PR #11534, a simple ETH transfer requires no default-code payload at all. The wallet builds a SENDER frame with `target = destination`, `value = amount`, `data = empty`, and the protocol transfers ETH as part of the top-level call. Default code is never invoked on the sender side, and the destination account is called with `CALLVALUE = frame.value` just like any ordinary CALL.
+**Native ETH transfer**: A simple ETH transfer is one SENDER frame with `target = destination`, `value = amount`, `data = empty`. The protocol transfers ETH at the top-level frame call boundary using ordinary CALL value-transfer semantics; the wallet does not construct any default-code payload.
 
 ### DEFAULT mode
 

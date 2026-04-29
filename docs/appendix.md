@@ -35,6 +35,9 @@
 | Apr 14 | [#11521](https://github.com/ethereum/EIPs/pull/11521) | benaadams | Tighten spec (mode/flags split, FRAMEPARAM, MAX_FRAMES=64, per-frame cost, default code hardening) |
 | Apr 16 | [#11534](https://github.com/ethereum/EIPs/pull/11534) | lightclient | Add `value` field to frame (SENDER-only, TXPARAM(0x08), FRAMEPARAM(0x08)) |
 | Apr 22 | [#11544](https://github.com/ethereum/EIPs/pull/11544) | derekchiang | Mix in FRAME_TX_TYPE to sighash (EIP-2718 cross-type replay fix) |
+| Apr 28 | [#11575](https://github.com/ethereum/EIPs/pull/11575) | lightclient | Allow payer to approve before sender (auto-merged in error; reverted by #11579 same window, reopened as draft #11580) |
+| Apr 29 | [#11579](https://github.com/ethereum/EIPs/pull/11579) | lightclient | Revert #11575 |
+| Apr 29 | [#11577](https://github.com/ethereum/EIPs/pull/11577) | lightclient | Remove RLP call batch from default account (default-code `SENDER` mode now reverts) |
 
 ### Open
 
@@ -47,6 +50,7 @@
 | Apr 17 | [#11537](https://github.com/ethereum/EIPs/pull/11537) | dionysuzx | Add EIP-8141 to CFI in EIP-8081 Hegotá meta EIP (governance) |
 | Apr 22 | [#11555](https://github.com/ethereum/EIPs/pull/11555) | derekchiang | Add support for guarantors (payer covers gas even if sender validation fails) |
 | Apr 24 | [#11567](https://github.com/ethereum/EIPs/pull/11567) | derekchiang | Relax mempool deploy-frame rule to not require a specific factory (drops EIP-7997 from requires) |
+| Apr 29 | [#11580](https://github.com/ethereum/EIPs/pull/11580) | lightclient | Allow payer to approve before sender (draft; alternative to #11555 guarantors) |
 
 ### Related
 

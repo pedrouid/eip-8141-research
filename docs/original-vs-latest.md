@@ -4,7 +4,7 @@
 
 ## Structural Comparison
 
-| Aspect | Original (Jan 29) | Latest (Apr 27) |
+| Aspect | Original (Jan 29) | Latest (Apr 29) |
 |---|---|---|
 | **Opcodes** | `APPROVE`, `TXPARAMLOAD`, `TXPARAMSIZE`, `TXPARAMCOPY` (4) | `APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`, `FRAMEPARAM` (5) |
 | **APPROVE mechanism** | Return codes 0-4 at top-level frame | Transaction-scoped with scope operand (0x1, 0x2, 0x3), callable at any depth, double-approval prevention |
@@ -17,7 +17,7 @@
 | **Atomic batching** | Not supported | Bit 2 of flags, consecutive SENDER frames form batch |
 | **MAX_FRAMES** | `10^3` (1,000) | `64` |
 | **Per-frame cost** | None | `FRAME_TX_PER_FRAME_COST = 475` gas |
-| **EOA support** | None | Full default code: ECDSA (low-`s` enforced) + P256 (domain-separated) verification, RLP-encoded call batching |
+| **EOA support** | None | Full default code: ECDSA (low-`s` enforced) + P256 (domain-separated) verification in VERIFY; SENDER and DEFAULT revert. Multi-call comes from frame batching, not from a default-code payload (PR #11577, Apr 29) |
 | **Signature hash** | VERIFY data NOT elided (bug) | VERIFY data properly elided; direct mode comparison; EIP-2718 type-byte prefix included (PR #11544, merged Apr 22) |
 | **Mempool policy** | Not defined (just "Security Considerations" section) | Comprehensive: validation prefixes, canonical paymaster, banned opcodes, MAX_VERIFY_GAS |
 | **Requires header** | `2718, 4844` | `1559, 2718, 4844, 7997` |
@@ -83,7 +83,7 @@ The original spec deliberately had no `value` field in frames, on the principle 
 
 ## Active Proposals That May Change the Comparison
 
-As of April 27, 2026, several open PRs propose changes that would extend this comparison table:
+As of April 29, 2026, several open PRs propose changes that would extend this comparison table:
 
 | Proposal | PR | Impact |
 |---|---|---|
@@ -93,5 +93,6 @@ As of April 27, 2026, several open PRs propose changes that would extend this co
 | **Hegotá CFI inclusion** | [#11537](https://github.com/ethereum/EIPs/pull/11537) | Governance, not spec: adds EIP-8141 to `Considered for Inclusion` in EIP-8081 Hegotá fork meta |
 | **Guarantors** | [#11555](https://github.com/ethereum/EIPs/pull/11555) | Would introduce a "guarantor" payer that pays even if sender validation fails, letting mempool nodes skip sender simulation and admit shared-state-reading VERIFY frames |
 | **Deploy-frame factory relaxation** | [#11567](https://github.com/ethereum/EIPs/pull/11567) | Would drop EIP-7997 from `requires` and rewrite the deploy-frame mempool rule as a stateless-trace policy; any contract may target a deploy frame, and `CREATE` (0xF0) and `SETDELEGATE` (0xF6) join `CREATE2` (0xF5) inside the carve-out |
+| **Payer approves before sender** | [#11580](https://github.com/ethereum/EIPs/pull/11580) | Alternative to #11555: relaxes the ordering rule so a payer can approve before the sender, letting a payer commit to gas without simulating sender validation. Briefly auto-merged as #11575 on Apr 28 and reverted by #11579 on Apr 29; reopened as a draft |
 | **Frame returndata opcodes** | Under discussion (post #137) | Proposed `FRAMERETURNDATASIZE`/`FRAMERETURNDATACOPY` to enable multi-step flows, no PR yet |
 

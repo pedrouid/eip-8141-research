@@ -257,9 +257,31 @@ All reviewers approved by Apr 18; auto-merged on Apr 22 with no further debate.
 
 ---
 
+## Default Code Cleanup and Payer-Ordering Misadventure — April 28-29, 2026
+
+*Why this mattered: with native frame batching and per-frame `value` both in the spec, lightclient pruned the now-redundant RLP call-batch decoding from the default account. In the same window, an alternative to derekchiang's guarantors PR (allow payer to approve before sender) was auto-merged in error and reverted within hours, then reopened as a draft. Net spec impact: only the RLP-batch removal landed.*
+
+### PR #11577: Remove RLP call batch from default account
+
+**Author**: lightclient | **Merged**: Apr 29
+
+- **Why**: PR #11395 (Mar 25) introduced atomic batching at the frame-list level, and PR #11534 (Apr 16) added a per-frame `value` field. Together they cover the multi-call and ETH-transfer use cases that the default-code SENDER path was originally added to handle.
+- **Change**: Default code's `SENDER` mode now simply reverts. The previous logic (which decoded `frame.data` as RLP `[[target, value, data], ...]` when `resolved_target == tx.sender`, and returned successfully with empty data when `resolved_target != tx.sender`) is removed. Net diff: +2/-15.
+- Auto-merged after all reviewers approved; no review debate.
+
+### PRs #11575 / #11579: Allow payer to approve before sender (merged in error, reverted same window)
+
+**Author**: lightclient | **Merged-then-reverted**: Apr 28-29
+
+- PR #11575 was an alternative to derekchiang's guarantors PR (#11555), proposed as a simpler relaxation: drop the rule that the sender must approve before the payer, so a payer can commit to gas without depending on sender-validation outcome. From lightclient's PR description: *"I think it is simpler to just allow the payer to approve before the sender instead of adding the full guarantor role."*
+- The auto-merge bot fired on Apr 28 once reviewers approved. lightclient had intended the PR to remain a draft for further iteration, and opened PR #11579 the next day reverting the change with the note *"Meant to only create this as a draft."*
+- The same content is now open as draft PR #11580. Net spec impact of #11575/#11579: zero. Listed here for traceability of the spec history; the live proposal sits in [Active/Open PRs](#active-open-prs) below.
+
+---
+
 ## Active/Open PRs
 
-*As of April 27, 2026.* These PRs represent active design proposals that may change the spec in the near future.
+*As of April 29, 2026.* These PRs represent active design proposals that may change the spec in the near future.
 
 ### PR #11272: Disable EIP-3607 check for frame transactions (open since Feb 6)
 
@@ -326,6 +348,18 @@ From derekchiang's PR description:
 From derekchiang's PR description:
 
 > The idea is to introduce the concept of a "guarantor," which is a payer that pays for the transaction *even if sender validation fails*. As long as a transaction has a guarantor, mempool nodes do not need to check if the sender validation succeeds, and can skip simulation for sender validation altogether. As a result, transactions with a guarantor can use any sender validation logic, including access to shared state, environmental opcodes, etc., and still safely pass through the public mempool.
+
+### PR #11580: Allow payer to approve before sender (open as draft since Apr 29)
+
+**Author**: lightclient
+
+- **Why**: An alternative to derekchiang's guarantors PR (#11555). Instead of introducing a new "guarantor" role with its own approval semantics, lightclient proposes simply relaxing the ordering rule so a payer can call `APPROVE_PAYMENT` before the sender approves execution. A payer that commits to paying gas before sender validation runs absorbs the same economic risk a guarantor would, without a new role in the spec.
+- **History**: same content was briefly auto-merged as #11575 on Apr 28 and reverted by #11579 on Apr 29 (lightclient intended it as a draft). Reopened as draft #11580 the same day.
+- **Status**: draft; the choice between this and #11555 (guarantors) is the open question for the next sync.
+
+From lightclient's PR description (carried over from #11575):
+
+> Alternative to #11555. I think it is simpler to just allow the payer to approve before the sender instead of adding the full guarantor role.
 
 ### PR #11567: Relax mempool rules to not require a specific factory (open since Apr 24)
 

@@ -94,9 +94,7 @@ When `frame.target` has no code, the protocol applies built-in "default code" be
 5. If `0x1` (P256): verify P256 signature `(r, s, qx, qy)`, check address = `keccak(0x04 | qx | qy)[12:]` (domain-separated), reject invalid public keys
 6. Call `APPROVE(scope)`
 
-**SENDER mode:**
-1. If `frame.target != tx.sender`, return successfully with empty data (matches an empty-code account; any top-level `frame.value` transfer has already been applied by the frame call itself).
-2. Otherwise, decode `frame.data` as RLP `[[target, value, data], ...]` and execute each call with `msg.sender = tx.sender`.
+**SENDER mode:** Reverts. PR #11577 (merged Apr 29) removed the earlier RLP-encoded call-batch payload, now that native frame batching plus per-frame `value` covers the multi-call and ETH-transfer use cases at the frame-list level rather than inside a single frame's payload.
 
 **DEFAULT mode:** Reverts.
 
