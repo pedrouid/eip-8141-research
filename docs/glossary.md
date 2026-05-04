@@ -190,9 +190,9 @@ Proposals EIP-8141 depends on, supersedes, or interacts with. For full context o
 
 **[EIP-7928](https://eips.ethereum.org/EIPS/eip-7928)** — Block-level access lists. EIP-8141 intentionally has no transaction-level access list; block-level ALs handle optimization.
 
-**[EIP-7997](https://eips.ethereum.org/EIPS/eip-7997)** — The deterministic deployer contract. EIP-8141 uses it for account deployment via DEFAULT frames; listed in `requires` (PR #11521).
+**[EIP-7997](https://eips.ethereum.org/EIPS/eip-7997)** — The deterministic factory predeploy. EIP-8141's canonical-but-non-mandatory factory for account deployment via deploy frames. Listed in `requires` only between PR #11521 (Apr 14) and PR #11567 (Apr 30); the latter dropped it from `requires` and rewrote the deploy-frame mempool rule as a stateless-trace policy any factory can satisfy.
 
-**[EIP-8081 (Hegotá meta)](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8081.md)** — The Hegotá fork meta-EIP tracking CFI/PFI/SFI/DFI status for candidate EIPs. EIP-8141 was added to CFI via [PR #11537](https://github.com/ethereum/EIPs/pull/11537).
+**[EIP-8081 (Hegotá meta)](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-8081.md)** — The Hegotá fork meta-EIP tracking CFI/PFI/SFI/DFI status for candidate EIPs. EIP-8141 was added to CFI via [PR #11537](https://github.com/ethereum/EIPs/pull/11537), merged Apr 30, 2026.
 
 **[EIP-8184 (LUCID)](https://eips.ethereum.org/EIPS/eip-8184)** — Encrypted mempool proposal. Incompatible with the restrictive tier; routes through expansive tier and onchain rebroadcasters.
 

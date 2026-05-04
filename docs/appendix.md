@@ -38,6 +38,8 @@
 | Apr 28 | [#11575](https://github.com/ethereum/EIPs/pull/11575) | lightclient | Allow payer to approve before sender (auto-merged in error; reverted by #11579 same window, reopened as draft #11580) |
 | Apr 29 | [#11579](https://github.com/ethereum/EIPs/pull/11579) | lightclient | Revert #11575 |
 | Apr 29 | [#11577](https://github.com/ethereum/EIPs/pull/11577) | lightclient | Remove RLP call batch from default account (default-code `SENDER` mode now reverts) |
+| Apr 30 | [#11567](https://github.com/ethereum/EIPs/pull/11567) | derekchiang | Relax mempool deploy-frame rule (drops EIP-7997 from requires; any stateless factory qualifies; CREATE/SETDELEGATE join CREATE2 in deploy-frame carve-out) |
+| Apr 30 | [#11537](https://github.com/ethereum/EIPs/pull/11537) | dionysuzx | Add EIP-8141 to CFI in EIP-8081 Hegotá meta EIP (governance) |
 
 ### Open
 
@@ -47,10 +49,9 @@
 | Apr 2 | [#11481](https://github.com/ethereum/EIPs/pull/11481) | lightclient | Add signatures list to outer tx (PQ aggregation) |
 | Apr 2 | [#11482](https://github.com/ethereum/EIPs/pull/11482) | derekchiang | Allow precompiles for VERIFY frames (all reviewers approved) |
 | Apr 6 | [#11488](https://github.com/ethereum/EIPs/pull/11488) | chiranjeev13 | Fix spec inconsistencies (APPROVE scopes, VERIFY count) |
-| Apr 17 | [#11537](https://github.com/ethereum/EIPs/pull/11537) | dionysuzx | Add EIP-8141 to CFI in EIP-8081 Hegotá meta EIP (governance) |
 | Apr 22 | [#11555](https://github.com/ethereum/EIPs/pull/11555) | derekchiang | Add support for guarantors (payer covers gas even if sender validation fails) |
-| Apr 24 | [#11567](https://github.com/ethereum/EIPs/pull/11567) | derekchiang | Relax mempool deploy-frame rule to not require a specific factory (drops EIP-7997 from requires) |
 | Apr 29 | [#11580](https://github.com/ethereum/EIPs/pull/11580) | lightclient | Allow payer to approve before sender (draft; alternative to #11555 guarantors) |
+| Apr 30 | [#11584](https://github.com/ethereum/EIPs/pull/11584) | nerolation | Add 2D nonces (`(nonce_key, nonce_seq)`, parallel sequences per sender; co-evolving with #11597) |
 
 ### Related
 
@@ -59,6 +60,7 @@
 | Apr 11 | [#11509](https://github.com/ethereum/EIPs/pull/11509) | benaadams | Add EIP-8223: Contract Payer Transaction (alternative/complementary sponsorship proposal) |
 | Apr 12 | [#11518](https://github.com/ethereum/EIPs/pull/11518) | benaadams | Add EIP-8224: Counterfactual Transaction (shielded gas funding via ZK proofs) |
 | Apr 25 | [#11571](https://github.com/ethereum/EIPs/pull/11571) | SirSpudlington | Update EIP-7932: refactor signature registry to be friendlier to EIP-8141 (rename `sigrecover` → `sigaddress`, add `sigverify`/`sigcosts` precompiles for AA use cases) |
+| May 4 | [#11597](https://github.com/ethereum/EIPs/pull/11597) | soispoke, nerolation, lightclient, vbuterin | Add EIP — Keyed Nonces for Frame Transactions (standalone EIP layering `(nonce_key, nonce_seq)` and a `NONCE_MANAGER` system contract on EIP-8141; spent-once-with-payment guarantee for nullifier-style apps) |
 
 ### Closed (not merged)
 
@@ -98,8 +100,10 @@
 | Ben Adams | @benaadams | Spec tightening (PR #11521, merged Apr 14), author of EIP-8223 (Contract Payer Transaction) and EIP-8224 (Counterfactual Transaction) |
 | Jacopo | @jacopo-eth | Proposed FRAMERETURNDATASIZE/FRAMERETURNDATACOPY for multi-step flows |
 | Franco Victorio | @fvictorio | Raised question about validation-frame execution ordering vs non-frame txs |
-| dionysuzx | @dionysuzx | Hegotá meta-EIP maintainer, submitted PR #11537 moving EIP-8141 to CFI |
+| dionysuzx | @dionysuzx | Hegotá meta-EIP maintainer, submitted PR #11537 moving EIP-8141 to CFI (merged Apr 30) |
 | Nero_eth | Nero_eth | ethresear.ch analyst; "Three Gates to Privacy" post framing mempool/FOCIL/VOPS constraints on privacy-pool flows through frame transactions |
+| Toni Wahrstätter | @nerolation | Author of PR #11584 (2D nonces) and co-author of the Keyed Nonces for Frame Transactions EIP (PR #11597) |
+| Thomas Thiery | @soispoke | Lead author of the Keyed Nonces for Frame Transactions EIP (PR #11597) |
 
 ## External Resources
 

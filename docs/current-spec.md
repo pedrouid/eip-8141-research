@@ -165,10 +165,11 @@ The public mempool recognizes four validation prefixes:
 Rules enforced during validation prefix:
 - Must match one of the four prefixes above
 - Sum of validation prefix gas <= 100,000
-- Banned opcodes (ORIGIN, TIMESTAMP, BLOCKHASH, CREATE, etc.)
-- No state writes (except deterministic deployment)
+- Banned opcodes (ORIGIN, TIMESTAMP, BLOCKHASH, etc.). `CREATE`, `CREATE2`, and `SETDELEGATE` are banned outside the first `deploy` frame and allowed inside it (PR #11567, merged Apr 30)
+- No state writes, except inside the first `deploy` frame for `CREATE`/`CREATE2`/`SETDELEGATE` operations that install code at `tx.sender`, or `SSTORE`s to `tx.sender`'s storage
 - No storage reads outside `tx.sender`
-- No calls to non-existent contracts or EIP-7702 delegations
+- No calls to non-existent contracts or EIP-7702 delegations (except deploy-frame default-code behavior at `tx.sender`)
+- Deploy-frame target may be any contract, provided its execution satisfies the trace rules above. EIP-7997 is the canonical-but-non-mandatory factory; cross-chain-stable factory addresses are typically acquired through it (PR #11567)
 
 **Canonical paymaster**: verified by runtime code match, uses reserved balance accounting. The canonical paymaster handles ETH-funded sponsorship only (the paymaster covers gas from its own ETH balance, with no token-level repayment flow). ERC-20 gas repayment is a separate design space with two independent patterns under EIP-8141: a live (offchain) variant that propagates through the public mempool as a non-canonical paymaster, and a permissionless (onchain) variant that does not. See [Mempool Strategy → ERC-20 gas repayment: two paymaster patterns](/mempool-strategy#erc20-paymaster-patterns).
 ```python
@@ -240,7 +241,7 @@ The sponsor pays ETH gas; frame 2 repays the sponsor in ERC-20 tokens.
 - **ORIGIN returns frame caller**: Changed from traditional tx.origin behavior (precedent set by EIP-7702).
 - **Transient storage cleared between frames**: TSTORE/TLOAD state doesn't persist across frames.
 - **Warm/cold state shared across frames**: Gas accounting for storage access is shared.
-- **Requires**: EIP-1559, EIP-2718, EIP-4844, EIP-7997 (deterministic deployer).
+- **Requires**: EIP-1559, EIP-2718, EIP-4844 (PR #11567 merged Apr 30 dropped EIP-7997 from `requires`; it remains the canonical deterministic deployer but is no longer a hard dependency).
 
 ## Related Proposals
 
@@ -251,7 +252,7 @@ The sponsor pays ETH gas; frame 2 repays the sponsor in ERC-20 tokens.
 | ERC-7562 | 8141's mempool rules are inspired by but simpler than 7562 (no staking/reputation) |
 | EIP-8175 | Competing alternative: flat capabilities + programmable fee_auth, 4 new opcodes |
 | EIP-8130 | Coinbase/Base's alternative: declared verifiers (no wallet code exec), 14 PRs, active development. See [Competing Standards](./competing-standards) |
-| EIP-7997 | Deterministic deployer, used for account deployment frames |
+| EIP-7997 | Canonical deterministic factory predeploy; recommended for cross-chain-stable factory addresses but no longer a hard dependency after PR #11567 (merged Apr 30) |
 | EIP-7392 | Signature registry; interoperability PR #11455 was closed without merge on Apr 23 |
 
 ## Key Takeaway
@@ -261,6 +262,6 @@ A frame transaction is a sequence of purpose-labeled sub-calls. The protocol run
 ## Read Next
 
 - [EOA Support](/eoa-support) — what existing codeless accounts get for free, and how default code replaces EIP-7702 delegation for common cases.
-- [Feedback Evolution](/feedback-evolution) — how the spec got to its current shape through six phases of community review.
+- [Feedback Evolution](/feedback-evolution) — how the spec got to its current shape through eight phases of community review.
 - [Mempool Strategy](/mempool-strategy) — why the validation prefix is the way it is, and how the two-tier mempool handles everything that doesn't fit.
 - [Competing Standards](/competing-standards) — how EIP-8141 compares to EIP-8130, EIP-8175, EIP-8202, and the sibling proposals.

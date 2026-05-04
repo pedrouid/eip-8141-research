@@ -4,7 +4,7 @@
 
 ## Structural Comparison
 
-| Aspect | Original (Jan 29) | Latest (Apr 29) |
+| Aspect | Original (Jan 29) | Latest (May 4) |
 |---|---|---|
 | **Opcodes** | `APPROVE`, `TXPARAMLOAD`, `TXPARAMSIZE`, `TXPARAMCOPY` (4) | `APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`, `FRAMEPARAM` (5) |
 | **APPROVE mechanism** | Return codes 0-4 at top-level frame | Transaction-scoped with scope operand (0x1, 0x2, 0x3), callable at any depth, double-approval prevention |
@@ -20,15 +20,16 @@
 | **EOA support** | None | Full default code: ECDSA (low-`s` enforced) + P256 (domain-separated) verification in VERIFY; SENDER and DEFAULT revert. Multi-call comes from frame batching, not from a default-code payload (PR #11577, Apr 29) |
 | **Signature hash** | VERIFY data NOT elided (bug) | VERIFY data properly elided; direct mode comparison; EIP-2718 type-byte prefix included (PR #11544, merged Apr 22) |
 | **Mempool policy** | Not defined (just "Security Considerations" section) | Comprehensive: validation prefixes, canonical paymaster, banned opcodes, MAX_VERIFY_GAS |
-| **Requires header** | `2718, 4844` | `1559, 2718, 4844, 7997` |
+| **Requires header** | `2718, 4844` | `1559, 2718, 4844` (PR #11567 dropped 7997 on Apr 30) |
 | **Authors** | 7 co-authors | 8 co-authors (derekchiang added) |
 | **Receipt** | Not specified in detail | Includes `payer` field and per-frame `[status, gas_used, logs]` |
 | **SENDER frame requirements** | Could execute without prior approval | Requires `sender_approved == true` |
 | **Value in frames** | Not in frame structure | Per-frame `value` field; non-zero only in SENDER frames. DEFAULT/VERIFY observe `CALLVALUE = 0` |
 | **VERIFY frame behavior** | State changes allowed | Behaves as `STATICCALL`, no state changes |
 | **Target resolution** | Direct use of `frame.target` | Explicit `resolved_target` (null target resolves to `tx.sender`) |
-| **Deterministic deployer** | Not specified | Locked to EIP-7997 |
-| **Fork inclusion status** | N/A | CFI in Hegotá fork meta (EIP-8081 PR #11537, open) |
+| **Deterministic deployer** | Not specified | EIP-7997 is the canonical-but-optional factory; any stateless factory qualifies under the deploy-frame trace rules (PR #11567, merged Apr 30) |
+| **Deploy-frame mempool rule** | N/A | Trace-rule policy: write carve-out for `CREATE`/`CREATE2`/`SETDELEGATE` installing code at `tx.sender` and `SSTORE`s on `tx.sender`'s storage; any contract may be `frame.target` (PR #11567) |
+| **Fork inclusion status** | N/A | CFI in Hegotá fork meta EIP-8081 (PR #11537, merged Apr 30) |
 
 ## Key Philosophical Shifts
 
@@ -83,16 +84,16 @@ The original spec deliberately had no `value` field in frames, on the principle 
 
 ## Active Proposals That May Change the Comparison
 
-As of April 29, 2026, several open PRs propose changes that would extend this comparison table:
+As of May 4, 2026, several open PRs propose changes that would extend this comparison table:
 
 | Proposal | PR | Impact |
 |---|---|---|
 | **Signatures list in outer tx** | [#11481](https://github.com/ethereum/EIPs/pull/11481) | Would add a `signatures` field to the transaction format, a new top-level field for PQ aggregation forward-compatibility |
 | **Precompile-based VERIFY** | [#11482](https://github.com/ethereum/EIPs/pull/11482) | Would allow VERIFY frames to target signature precompiles directly, changing the verification model (all reviewers approved) |
 | **VERIFY frame count constraint** | [#11488](https://github.com/ethereum/EIPs/pull/11488) | Would add explicit `<= 2` VERIFY frame limit to static constraints (some overlap with merged #11521) |
-| **Hegotá CFI inclusion** | [#11537](https://github.com/ethereum/EIPs/pull/11537) | Governance, not spec: adds EIP-8141 to `Considered for Inclusion` in EIP-8081 Hegotá fork meta |
 | **Guarantors** | [#11555](https://github.com/ethereum/EIPs/pull/11555) | Would introduce a "guarantor" payer that pays even if sender validation fails, letting mempool nodes skip sender simulation and admit shared-state-reading VERIFY frames |
-| **Deploy-frame factory relaxation** | [#11567](https://github.com/ethereum/EIPs/pull/11567) | Would drop EIP-7997 from `requires` and rewrite the deploy-frame mempool rule as a stateless-trace policy; any contract may target a deploy frame, and `CREATE` (0xF0) and `SETDELEGATE` (0xF6) join `CREATE2` (0xF5) inside the carve-out |
 | **Payer approves before sender** | [#11580](https://github.com/ethereum/EIPs/pull/11580) | Alternative to #11555: relaxes the ordering rule so a payer can approve before the sender, letting a payer commit to gas without simulating sender validation. Briefly auto-merged as #11575 on Apr 28 and reverted by #11579 on Apr 29; reopened as a draft |
+| **2D nonces** | [#11584](https://github.com/ethereum/EIPs/pull/11584) | Would replace the single sender nonce with `(nonce_key, nonce_seq)`, gas-priced per-key first use; opens parallel-sequence transactions per sender. Co-evolving with the standalone Keyed Nonces EIP (PR #11597) |
+| **Keyed Nonces for Frame Transactions (new EIP)** | [#11597](https://github.com/ethereum/EIPs/pull/11597) | New sibling EIP (soispoke, nerolation, lightclient, vbuterin) layering keyed-nonce state in a `NONCE_MANAGER` system contract on top of EIP-8141, atomic with payment approval and replay-domain-separated for privacy nullifiers and session keys |
 | **Frame returndata opcodes** | Under discussion (post #137) | Proposed `FRAMERETURNDATASIZE`/`FRAMERETURNDATACOPY` to enable multi-step flows, no PR yet |
 

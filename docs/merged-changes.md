@@ -279,9 +279,39 @@ All reviewers approved by Apr 18; auto-merged on Apr 22 with no further debate.
 
 ---
 
+## Mempool Factory Relaxation and Hegotá CFI Inclusion — April 30, 2026
+
+*Why this mattered: two same-day merges that move EIP-8141 forward on parallel tracks. PR #11567 reframes the deploy-frame mempool rule from a named-contract whitelist into a stateless-trace policy and drops EIP-7997 as a hard dependency, removing the spec's only same-fork hard requires entry. PR #11537 lands the formal Hegotá CFI status that ACDE #233 had already signaled, completing the governance step that was outstanding from Phase 6.*
+
+### PR #11567: Relax mempool rules to not require a specific factory
+
+**Author**: derekchiang | **Merged**: Apr 30 (opened Apr 24)
+
+- **Why**: The pre-merge spec hard-coded the EIP-7997 deterministic factory predeploy as the only valid `frame.target` a mempool node would propagate a deploy frame to, and listed EIP-7997 in `requires`. The actual safety invariant the restrictive tier needs is that deploy-frame outcome is independent of chain state outside `tx.sender`. Pinning the rule to one named contract conflated convenience with safety and blocked alternative stateless factories, custom CREATE2 deployers, and EIP-7702 delegation installation as deploy-frame primitives.
+- **Spec changes** (+11/-8):
+  - Drops `7997` from the `requires` header (now `1559, 2718, 4844`)
+  - Mempool deploy-frame rule rewrites: any contract may be `frame.target`, provided the frame's execution satisfies the validation trace rules
+  - Write policy expands from "deterministic deployment performed by the first `deploy` frame through a known deployer" to "inside the first `deploy` frame, (a) `CREATE`, `CREATE2`, or `SETDELEGATE` operations that install code at `tx.sender`, or (b) `SSTORE`s to `tx.sender`'s storage"
+  - Banned-opcode allowlist: `CREATE` (0xF0) and `SETDELEGATE` (0xF6, EIP-7819) join `CREATE2` (0xF5) as exceptions inside the first `deploy` frame
+  - Deploy-frame outcome rule: now satisfied by any non-empty code at `tx.sender`, including conventional contract code or an EIP-7702 delegation indicator (was: "non-empty, non-delegated code")
+  - The `deploy` mode description in the structural rules table softens from "Deploys a new smart account using the EIP-7997 deterministic factory predeploy" to "Deploys a new smart account, typically via a deterministic factory such as the EIP-7997 predeploy"
+  - Front-running rationale rephrased so initcode safety is generalized to "the deploy frame's calldata (and any initcode it carries) must be safe to submit by any party"
+- **Key review discussion**: lightclient approved the same day with "SGTM" and the auto-merge bot fired on Apr 30. No public debate on the diff; the conceptual change had been telegraphed in the PR description for six days.
+- **Consequence**: EIP-7997 becomes the canonical-but-non-mandatory factory. The spec drops its only same-fork hard dependency. Smart-account deployment and EIP-7702 delegation installation now flow through the same deploy-frame primitive, with the mempool treating delegation-indicator installation as a legitimate deployment outcome. This is the broadest mempool-policy change since PR #11415 (Mar 25 mempool policy) and the first to retract a `requires` entry.
+
+### PR #11537: Add EIP-8141 to CFI in EIP-8081 Hegotá meta EIP
+
+**Author**: dionysuzx | **Merged**: Apr 30 (opened Apr 17)
+
+- **Why**: ACDE #233 ([forkcast t=5871](https://forkcast.org/calls/acde/233#t=5871)) and ACDC #177 ([t=3532](https://forkcast.org/calls/acdc/177#t=3532), [t=3853](https://forkcast.org/calls/acdc/177#t=3853)) landed the call decisions to add EIP-8141 to the Hegotá `Considered for Inclusion` list and EIP-7716 / EIP-8205 to `Proposed for Inclusion`. The PR formalizes the meta EIP record.
+- **Spec changes**: 5 added lines in `EIPS/eip-8081.md` only. No change to EIP-8141's spec text.
+- **Significance**: Governance milestone, not a spec change. EIP-8141 is now formally CFI for Hegotá; movement to PFI/SFI requires further client-readiness signals on subsequent ACD calls.
+
+---
+
 ## Active/Open PRs
 
-*As of April 29, 2026.* These PRs represent active design proposals that may change the spec in the near future.
+*As of May 4, 2026.* These PRs represent active design proposals that may change the spec in the near future.
 
 ### PR #11272: Disable EIP-3607 check for frame transactions (open since Feb 6)
 
@@ -327,15 +357,6 @@ From derekchiang's PR description:
 - Some of these fixes overlap with changes already merged in PR #11521
 - No reviews yet from core authors
 
-### PR #11537: Add EIP-8141 to CFI in EIP-8081 Hegotá meta EIP (open since Apr 17)
-
-**Author**: dionysuzx
-
-- **Why**: Adds EIP-8141 to the `Considered for Inclusion` list in the Hegotá fork meta EIP (EIP-8081), formalizing the CFI status that had been assumed based on strawmap and ACDE discussions.
-- **Proposed change**: 3 lines in `EIPS/eip-8081.md` adding EIP-8141 under CFI, plus EIP-7716 and EIP-8205 under PFI.
-- **Rationale links**: decisions captured at ACDE #233 timestamp 5871s ([forkcast](https://forkcast.org/calls/acde/233#t=5871)) and ACDC #177 timestamps 3532s and 3853s.
-- Still needs one more reviewer from @ralexstokes or @timbeiko. This is a fork-inclusion governance milestone, not a spec change.
-
 ### PR #11555: Add support for guarantors (open since Apr 22)
 
 **Author**: derekchiang
@@ -361,14 +382,23 @@ From lightclient's PR description (carried over from #11575):
 
 > Alternative to #11555. I think it is simpler to just allow the payer to approve before the sender instead of adding the full guarantor role.
 
-### PR #11567: Relax mempool rules to not require a specific factory (open since Apr 24)
+### PR #11584: Add 2D nonces (open since Apr 30)
 
-**Author**: derekchiang
+**Author**: nerolation (Toni Wahrstätter)
 
-- **Why**: The current spec hard-codes the [EIP-7997](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-7997.md) deterministic factory predeploy as the only valid target for a `deploy` frame under mempool rules. This couples EIP-8141 to a specific factory contract and blocks senders who want cross-chain-stable addresses through alternative factories, custom CREATE2 deployers, or direct EIP-7702 delegation installation.
-- **Proposed change**: Drop EIP-7997 from `requires`. Rewrite the mempool deploy-frame rule so that any contract may be `frame.target`, provided the frame's execution satisfies the validation trace rules. The write policy expands from "deterministic deployment through a known deployer" to "(a) `CREATE`, `CREATE2`, or `SETDELEGATE` operations that install code at `tx.sender`, or (b) `SSTORE`s to `tx.sender`'s storage." `CREATE` (0xF0) and `SETDELEGATE` (0xF6) join `CREATE2` (0xF5) in the list of opcodes allowed inside the first `deploy` frame. Resulting code may be either conventional contract code or an EIP-7702 delegation indicator.
-- **Consequence**: EIP-7997 becomes the canonical but non-mandatory path. A factory is admissible as long as it is stateless in the validation-trace sense (no reads of mutable state outside `tx.sender`, no per-deploy factory storage such as counters or reentrancy flags). This unifies smart-account deployment and EIP-7702 delegation installation under the same deploy-frame primitive.
-- **Status**: Draft as of Apr 24. No reviews yet.
+- **Why**: A frame transaction currently consumes one linear sender nonce, which means a delayed transaction blocks every later frame transaction from the same sender. Privacy-protocol designs that share one sender across many independent users hit this as a hard throughput ceiling.
+- **Proposed change**: Replace the single sender nonce with `(nonce_key, nonce_seq)`. `nonce_key < 2**256`; per-key sequences allow parallel nonce domains. `APPROVE_PAYMENT` / `APPROVE_PAYMENT_AND_EXECUTION` increment the per-key nonce. `TXPARAM(0x0B)` returns `nonce_key`. Adds a per-key first-use gas cost (currently sketched as 0/5000/22100, SSTORE-pricing inspired). Mempool admits one pending tx per `(sender, nonce_key)`.
+- **Status**: Draft. Co-evolving with the standalone Keyed Nonces EIP (PR #11597), which lifts the same idea into a separate EIP.
+
+### PR #11597: Add EIP — Keyed Nonces for Frame Transactions (open since May 4)
+
+**Authors**: soispoke (Thomas Thiery), nerolation, lightclient, vbuterin
+
+- **Why**: Same motivation as #11584 — a single linear sender nonce blocks privacy-pool flows, smart-wallet session keys, and shared-sender relayer designs from running concurrent transactions. PR #11597 packages the keyed-nonce proposal as a separate Standards Track EIP that requires EIP-8141 rather than as a delta to it.
+- **Proposed change**: New EIP introducing `(nonce_key, nonce_seq)` replay-protection. `nonce_key == 0` aliases the legacy account nonce; non-zero keys live in storage of a `NONCE_MANAGER` system contract (revert-only runtime code), keyed by `keccak256(left_pad_32(sender) || uint256_to_bytes32(nonce_key))`. `nonce_seq` is `uint64`, with `MAX_NONCE_SEQ = 2**64 - 1` reserved for exhausted state. Nonce consumption is lifted into the payment-approval transition (the unique `APPROVE` whose scope includes `APPROVE_PAYMENT`) so the spent-once guarantee is atomic with payment, surviving later-frame reverts and `SENDER` atomic-batch rollback. `KEYED_NONCE_FIRST_USE_GAS = 20000` (zero-to-nonzero `SSTORE` reference) is charged on first use of a non-zero key. New `TXPARAM(0x0B)` returns `tx.nonce_key`; `TXPARAM(0x0C)` returns the pre-state legacy sender nonce.
+- **Single-use semantics**: enables nullifier-style applications to authenticate `(sender, nonce_key, nonce_seq == 0)` in `VERIFY` and rely on protocol-atomic spent-once. Replay protection scopes to `(sender, nonce_key, nonce_seq)`; different non-zero keys remove only the replay-ordering dependency, not balance or shared-state conflicts.
+- **Mempool guidance**: does not relax EIP-8141's one-pending-tx-per-sender rule, but removes the protocol-level obstacle to a future keyed-aware mempool that admits parallel pending transactions on distinct non-zero keys per sender.
+- **Status**: Draft. Three files changed in the PR (the new EIP, an unrelated EIP-7805 line, and a FOCIL diagram asset). Awaits an editor reviewer.
 
 ---
 

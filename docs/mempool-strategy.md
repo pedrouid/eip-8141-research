@@ -36,10 +36,10 @@ The restrictive tier covers a small surface:
 
 - **Self relay**: account validates itself and pays its own gas
 - **Canonical paymaster sponsorship (ETH-funded)**: a paymaster matching the canonical runtime code pays gas from its own ETH balance
-- **Account deployment**: deterministic deployment as the first frame
+- **Account deployment**: deploy frame as the first frame, targeting any factory whose execution satisfies the deploy-frame trace rules. EIP-7997 is the canonical-but-non-mandatory factory after PR #11567 (merged Apr 30) dropped it from `requires` and rewrote the rule as a stateless-trace policy.
 - **Non-canonical paymaster**: bounded to 1 pending tx per paymaster
 
-Validation constraints: one of four prefix shapes, gas 100k, banned opcodes (ORIGIN, TIMESTAMP, BLOCKHASH, CREATE, BALANCE, SSTORE, etc.), storage reads only on `tx.sender`, no calls to non-existent contracts.
+Validation constraints: one of four prefix shapes, gas 100k, banned opcodes (ORIGIN, TIMESTAMP, BLOCKHASH, BALANCE, SSTORE, etc.), storage reads only on `tx.sender`, no calls to non-existent contracts. `CREATE`, `CREATE2`, and `SETDELEGATE` (EIP-7819) are banned outside the first deploy frame and allowed inside it for installing code at `tx.sender` (PR #11567); `SSTORE`s on `tx.sender`'s storage are also allowed inside the deploy frame.
 
 What this enables: secp256k1, P256/passkeys, PQ signatures fitting the validation budget, ETH-funded gas sponsorship via the canonical paymaster, smart account validation reading only its own storage.
 

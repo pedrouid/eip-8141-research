@@ -293,9 +293,9 @@ derekchiang proposed adding contract bytecodes to the VOPS baseline, noting that
 
 ---
 
-## Phase 6: Value Field and Fork Inclusion (Apr 16 – Apr 19)
+## Phase 6: Value Field and Privacy/Delegation Threads (Apr 16 – Apr 19)
 
-*The pending `value` field consensus landed and the proposal entered formal fork-inclusion governance. External analysis (Nero_eth's three-gates post) began shaping the next wave of discussion around privacy-pool flows, and forum debate reopened the default-code-vs-7702 delegation interaction.*
+*The pending `value` field consensus landed and external analysis (Nero_eth's three-gates post) began shaping the next wave of discussion around privacy-pool flows. Forum debate reopened the default-code-vs-7702 delegation interaction. The Hegotá CFI inclusion PR also opened in this window but did not merge until Apr 30; that landing is recorded in Phase 7.*
 
 ### Per-Frame Value (Merged)
 
@@ -315,25 +315,19 @@ Nero_eth framed privacy-pool inclusion as a three-gate problem: public mempool (
 
 derek announced the value-field merge on the forum, linking the commit. DanielVF welcomed it and named two remaining priorities he wants addressed before the proposal is production-ready: (1) the default signature-handling path should become an explicit opt-in rather than a protocol default, to future-proof transactions against sig-scheme changes, and (2) atomic batching of frames needs to become practically usable, not just structurally defined. These are framed as the last blockers from the wallet/adoption side before he considers the spec complete for deployment.
 
-### Hegotá CFI Inclusion
-
-*dionysuzx — PR #11537, Apr 17*
-
-dionysuzx opened a PR against EIP-8081 (the Hegotá fork meta EIP) adding EIP-8141 to the `Considered for Inclusion` list, plus EIP-7716 and EIP-8205 to `Proposed for Inclusion`. Decisions were captured at ACDE #233 (timestamp 5871s) and ACDC #177 (timestamps 3532s and 3853s). This formalizes a fork-inclusion status that had been assumed based on strawmap signals but not yet committed to the meta EIP. The PR requires one more reviewer approval from @ralexstokes or @timbeiko.
-
 ### Default Code vs 7702 Delegation Interaction
 
 *DanielVF, derek, alex-forshtat-tbk — posts #141-145, Apr 17-19*
 
 DanielVF raised that a 7702-delegated EOA today can choose per-transaction whether to invoke its delegation or send a "regular transaction" that bypasses the delegation code, because the transaction-type envelope encodes that intent explicitly. Under the current EIP-8141 rule ("if there's code, use the code, otherwise use the default code"), a 7702-delegated EOA loses that choice: the delegation code always wins. DanielVF argued for restoring explicit opt-in via a flag byte in `frame.data` selecting between default-code paths and the 7702 delegation. derek agreed the inconsistency is interesting but questioned the implementation. alex-forshtat-tbk observed that the existing `signature_type` first byte already acts as an EOA-scoped flag (`0x0` for ecrecover, `0x1` for P256VERIFY) and proposed extending it with `0x2` meaning "use 7702 code." No PR yet; sits on top of the 7702-delegation + default-code gap already flagged in the current-spec Related Proposals table.
 
-**What changed because of this phase**: per-frame `value` merged (PR #11534, Apr 16). EIP-8141 formally submitted to the Hegotá CFI list via PR #11537 (still pending one reviewer). The next wave of discussion opened with Nero_eth's three-gates analysis, focused on how frame transactions interact with privacy pools under FOCIL and VOPS constraints.
+**What changed because of this phase**: per-frame `value` merged (PR #11534, Apr 16). EIP-8141 formally submitted to the Hegotá CFI list via PR #11537 on Apr 17 (merged Apr 30, recorded in Phase 7). The next wave of discussion opened with Nero_eth's three-gates analysis, focused on how frame transactions interact with privacy pools under FOCIL and VOPS constraints.
 
 ---
 
-## Phase 7: Guarantors, Sighash Security, and Mempool Relaxations (Apr 22 – Apr 29)
+## Phase 7: Guarantors, Sighash Security, and Mempool Relaxations (Apr 22 – Apr 30)
 
-*Phase 7 opens with a same-day pairing on Apr 22: a small security cleanup aligning the sighash with EIP-2718, and the first of two mempool-policy proposals from derekchiang that reframe long-standing restrictions. The guarantors PR proposes an economic-risk workaround (a payer that commits to paying gas even if sender validation fails) that lets mempool nodes skip sender simulation entirely, which would open ERC-20 gas repayment with trustless onchain verification to public propagation without the VOPS/statelessness tradeoffs that motivated the original restriction. Two days later, a second PR drops EIP-7997 from `requires` and relaxes the deploy-frame rule so any stateless factory qualifies. The phase closes with two follow-ups from lightclient: a cleanup that removes the now-redundant RLP call batching from the default account, and an alternative framing of the guarantors problem (allow payer to approve before sender) that briefly auto-merged in error before being reverted. The two mempool PRs push the restrictive tier toward a more rule-based, less named-contract-dependent policy. This phase sits at the beginning of its discussion arc, not the end.*
+*Phase 7 opens with a same-day pairing on Apr 22: a small security cleanup aligning the sighash with EIP-2718, and the first of two mempool-policy proposals from derekchiang that reframe long-standing restrictions. The guarantors PR proposes an economic-risk workaround (a payer that commits to paying gas even if sender validation fails) that lets mempool nodes skip sender simulation entirely, which would open ERC-20 gas repayment with trustless onchain verification to public propagation without the VOPS/statelessness tradeoffs that motivated the original restriction. Two days later, a second PR drops EIP-7997 from `requires` and relaxes the deploy-frame rule so any stateless factory qualifies. The phase closes on Apr 30 with two same-day landings: the factory-relaxation PR merges, and the long-pending Hegotá CFI inclusion is formalized in EIP-8081. Net spec impact across the phase: the sighash type-byte fix, RLP-batch removal from the default account, the factory-relaxation rewrite (which also drops EIP-7997 from `requires`), and CFI status in the Hegotá fork meta. The guarantors framing remains open as a draft, paired with lightclient's payer-before-sender alternative.*
 
 ### Transaction-Type Sighash Fix (Merged)
 
@@ -351,22 +345,6 @@ Why this matters for statelessness: the original reason the restrictive tier ban
 
 **What to watch**: whether guarantors gather author consensus beyond derekchiang; how the economic model handles third-party guarantor markets (AMM-backed, staked, or something else); whether the design generalizes beyond ERC-20 to privacy flows (nullifier reads, shielded withdrawals) and complex AA validation; and the interaction with VOPS/FOCIL. Guarantor-backed transactions sidestep sender simulation, but the guarantor's own validation still has to fit the restrictive tier for the mempool to admit the transaction at all.
 
-### Deploy-Frame Factory Relaxation
-
-*derekchiang — PR #11567, Apr 24*
-
-Two days after the guarantors proposal, derekchiang opened a second structural mempool proposal: drop the hard-coded EIP-7997 deterministic factory requirement for `deploy` frames. The current spec pins EIP-7997 both as a `requires` entry and as the only valid `frame.target` a mempool node will propagate a deploy frame to. The PR removes both: any contract can be the factory target provided the deploy frame's execution still satisfies the validation trace rules. The mempool write policy is rewritten as an explicit carve-out: `CREATE`, `CREATE2`, or `SETDELEGATE` operations that install code at `tx.sender`, plus `SSTORE`s to `tx.sender`'s storage. `CREATE` (0xF0) and `SETDELEGATE` (0xF6) join `CREATE2` (0xF5) in the deploy-frame opcode carve-out, and installed code may be either conventional contract code or an EIP-7702 delegation indicator.
-
-Why this matters for the mempool model: EIP-7997 was a convenience dependency, not a safety dependency. The actual safety property the restrictive tier needs is that deploy-frame outcome is independent of chain state outside `tx.sender`. PR #11567 reifies that property directly in the trace rules rather than encoding it as "must call a specific contract." Any stateless factory qualifies. The PR also blurs the line between smart-account deployment and EIP-7702 delegation installation: both now flow through the same deploy-frame primitive, with the mempool treating delegation-indicator installation as a legitimate deployment outcome.
-
-**What to watch**: whether core authors accept the trace-rule framing over a named-contract whitelist; whether reviewers push back on allowing arbitrary `CREATE` and `SETDELEGATE` inside the deploy frame (the original restriction was defensive); and how this interacts with PR #11482's precompile-targeting VERIFY frames and the default-code-vs-7702 discussion from Phase 6. If adopted, EIP-7997 becomes a canonical-but-optional factory and the spec drops its only same-fork hard dependency.
-
-### RLP Call Batch Removed from Default Code (Merged)
-
-*lightclient — PR #11577, merged Apr 29*
-
-A small cleanup completing the transition of multi-call out of the default-code payload and into the frame list. Default-code `SENDER` mode previously decoded `frame.data` as RLP `[[target, value, data], ...]` and returned successfully on cross-EOA targets; now it simply reverts. The use cases are covered by atomic frame batching (PR #11395) and per-frame `value` (PR #11534). Auto-merged with no debate.
-
 ### Payer-Before-Sender Alternative to Guarantors
 
 *lightclient — PRs #11575, #11579, #11580, Apr 28-29*
@@ -374,4 +352,55 @@ A small cleanup completing the transition of multi-call out of the default-code 
 In parallel with derekchiang's still-iterating guarantors PR (#11555), lightclient floated a simpler framing: rather than introduce a new "guarantor" role, just relax the ordering rule so the payer can call `APPROVE_PAYMENT` before the sender approves execution. A payer that commits to gas before sender validation absorbs the same economic risk a guarantor would, without a new role. PR description: *"I think it is simpler to just allow the payer to approve before the sender instead of adding the full guarantor role."*
 
 PR #11575 auto-merged on Apr 28; lightclient had intended a draft, and opened #11579 the next day reverting. The content is now open as draft #11580. Net spec impact: zero. The next-sync question is which framing (#11555 guarantors or #11580 ordering relaxation) gathers author consensus; both attack the same problem of admitting shared-state sender validation in the public mempool by shifting risk onto a payer.
+
+### RLP Call Batch Removed from Default Code (Merged)
+
+*lightclient — PR #11577, merged Apr 29*
+
+A small cleanup completing the transition of multi-call out of the default-code payload and into the frame list. Default-code `SENDER` mode previously decoded `frame.data` as RLP `[[target, value, data], ...]` and returned successfully on cross-EOA targets; now it simply reverts. The use cases are covered by atomic frame batching (PR #11395) and per-frame `value` (PR #11534). Auto-merged with no debate.
+
+### Deploy-Frame Factory Relaxation (Merged)
+
+*derekchiang — PR #11567, opened Apr 24, merged Apr 30*
+
+derekchiang's second structural mempool proposal merged six days after opening: drop the hard-coded EIP-7997 deterministic factory requirement for `deploy` frames. The pre-merge spec pinned EIP-7997 both as a `requires` entry and as the only valid `frame.target` a mempool node would propagate a deploy frame to. The merge removes both. Any contract can be the factory target, provided the deploy frame's execution still satisfies the validation trace rules. The mempool write policy is rewritten as an explicit carve-out: `CREATE`, `CREATE2`, or `SETDELEGATE` operations that install code at `tx.sender`, plus `SSTORE`s to `tx.sender`'s storage. `CREATE` (0xF0) and `SETDELEGATE` (0xF6, EIP-7819) join `CREATE2` (0xF5) in the deploy-frame opcode carve-out, and installed code may be either conventional contract code or an EIP-7702 delegation indicator.
+
+Why this matters for the mempool model: EIP-7997 was a convenience dependency, not a safety dependency. The actual safety property the restrictive tier needs is that deploy-frame outcome is independent of chain state outside `tx.sender`. PR #11567 reifies that property directly in the trace rules rather than encoding it as "must call a specific contract." Any stateless factory qualifies. The PR also blurs the line between smart-account deployment and EIP-7702 delegation installation: both now flow through the same deploy-frame primitive, with the mempool treating delegation-indicator installation as a legitimate deployment outcome. Net spec impact: 11 added, 8 removed lines. lightclient approved with a one-word "SGTM"; auto-merged the same day.
+
+This is the broadest mempool-policy change since PR #11415 (Mar 25 mempool policy) and the first PR to retract a `requires` entry. Open follow-up questions: how the new policy interacts with PR #11482's precompile-targeting VERIFY frames, and how it composes with the default-code-vs-7702 thread from Phase 6 now that delegation installation flows through the same primitive.
+
+### Hegotá CFI Inclusion (Merged)
+
+*dionysuzx — PR #11537, opened Apr 17, merged Apr 30*
+
+The fork-meta PR that had been waiting on a final reviewer since Phase 6 merged on Apr 30 after ralexstokes approved. The diff is 5 added lines in `EIPS/eip-8081.md` only: EIP-8141 added to `Considered for Inclusion`, EIP-7716 and EIP-8205 added to `Proposed for Inclusion`. Decisions had been captured at ACDE #233 (t=5871) and ACDC #177 (t=3532, t=3853) two weeks earlier. The merge formalizes EIP-8141's CFI status for the Hegotá fork in the meta EIP record. Movement to PFI/SFI on a future ACD call requires further client-readiness signals, not another spec PR.
+
+---
+
+## Phase 8: Keyed Nonces and Parallel Sequences (Apr 30 – )
+
+*A new design line opens with two co-evolving proposals lifting EIP-8141's single linear sender nonce into a `(nonce_key, nonce_seq)` pair so a single sender can run independent sequences in parallel. The motivating use cases are privacy protocols sharing one onchain sender across many users, smart-wallet session keys, and relayer-style senders that today bottleneck on the linear nonce. Phase 8 is at its earliest moment: one delta PR (#11584, Apr 30) and one standalone Standards Track EIP (#11597, May 4) by overlapping authorship including soispoke, nerolation, lightclient, and vbuterin. The standalone EIP framing is the polished version, with explicit `NONCE_MANAGER` system-contract storage, atomic-with-payment-approval consumption semantics, and a 20k first-use gas surcharge tied to zero-to-nonzero `SSTORE` pricing.*
+
+### 2D Nonces Sketch (Open)
+
+*nerolation — PR #11584, Apr 30*
+
+Toni Wahrstätter opened a 28-line sketch as a delta against EIP-8141: replace the single sender nonce with `(nonce_key, nonce_seq)`. `nonce_key < 2**256`; per-key sequences run independently. `APPROVE_PAYMENT` and `APPROVE_PAYMENT_AND_EXECUTION` increment the per-key nonce. `TXPARAM(0x0B)` returns `nonce_key`. The PR sketches a tiered first-use gas cost (0 / 5000 / 22100, SSTORE-pricing-shaped) with a placeholder note that the figure is to be updated. Mempool guidance: one pending tx per `(sender, nonce_key)`, enabling parallel sequences. `nonce_key = 0` represents the legacy nonce slot for backward compatibility.
+
+### Keyed Nonces for Frame Transactions (New EIP, Open)
+
+*soispoke, nerolation, lightclient, vbuterin — PR #11597, May 4*
+
+Four days after the #11584 sketch, the same idea returned as a standalone Standards Track EIP. The standalone framing keeps the parallel-sequence motivation and adds the implementation detail the sketch deferred:
+
+- **State location**: non-zero keys live in storage of a `NONCE_MANAGER` system contract whose runtime code is the four-byte revert-only `0x60006000fd`. Slot derivation is `keccak256(left_pad_32(sender) || uint256_to_bytes32(nonce_key))`. Direct calls to `NONCE_MANAGER` revert; only protocol bookkeeping writes the slots, and the writes do not warm the address or slot under EIP-2929 nor charge under EIP-2200 SSTORE pricing.
+- **Sequence width**: `nonce_seq` is `uint64`, with `MAX_NONCE_SEQ = 2**64 - 1` reserved as exhausted state. `nonce_key` is full `uint256` so privacy protocols can derive keys directly from 32-byte nullifiers, commitments, or hash outputs, rather than packing them into ERC-4337's 24-byte key field.
+- **Atomicity with payment**: nonce consumption moves from a frame-execution side effect to a payment-approval transition. The unique successful payment-scoped `APPROVE` (scope 0x1 or 0x3) runs `consume_nonce` after EIP-8141's standard exceptional-condition checks but before any approval effect commits. `consume_nonce`, max-cost collection, payer recording, first-use gas charging, and approval-flag updates are journaled outside the frame's revert journal and outside `SENDER` atomic-batch snapshots, so they survive later-frame reverts and atomic-batch rollback. This is the load-bearing property for nullifier-style applications: a single-use key is atomically spent the moment payment is approved, not after the rest of the transaction succeeds.
+- **First-use surcharge**: 20,000 gas, deducted from the frame executing the payment-scoped `APPROVE` only on the zero-to-nonzero transition for a non-zero key. Reuses the SSTORE state-creation reference cost. Subsequent increments of a consumed key are not separately surcharged.
+- **TXPARAM additions**: `TXPARAM(0x0B)` returns `nonce_key`; `TXPARAM(0x0C)` returns the pre-state legacy sender nonce (transaction-scoped, not updated by approval, deployment, `CREATE`, or `CREATE2` mid-transaction). The latter exists so VERIFY code that previously relied on `TXPARAM(0x01)` being the legacy nonce can migrate cleanly.
+- **Mempool**: does not relax EIP-8141's one-pending-tx-per-sender public-mempool guidance, but removes the protocol-level obstacle to a future keyed-aware policy that admits multiple pending transactions per sender on distinct non-zero keys.
+
+The security section flags one subtlety worth tracking: a non-zero-key transaction does not advance the sender's legacy account nonce, so `CREATE` addresses computed from the legacy nonce can shift if another transaction advances the legacy nonce before inclusion. Applications relying on `CREATE` addresses must use `CREATE2` or authenticate `TXPARAM(0x0C)` explicitly. The "send another transaction with the same legacy nonce" cancellation pattern also does not work on keyed transactions; replacement requires the same `(sender, nonce_key, nonce_seq)`.
+
+**What to watch**: which of #11584 and #11597 the core authors converge on (the standalone EIP framing is more complete and avoids re-litigating EIP-8141's payload schema mid-fork, but it adds a new system contract); whether the 20k first-use surcharge survives review; whether the mempool one-pending-per-sender guidance gets relaxed in a follow-up; and how the spent-once-with-payment property composes with the guarantors (#11555) and payer-before-sender (#11580) proposals from Phase 7, since both also want to commit to payment under specific conditions.
 

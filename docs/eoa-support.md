@@ -50,7 +50,7 @@ Default code reverts. DEFAULT frames are used when targeting deployed contracts:
 | **First frame** | Account deployment | Account doesn't exist yet, so EntryPoint is the only meaningful caller. |
 | **Last frame** | Paymaster post-op | Paymaster gates refund logic on `caller == ENTRY_POINT`. |
 
-**Account deployment**: targets a deterministic deployer (EIP-7997). Creates the account before VERIFY frames run. The mempool recognizes two deploy-prefixed validation shapes (`deploy → self_verify` and `deploy → only_verify → pay`).
+**Account deployment**: targets a stateless factory (EIP-7997 is the canonical-but-non-mandatory predeploy after PR #11567 merged Apr 30; any factory whose execution satisfies the deploy-frame trace rules now qualifies). Creates the account before VERIFY frames run. The mempool recognizes two deploy-prefixed validation shapes (`deploy → self_verify` and `deploy → only_verify → pay`). Inside the first deploy frame, `CREATE` (0xF0), `CREATE2` (0xF5), and `SETDELEGATE` (0xF6, EIP-7819) may install code at `tx.sender` (including an EIP-7702 delegation indicator), and `SSTORE`s to `tx.sender`'s storage are permitted.
 
 **Paymaster post-op**: the paymaster charges upfront, the protocol refunds unused gas as ETH, then a DEFAULT frame calls the paymaster to refund the user's ERC-20 overpayment. The post-op frame is part of execution (after `payer_approved == true`) and not subject to validation rules.
 
@@ -109,7 +109,7 @@ Default code is the floor, not the ceiling. Custom validation that exceeds the r
 
 ## What Default Code Doesn't Do
 
-**Contract deployment**: uses a separate `deploy` frame targeting a deterministic deployer (EIP-7997). Default code's DEFAULT mode reverts.
+**Contract deployment**: uses a separate `deploy` frame targeting a stateless factory. EIP-7997 is canonical but non-mandatory after PR #11567; any factory satisfying the deploy-frame trace rules works, including custom CREATE2 deployers and EIP-7702 delegation installation. Default code's DEFAULT mode reverts.
 
 **7702-delegated EOAs**: if an EOA has signed a `set_code` authorization, the delegate's code runs instead of default code. This is a real interoperability gap [identified by DanielVF](/current-spec#related-proposals): a wallet that 7702-delegates is on the hook for reimplementing what default code provided. EOAs that want default code behavior should not 7702-delegate.
 

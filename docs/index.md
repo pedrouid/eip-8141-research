@@ -49,7 +49,7 @@ A frame transaction (`0x06`) consists of multiple **frames**, each with a mode t
 
 No bundler, no EntryPoint contract, no off-chain infrastructure. The protocol handles validation, gas payment, and execution natively through frames. SENDER frames execute with `msg.sender = tx.sender`, so existing contracts see the original account as the caller. Token approvals, NFT ownership, and all on-chain state work as-is.
 
-EOAs benefit directly without EIP-7702. The protocol has built-in fallback behavior for codeless accounts: VERIFY frames verify signatures (ECDSA or P256) and call `APPROVE` natively, while SENDER frames decode frame data as a list of calls. No code is ever deployed to the EOA. With the atomic batch flag set in the `flags` field on consecutive SENDER frames, they become all-or-nothing, protecting users from partial execution.
+EOAs benefit directly without EIP-7702. The protocol has built-in fallback behavior for codeless accounts: VERIFY frames verify signatures (ECDSA or P256) and call `APPROVE` natively. Multi-call sequences come from the frame list (one SENDER frame per call) instead of a payload inside a single frame, with native ETH transfers via `frame.value`. No code is ever deployed to the EOA. With the atomic batch flag set in the `flags` field on consecutive SENDER frames, they become all-or-nothing, protecting users from partial execution.
 
 ### Example A: Gasless Approve + Swap
 
