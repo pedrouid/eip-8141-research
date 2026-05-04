@@ -388,17 +388,17 @@ From lightclient's PR description (carried over from #11575):
 
 - **Why**: A frame transaction currently consumes one linear sender nonce, which means a delayed transaction blocks every later frame transaction from the same sender. Privacy-protocol designs that share one sender across many independent users hit this as a hard throughput ceiling.
 - **Proposed change**: Replace the single sender nonce with `(nonce_key, nonce_seq)`. `nonce_key < 2**256`; per-key sequences allow parallel nonce domains. `APPROVE_PAYMENT` / `APPROVE_PAYMENT_AND_EXECUTION` increment the per-key nonce. `TXPARAM(0x0B)` returns `nonce_key`. Adds a per-key first-use gas cost (currently sketched as 0/5000/22100, SSTORE-pricing inspired). Mempool admits one pending tx per `(sender, nonce_key)`.
-- **Status**: Draft. Co-evolving with the standalone Keyed Nonces EIP (PR #11597), which lifts the same idea into a separate EIP.
+- **Status**: Draft. Co-evolving with the standalone Keyed Nonces EIP (PR #11598, resubmitted from #11597), which lifts the same idea into a separate EIP.
 
-### PR #11597: Add EIP — Keyed Nonces for Frame Transactions (open since May 4)
+### PR #11598: Add EIP — Keyed Nonces for Frame Transactions (open since May 4)
 
 **Authors**: soispoke (Thomas Thiery), nerolation, lightclient, vbuterin
 
-- **Why**: Same motivation as #11584 — a single linear sender nonce blocks privacy-pool flows, smart-wallet session keys, and shared-sender relayer designs from running concurrent transactions. PR #11597 packages the keyed-nonce proposal as a separate Standards Track EIP that requires EIP-8141 rather than as a delta to it.
+- **Why**: Same motivation as #11584 — a single linear sender nonce blocks privacy-pool flows, smart-wallet session keys, and shared-sender relayer designs from running concurrent transactions. PR #11598 packages the keyed-nonce proposal as a separate Standards Track EIP that requires EIP-8141 rather than as a delta to it.
 - **Proposed change**: New EIP introducing `(nonce_key, nonce_seq)` replay-protection. `nonce_key == 0` aliases the legacy account nonce; non-zero keys live in storage of a `NONCE_MANAGER` system contract (revert-only runtime code), keyed by `keccak256(left_pad_32(sender) || uint256_to_bytes32(nonce_key))`. `nonce_seq` is `uint64`, with `MAX_NONCE_SEQ = 2**64 - 1` reserved for exhausted state. Nonce consumption is lifted into the payment-approval transition (the unique `APPROVE` whose scope includes `APPROVE_PAYMENT`) so the spent-once guarantee is atomic with payment, surviving later-frame reverts and `SENDER` atomic-batch rollback. `KEYED_NONCE_FIRST_USE_GAS = 20000` (zero-to-nonzero `SSTORE` reference) is charged on first use of a non-zero key. New `TXPARAM(0x0B)` returns `tx.nonce_key`; `TXPARAM(0x0C)` returns the pre-state legacy sender nonce.
 - **Single-use semantics**: enables nullifier-style applications to authenticate `(sender, nonce_key, nonce_seq == 0)` in `VERIFY` and rely on protocol-atomic spent-once. Replay protection scopes to `(sender, nonce_key, nonce_seq)`; different non-zero keys remove only the replay-ordering dependency, not balance or shared-state conflicts.
 - **Mempool guidance**: does not relax EIP-8141's one-pending-tx-per-sender rule, but removes the protocol-level obstacle to a future keyed-aware mempool that admits parallel pending transactions on distinct non-zero keys per sender.
-- **Status**: Draft. Three files changed in the PR (the new EIP, an unrelated EIP-7805 line, and a FOCIL diagram asset). Awaits an editor reviewer.
+- **Status**: Draft, awaits an editor reviewer. Resubmitted from #11597 the same day; the original PR accidentally bundled an unrelated `eip-FOCIL.md` change and was closed.
 
 ---
 
@@ -425,6 +425,12 @@ From lightclient's PR description (carried over from #11575):
 
 - Spiritual successor to the closed PR #11408. No dependency introduced; just aligned default-code values with EIP-7392 for interoperability.
 - Never gathered the required reviewer approvals from core authors. Closed without merge after ~4 weeks open.
+
+### PR #11597: Add EIP — Keyed Nonces for Frame Transactions (closed May 4, same day)
+
+**Authors**: soispoke, nerolation, lightclient, vbuterin
+
+- Same content as #11598. Closed without merge because the PR accidentally included an unrelated `eip-FOCIL.md` change in the diff, which broke CI. Resubmitted as PR #11598 the same day with a clean single-file diff.
 
 ### PRs #11310, #11314, #11321: Fix broken links (all closed)
 
