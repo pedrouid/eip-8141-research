@@ -132,6 +132,8 @@ Anything a relayer does for EIP-4337 can be expressed as a pure onchain smart co
 
 This is the structural argument against EIP-4337 + EIP-7702: in those designs, the relayer is required because validation does not run in-protocol. EIP-8141 brings validation in-protocol, which the proposal claims removes the structural need for out-of-protocol actors. Whether on-chain substitutes match bundlers' operational properties in practice is an open question.
 
+**External ratification (Apr 27)**: the [Svalbard interop AA breakout](https://hackmd.io/@nixorokish/svalbard-aa-breakout) added "no relayers for core functionality" to the primary-goal list for native AA, and explicitly deferred ERC-20 sponsorship to relayer-dependent paths. The constraint set the breakout converged on (statelessness compatibility, public-mempool admissibility, FOCIL compatibility, ETH-denominated sponsorship as the core case) is the same set this two-tier strategy is designed against. See [Feedback Evolution → Svalbard Interop AA Breakout](/feedback-evolution#svalbard-interop-aa-breakout).
+
 The practical implication is central to the [Developer Tooling bull case](/developer-tooling#bull-case-native-aa-with-powerful-defaults): the wallet adoption cost reduces to "implement a new transaction type."
 
 ---
