@@ -73,7 +73,7 @@
           </li>
           <li>
             <a
-              href="https://github.com/pedrouid/eip-8141-research"
+              href="https://github.com/pedrouid/eip-8141-website"
               target="_blank"
               rel="noopener"
               >GitHub Repository</a

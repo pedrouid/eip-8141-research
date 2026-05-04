@@ -171,7 +171,7 @@ export default defineConfig({
     socialLinks: [
       {
         icon: "github",
-        link: "https://github.com/pedrouid/eip-8141-research",
+        link: "https://github.com/pedrouid/eip-8141-website",
       },
     ],
   },
