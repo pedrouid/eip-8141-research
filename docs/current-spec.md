@@ -254,6 +254,7 @@ The sponsor pays ETH gas; frame 2 repays the sponsor in ERC-20 tokens.
 | EIP-8130 | Coinbase/Base's alternative: declared verifiers (no wallet code exec), 14 PRs, active development. See [Competing Standards](./competing-standards) |
 | EIP-7997 | Canonical deterministic factory predeploy; recommended for cross-chain-stable factory addresses but no longer a hard dependency after PR #11567 (merged Apr 30) |
 | EIP-7392 | Signature registry; interoperability PR #11455 was closed without merge on Apr 23 |
+| EIP-8250 | Draft keyed-nonces sibling proposal from PR #11598; would layer `(nonce_key, nonce_seq)` replay protection on top of EIP-8141 without changing the current merged spec |
 
 ## Key Takeaway
 
@@ -262,6 +263,6 @@ A frame transaction is a sequence of purpose-labeled sub-calls. The protocol run
 ## Read Next
 
 - [EOA Support](/eoa-support) — what existing codeless accounts get for free, and how default code replaces EIP-7702 delegation for common cases.
-- [Feedback Evolution](/feedback-evolution) — how the spec got to its current shape through eight phases of community review.
+- [Feedback Evolution](/feedback-evolution) — how the spec got to its current shape through nine phases of community review.
 - [Mempool Strategy](/mempool-strategy) — why the validation prefix is the way it is, and how the two-tier mempool handles everything that doesn't fit.
 - [Competing Standards](/competing-standards) — how EIP-8141 compares to EIP-8130, EIP-8175, EIP-8202, and the sibling proposals.

@@ -60,7 +60,7 @@
 | Apr 11 | [#11509](https://github.com/ethereum/EIPs/pull/11509) | benaadams | Add EIP-8223: Contract Payer Transaction (alternative/complementary sponsorship proposal) |
 | Apr 12 | [#11518](https://github.com/ethereum/EIPs/pull/11518) | benaadams | Add EIP-8224: Counterfactual Transaction (shielded gas funding via ZK proofs) |
 | Apr 25 | [#11571](https://github.com/ethereum/EIPs/pull/11571) | SirSpudlington | Update EIP-7932: refactor signature registry to be friendlier to EIP-8141 (rename `sigrecover` → `sigaddress`, add `sigverify`/`sigcosts` precompiles for AA use cases) |
-| May 4 | [#11598](https://github.com/ethereum/EIPs/pull/11598) | soispoke, nerolation, lightclient, vbuterin | Add EIP — Keyed Nonces for Frame Transactions (standalone EIP layering `(nonce_key, nonce_seq)` and a `NONCE_MANAGER` system contract on EIP-8141; spent-once-with-payment guarantee for nullifier-style apps; resubmitted from #11597 same day) |
+| May 4 | [#11598](https://github.com/ethereum/EIPs/pull/11598) | soispoke, nerolation, lightclient, vbuterin | Add EIP-8250: Keyed Nonces for Frame Transactions (standalone EIP layering `(nonce_key, nonce_seq)` and a `NONCE_MANAGER` system contract on EIP-8141; spent-once-with-payment guarantee for nullifier-style apps; resubmitted from #11597 same day) |
 
 ### Closed (not merged)
 
@@ -103,8 +103,8 @@
 | Franco Victorio | @fvictorio | Raised question about validation-frame execution ordering vs non-frame txs |
 | dionysuzx | @dionysuzx | Hegotá meta-EIP maintainer, submitted PR #11537 moving EIP-8141 to CFI (merged Apr 30) |
 | Nero_eth | Nero_eth | ethresear.ch analyst; "Three Gates to Privacy" post framing mempool/FOCIL/VOPS constraints on privacy-pool flows through frame transactions |
-| Toni Wahrstätter | @nerolation | Author of PR #11584 (2D nonces) and co-author of the Keyed Nonces for Frame Transactions EIP (PR #11598) |
-| Thomas Thiery | @soispoke | Lead author of the Keyed Nonces for Frame Transactions EIP (PR #11598) |
+| Toni Wahrstätter | @nerolation | Author of PR #11584 (2D nonces) and co-author of EIP-8250 Keyed Nonces for Frame Transactions (PR #11598) |
+| Thomas Thiery | @soispoke | Lead author of EIP-8250 Keyed Nonces for Frame Transactions (PR #11598) |
 
 ## External Resources
 

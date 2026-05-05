@@ -311,7 +311,7 @@ All reviewers approved by Apr 18; auto-merged on Apr 22 with no further debate.
 
 ## Active/Open PRs
 
-*As of May 4, 2026.* These PRs represent active design proposals that may change the spec in the near future.
+*As of May 5, 2026.* These PRs represent active design proposals that may change the spec in the near future.
 
 ### PR #11272: Disable EIP-3607 check for frame transactions (open since Feb 6)
 
@@ -398,7 +398,7 @@ From lightclient's PR description (carried over from #11575):
 - **Proposed change**: New EIP introducing `(nonce_key, nonce_seq)` replay-protection. `nonce_key == 0` aliases the legacy account nonce; non-zero keys live in storage of a `NONCE_MANAGER` system contract (revert-only runtime code), keyed by `keccak256(left_pad_32(sender) || uint256_to_bytes32(nonce_key))`. `nonce_seq` is `uint64`, with `MAX_NONCE_SEQ = 2**64 - 1` reserved for exhausted state. Nonce consumption is lifted into the payment-approval transition (the unique `APPROVE` whose scope includes `APPROVE_PAYMENT`) so the spent-once guarantee is atomic with payment, surviving later-frame reverts and `SENDER` atomic-batch rollback. `KEYED_NONCE_FIRST_USE_GAS = 20000` (zero-to-nonzero `SSTORE` reference) is charged on first use of a non-zero key. New `TXPARAM(0x0B)` returns `tx.nonce_key`; `TXPARAM(0x0C)` returns the pre-state legacy sender nonce.
 - **Single-use semantics**: enables nullifier-style applications to authenticate `(sender, nonce_key, nonce_seq == 0)` in `VERIFY` and rely on protocol-atomic spent-once. Replay protection scopes to `(sender, nonce_key, nonce_seq)`; different non-zero keys remove only the replay-ordering dependency, not balance or shared-state conflicts.
 - **Mempool guidance**: does not relax EIP-8141's one-pending-tx-per-sender rule, but removes the protocol-level obstacle to a future keyed-aware mempool that admits parallel pending transactions on distinct non-zero keys per sender.
-- **Status**: Draft, awaits an editor reviewer. Resubmitted from #11597 the same day; the original PR accidentally bundled an unrelated `eip-FOCIL.md` change and was closed.
+- **Status**: Draft EIP-8250, awaits an editor reviewer. abcoathup left editor comments on May 4; CI flagged that the initial commit history still contained the unrelated `eip-FOCIL.md` parent, but the PR remains open. Resubmitted from #11597 the same day; the original PR accidentally bundled an unrelated `eip-FOCIL.md` change and was closed.
 
 ---
 

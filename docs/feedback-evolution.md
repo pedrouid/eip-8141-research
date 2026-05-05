@@ -406,9 +406,9 @@ The fork-meta PR that had been waiting on a final reviewer since Phase 6 merged 
 
 ---
 
-## Phase 9: Keyed Nonces and Parallel Sequences (Apr 30 – )
+## Phase 9: Keyed Nonces and Parallel Sequences (Apr 30 – May 5)
 
-*A new design line opens with two co-evolving proposals lifting EIP-8141's single linear sender nonce into a `(nonce_key, nonce_seq)` pair so a single sender can run independent sequences in parallel. The motivating use cases are privacy protocols sharing one onchain sender across many users, smart-wallet session keys, and relayer-style senders that today bottleneck on the linear nonce. Phase 9 is at its earliest moment: one delta PR (#11584, Apr 30) and one standalone Standards Track EIP (#11598, May 4, resubmitted from the briefly-open #11597) by overlapping authorship including soispoke, nerolation, lightclient, and vbuterin. The standalone EIP framing is the polished version, with explicit `NONCE_MANAGER` system-contract storage, atomic-with-payment-approval consumption semantics, and a 20k first-use gas surcharge tied to zero-to-nonzero `SSTORE` pricing.*
+*A new design line opens with two co-evolving proposals lifting EIP-8141's single linear sender nonce into a `(nonce_key, nonce_seq)` pair so a single sender can run independent sequences in parallel. The motivating use cases are privacy protocols sharing one onchain sender across many users, smart-wallet session keys, and relayer-style senders that today bottleneck on the linear nonce. Phase 9 is at its earliest moment: one delta PR (#11584, Apr 30) and one standalone Standards Track EIP (#11598, May 4, resubmitted from the briefly-open #11597) by overlapping authorship including soispoke, nerolation, lightclient, and vbuterin. The standalone EIP framing is the polished version, with explicit `NONCE_MANAGER` system-contract storage, atomic-with-payment-approval consumption semantics, and a 20k first-use gas surcharge tied to zero-to-nonzero `SSTORE` pricing. A May 5 forum question also reopened the scope of atomic batching itself, asking whether DEFAULT frames need transaction-level post-operation semantics rather than limiting atomic groups to SENDER frames.*
 
 ### 2D Nonces Sketch (Open)
 
@@ -416,11 +416,11 @@ The fork-meta PR that had been waiting on a final reviewer since Phase 6 merged 
 
 Toni Wahrstätter opened a 28-line sketch as a delta against EIP-8141: replace the single sender nonce with `(nonce_key, nonce_seq)`. `nonce_key < 2**256`; per-key sequences run independently. `APPROVE_PAYMENT` and `APPROVE_PAYMENT_AND_EXECUTION` increment the per-key nonce. `TXPARAM(0x0B)` returns `nonce_key`. The PR sketches a tiered first-use gas cost (0 / 5000 / 22100, SSTORE-pricing-shaped) with a placeholder note that the figure is to be updated. Mempool guidance: one pending tx per `(sender, nonce_key)`, enabling parallel sequences. `nonce_key = 0` represents the legacy nonce slot for backward compatibility.
 
-### Keyed Nonces for Frame Transactions (New EIP, Open)
+### EIP-8250: Keyed Nonces for Frame Transactions (Open)
 
 *soispoke, nerolation, lightclient, vbuterin — PR #11598, May 4 (resubmitted from #11597 the same day)*
 
-Four days after the #11584 sketch, the same idea returned as a standalone Standards Track EIP. The standalone framing keeps the parallel-sequence motivation and adds the implementation detail the sketch deferred:
+Four days after the #11584 sketch, the same idea returned as the standalone Standards Track EIP-8250. The standalone framing keeps the parallel-sequence motivation and adds the implementation detail the sketch deferred:
 
 - **State location**: non-zero keys live in storage of a `NONCE_MANAGER` system contract whose runtime code is the four-byte revert-only `0x60006000fd`. Slot derivation is `keccak256(left_pad_32(sender) || uint256_to_bytes32(nonce_key))`. Direct calls to `NONCE_MANAGER` revert; only protocol bookkeeping writes the slots, and the writes do not warm the address or slot under EIP-2929 nor charge under EIP-2200 SSTORE pricing.
 - **Sequence width**: `nonce_seq` is `uint64`, with `MAX_NONCE_SEQ = 2**64 - 1` reserved as exhausted state. `nonce_key` is full `uint256` so privacy protocols can derive keys directly from 32-byte nullifiers, commitments, or hash outputs, rather than packing them into ERC-4337's 24-byte key field.
@@ -431,5 +431,11 @@ Four days after the #11584 sketch, the same idea returned as a standalone Standa
 
 The security section flags one subtlety worth tracking: a non-zero-key transaction does not advance the sender's legacy account nonce, so `CREATE` addresses computed from the legacy nonce can shift if another transaction advances the legacy nonce before inclusion. Applications relying on `CREATE` addresses must use `CREATE2` or authenticate `TXPARAM(0x0C)` explicitly. The "send another transaction with the same legacy nonce" cancellation pattern also does not work on keyed transactions; replacement requires the same `(sender, nonce_key, nonce_seq)`.
 
-**What to watch**: which of #11584 and #11598 the core authors converge on (the standalone EIP framing is more complete and avoids re-litigating EIP-8141's payload schema mid-fork, but it adds a new system contract); whether the 20k first-use surcharge survives review; whether the mempool one-pending-per-sender guidance gets relaxed in a follow-up; and how the spent-once-with-payment property composes with the guarantors (#11555) and payer-before-sender (#11580) proposals from Phase 7, since both also want to commit to payment under specific conditions.
+### DEFAULT Post-Operation Question (Open)
+
+*alex-forshtat-tbk — EthMagicians post #146, May 5*
+
+Alex Forshtat asked why atomic batching is limited to `SENDER` frames. The concern is that `DEFAULT` frames may want transaction-level post-transaction assertions or cleanup hooks, but the current atomic-batch flag only groups consecutive `SENDER` frames. This does not change the spec yet. It adds a new open design question next to the existing post-op and payer-refund patterns: whether post-operation semantics should remain an execution-only feature, or whether DEFAULT-mode validation/default-code paths need a way to participate.
+
+**What to watch**: which of #11584 and #11598 the core authors converge on (the standalone EIP framing is more complete and avoids re-litigating EIP-8141's payload schema mid-fork, but it adds a new system contract); whether the 20k first-use surcharge survives review; whether the mempool one-pending-per-sender guidance gets relaxed in a follow-up; how the spent-once-with-payment property composes with the guarantors (#11555) and payer-before-sender (#11580) proposals from Phase 7, since both also want to commit to payment under specific conditions; and whether DEFAULT frames need post-operation semantics beyond today's SENDER-only atomic batching.
 

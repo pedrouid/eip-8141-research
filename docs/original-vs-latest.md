@@ -4,7 +4,7 @@
 
 ## Structural Comparison
 
-| Aspect | Original (Jan 29) | Latest (May 4) |
+| Aspect | Original (Jan 29) | Latest (May 5) |
 |---|---|---|
 | **Opcodes** | `APPROVE`, `TXPARAMLOAD`, `TXPARAMSIZE`, `TXPARAMCOPY` (4) | `APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`, `FRAMEPARAM` (5) |
 | **APPROVE mechanism** | Return codes 0-4 at top-level frame | Transaction-scoped with scope operand (0x1, 0x2, 0x3), callable at any depth, double-approval prevention |
@@ -84,7 +84,7 @@ The original spec deliberately had no `value` field in frames, on the principle 
 
 ## Active Proposals That May Change the Comparison
 
-As of May 4, 2026, several open PRs propose changes that would extend this comparison table:
+As of May 5, 2026, several open PRs propose changes that would extend this comparison table:
 
 | Proposal | PR | Impact |
 |---|---|---|
@@ -94,6 +94,6 @@ As of May 4, 2026, several open PRs propose changes that would extend this compa
 | **Guarantors** | [#11555](https://github.com/ethereum/EIPs/pull/11555) | Would introduce a "guarantor" payer that pays even if sender validation fails, letting mempool nodes skip sender simulation and admit shared-state-reading VERIFY frames |
 | **Payer approves before sender** | [#11580](https://github.com/ethereum/EIPs/pull/11580) | Alternative to #11555: relaxes the ordering rule so a payer can approve before the sender, letting a payer commit to gas without simulating sender validation. Briefly auto-merged as #11575 on Apr 28 and reverted by #11579 on Apr 29; reopened as a draft |
 | **2D nonces** | [#11584](https://github.com/ethereum/EIPs/pull/11584) | Would replace the single sender nonce with `(nonce_key, nonce_seq)`, gas-priced per-key first use; opens parallel-sequence transactions per sender. Co-evolving with the standalone Keyed Nonces EIP (PR #11598) |
-| **Keyed Nonces for Frame Transactions (new EIP)** | [#11598](https://github.com/ethereum/EIPs/pull/11598) | New sibling EIP (soispoke, nerolation, lightclient, vbuterin) layering keyed-nonce state in a `NONCE_MANAGER` system contract on top of EIP-8141, atomic with payment approval and replay-domain-separated for privacy nullifiers and session keys (resubmitted from #11597) |
+| **EIP-8250: Keyed Nonces for Frame Transactions** | [#11598](https://github.com/ethereum/EIPs/pull/11598) | New sibling EIP (soispoke, nerolation, lightclient, vbuterin) layering keyed-nonce state in a `NONCE_MANAGER` system contract on top of EIP-8141, atomic with payment approval and replay-domain-separated for privacy nullifiers and session keys (resubmitted from #11597) |
 | **Frame returndata opcodes** | Under discussion (post #137) | Proposed `FRAMERETURNDATASIZE`/`FRAMERETURNDATACOPY` to enable multi-step flows, no PR yet |
 
