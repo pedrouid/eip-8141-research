@@ -410,11 +410,13 @@ The fork-meta PR that had been waiting on a final reviewer since Phase 6 merged 
 
 *A new design line opens with two co-evolving proposals lifting EIP-8141's single linear sender nonce into a `(nonce_key, nonce_seq)` pair so a single sender can run independent sequences in parallel. The motivating use cases are privacy protocols sharing one onchain sender across many users, smart-wallet session keys, and relayer-style senders that today bottleneck on the linear nonce. Phase 9 is at its earliest moment: one delta PR (#11584, Apr 30) and one standalone Standards Track EIP (#11598, May 4, resubmitted from the briefly-open #11597) by overlapping authorship including soispoke, nerolation, lightclient, and vbuterin. The standalone EIP framing is the polished version, with explicit `NONCE_MANAGER` system-contract storage, atomic-with-payment-approval consumption semantics, and a 20k first-use gas surcharge tied to zero-to-nonzero `SSTORE` pricing. A May 5 forum question also reopened the scope of atomic batching itself, asking whether DEFAULT frames need transaction-level post-operation semantics rather than limiting atomic groups to SENDER frames.*
 
-### 2D Nonces Sketch (Open)
+### 2D Nonces Sketch (Closed in Favor of Standalone EIP)
 
-*nerolation — PR #11584, Apr 30*
+*nerolation — PR #11584, opened Apr 30, closed May 8*
 
 Toni Wahrstätter opened a 28-line sketch as a delta against EIP-8141: replace the single sender nonce with `(nonce_key, nonce_seq)`. `nonce_key < 2**256`; per-key sequences run independently. `APPROVE_PAYMENT` and `APPROVE_PAYMENT_AND_EXECUTION` increment the per-key nonce. `TXPARAM(0x0B)` returns `nonce_key`. The PR sketches a tiered first-use gas cost (0 / 5000 / 22100, SSTORE-pricing-shaped) with a placeholder note that the figure is to be updated. Mempool guidance: one pending tx per `(sender, nonce_key)`, enabling parallel sequences. `nonce_key = 0` represents the legacy nonce slot for backward compatibility.
+
+Closed by nerolation on May 8 with a one-line "Closing in favor of the EIP for now." once the standalone Keyed Nonces EIP (PR #11598) gathered the same idea into a separate Standards Track proposal with concrete `NONCE_MANAGER` semantics. The delta-against-8141 framing is abandoned; the design line continues entirely as PR #11598.
 
 ### EIP-8250: Keyed Nonces for Frame Transactions (Open)
 
@@ -431,11 +433,69 @@ Four days after the #11584 sketch, the same idea returned as the standalone Stan
 
 The security section flags one subtlety worth tracking: a non-zero-key transaction does not advance the sender's legacy account nonce, so `CREATE` addresses computed from the legacy nonce can shift if another transaction advances the legacy nonce before inclusion. Applications relying on `CREATE` addresses must use `CREATE2` or authenticate `TXPARAM(0x0C)` explicitly. The "send another transaction with the same legacy nonce" cancellation pattern also does not work on keyed transactions; replacement requires the same `(sender, nonce_key, nonce_seq)`.
 
-### DEFAULT Post-Operation Question (Open)
+### Atomic Batching Scope: DEFAULT Frames and the VERIFY Carve-Out (Open)
 
-*alex-forshtat-tbk — EthMagicians post #146, May 5*
+*alex-forshtat-tbk and derek — EthMagicians posts #146, #147, May 5*
 
-Alex Forshtat asked why atomic batching is limited to `SENDER` frames. The concern is that `DEFAULT` frames may want transaction-level post-transaction assertions or cleanup hooks, but the current atomic-batch flag only groups consecutive `SENDER` frames. This does not change the spec yet. It adds a new open design question next to the existing post-op and payer-refund patterns: whether post-operation semantics should remain an execution-only feature, or whether DEFAULT-mode validation/default-code paths need a way to participate.
+Alex Forshtat asked why atomic batching is limited to `SENDER` frames. The concern is that `DEFAULT` frames may want transaction-level post-transaction assertions or cleanup hooks, but the current atomic-batch flag only groups consecutive `SENDER` frames. Derek replied the same day with a finer-grained framing: VERIFY frames were excluded because letting them participate in atomic batches makes mempool validation harder (a VERIFY frame's outcome could be reverted by a later frame in the same batch), but he sees no protocol reason to exclude DEFAULT frames. He went further and proposed allowing *any* frame, including VERIFY, to be atomically batched at the protocol level, with the mempool restrictive tier separately forbidding VERIFY-in-batch. That way private pools could use atomically-batched VERIFY frames for revert-protection patterns without changing protocol rules. PR #11580's payer-before-sender ordering relaxation already used this same protocol-vs-mempool layering, so the pattern is consistent.
 
-**What to watch**: which of #11584 and #11598 the core authors converge on (the standalone EIP framing is more complete and avoids re-litigating EIP-8141's payload schema mid-fork, but it adds a new system contract); whether the 20k first-use surcharge survives review; whether the mempool one-pending-per-sender guidance gets relaxed in a follow-up; how the spent-once-with-payment property composes with the guarantors (#11555) and payer-before-sender (#11580) proposals from Phase 7, since both also want to commit to payment under specific conditions; and whether DEFAULT frames need post-operation semantics beyond today's SENDER-only atomic batching.
+The exchange does not change the spec yet but reframes the design space: atomic batching as a protocol primitive applicable to all frame modes, with the restrictive-tier mempool policy carving out the cases that complicate validation.
+
+**What to watch**: which of #11584 and #11598 the core authors converge on (the standalone EIP framing is more complete and avoids re-litigating EIP-8141's payload schema mid-fork, but it adds a new system contract); whether the 20k first-use surcharge survives review; whether the mempool one-pending-per-sender guidance gets relaxed in a follow-up; how the spent-once-with-payment property composes with the guarantors (#11555) and payer-before-sender (#11580) proposals from Phase 7, since both also want to commit to payment under specific conditions; and whether atomic batching opens up to DEFAULT and VERIFY frames at the protocol level with mempool policy carving back out the validation-time hazards.
+
+---
+
+## Phase 10: EIP-3607 Carve-Out and Spec Coherence Cleanup (May 5 – May 8)
+
+*Phase 10 closes a long-pending open issue and opens a coherence-cleanup effort. Thegaram's PR #11272 (open since Feb 6) finally lands, explicitly carving frame transactions out of the EIP-3607 origination check, with EIP-3607 added to `requires` so the carve-out is declared rather than implied. An external production perspective lands on the thread the same week: ariutokintumi, co-founder of EVVM (a contract-native AA framework with ~200 deployments since 2023), reads through and contributes a contract-vs-protocol comparison covering institutional policy, async-execution compatibility, batch success granularity, and reservation primitives. Two days later, lightclient opens PR #11621, a 530-line readability sweep over the spec text that removes net 160 lines while introducing a few small functional tweaks (skipped-status receipt entry, FRAMEPARAM operand order, P256 removed from default code, default code no longer reverts on SENDER/DEFAULT modes). The phase is mostly about consolidation rather than new design lines, but the cleanup PR's "removed P256 from default code" change deserves Phase 11 review attention if it merges as-is.*
+
+### EIP-3607 Carve-Out for Frame Transactions (Merged)
+
+*Thegaram — PR #11272, opened Feb 6, merged May 5*
+
+The longest-pending open spec PR finally landed. EIP-3607 forbids transactions whose `tx.sender` has non-empty, non-delegation code, on the assumption that a contract account cannot sign a regular ECDSA transaction. Frame transactions deliberately allow `SENDER` frames to originate calls from contract accounts, so applying EIP-3607 unconditionally would have blocked native AA. The fix is two-line: add `3607` to the `requires` header and add a "Transaction origination" subsection documenting the carve-out: "Do not apply the restriction put in place by EIP-3607 to frame transactions. Specifically, `SENDER` frames originate calls where `tx.sender` is a contract account. Validation logic for other transaction types remains unchanged."
+
+The compatibility issue had been raised on the magicians thread on day one ([post #26](https://ethereum-magicians.org/t/eip-8141-frame-transaction/27617/26)) and sat in the open-PR backlog through the high-velocity Phase 5-9 spec churn. lightclient's first approval was dismissed on Apr 8 after the spec moved underneath the PR; Thegaram refreshed the diff in late April and lightclient re-approved on May 5. Net spec impact is small (+7/-1) but architecturally clean: EIP-3607 becomes the first cross-EIP requirement that EIP-8141 explicitly opts out of in its `requires` list, with the carve-out stated in spec text rather than inferred by clients.
+
+### EVVM Production Perspective on Frame vs Contract-Layer AA (External)
+
+*ariutokintumi — EthMagicians post #148, May 7*
+
+German Abal (co-founder, architect of EVVM, a contract-native AA framework deployed across ~200 instances on 10+ EVM chains since 2023) read the full thread and posted a four-paragraph comparison of EIP-8141's protocol-layer choices against EVVM's contract-layer experience. Three observations:
+
+1. **Per-environment policy lives at the contract layer, not the protocol.** EVVM instances configure KYC/AML gates, allowlists, and custom delegatecall guards through per-deployment contracts. Real adopters (banks, regulated DeFi, public-sector pilots) need this variance. EIP-8141 correctly does not try to support it natively, but the rationale should be explicit that policy-variance is contract-layer territory.
+2. **Async-execution compatibility is achievable as a contract-level property.** The Monad / Base / Tempo concerns raised earlier in the thread (DanielVF, chunter) bind only protocol-level validation. EVVM-style validation runs *inside* the contract at execution time against post-state, so async execution and contract-level AA coexist by design. Not an argument against EIP-8141, but a reference point for chains where 8141 cannot ship.
+3. **Two implementation choices in EIP-8141 differ from EVVM in production**:
+    - Per-operation success in batches: EVVM's `batchPay` returns `bool[]` per operation; derek's atomic batching in EIP-8141 is all-or-nothing. The trade-off (independent dust transfers vs. approve-then-swap dependencies) hits early and may force the per-op case into separate transactions.
+    - Reservation primitives: EVVM ships only non-authoritative reservations because authoritative locks expose DoS-by-lock-grabbing and bad-UI lockup vectors. Likely matters at protocol level too if keyed nonces ship.
+
+Notably the post does not propose a competing alternative or push back on EIP-8141's direction. It's a load-bearing external production data point on the design choices EIP-8141 has already made. The atomic-batching observation lines up with derek's own May 5 reframing (post #147) about extending atomic batching beyond SENDER frames; the reservation-primitives observation is one to flag against PR #11598's keyed-nonce commit-on-payment semantics, since a single-use key is a narrow form of authoritative reservation.
+
+References from the post:
+- EVVM repo: https://github.com/EVVM-org/testnet-Contracts
+- EVVM docs: https://www.evvm.info/docs/intro
+- Signature constructor: https://www.evvm.dev
+
+### Frames Cleanup Refactor (Open)
+
+*lightclient — PR #11621, opened May 7*
+
+After two months of high-velocity merges (Phase 5 through Phase 9), the spec text has accumulated duplicated reasoning, stale section orderings, and inconsistencies between rationale and behavior. lightclient opens PR #11621 as an explicit readability sweep: "improve the EIP's readability without changing much functionality." The diff is the largest single touch since PR #11521: +185/-345 lines, net -160 lines.
+
+The structural changes:
+
+- **Restructured spec body** under `### Frame Transaction` with `#### Payload Encoding` and `#### Field Definitions` subsections. Field definitions are centralized into bulleted lists per object (outer payload, frame object) rather than scattered across prose.
+- **Skipped-batch receipt status**: receipt status `0x3` introduced for frames skipped as part of an atomic batch (previously skipped frames had no distinct status code).
+- **FRAMEPARAM operand order**: explicitly defined (was implicit and inconsistent across the rationale section).
+- **P256 removed from default code**: the protocol-shipped default code now only ships ECDSA secp256k1 verification.
+- **Default code on SENDER/DEFAULT**: default code no longer reverts unconditionally on SENDER and DEFAULT modes; this lets top-level value transfers to a default-code account succeed via a frame transaction, which the previous default code blocked.
+- **Requires header**: `7623` (calldata gas pricing) and `7702` (delegation indicators) added, formalizing dependencies that were already implicit in spec text.
+- **Abstract and Motivation rewritten**: leads with the structural "frames" concept and lists the practical wins (key rotation, simpler smart accounts via batching, decentralized fee payment) before the post-quantum off-ramp framing.
+
+The bot reports "✅ All reviewers have approved" the same day, with no public review comments. Two changes deserve Phase 11 review attention if they land as-is:
+
+1. **Removing P256 from default code** retracts the hardware-wallet / passkey bridge that was the headline EOA-support story since PR #11379 (Mar 10). The PR description does not justify it; readers should watch whether this was a deliberate scope-narrowing or an unintended consequence of the cleanup.
+2. **Default code accepting SENDER and DEFAULT frames** changes the semantics of native ETH transfer to a fresh EOA via a frame transaction; today such a transfer reverts in default code, after this it succeeds. This is small in implementation but visible to users and indexers.
+
+Net spec impact when merged will be the largest single refactor since PR #11521 (Apr 14). Tracked here so that a Phase 11 split can fan it out fully if it lands without further changes.
 

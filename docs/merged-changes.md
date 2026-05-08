@@ -309,16 +309,24 @@ All reviewers approved by Apr 18; auto-merged on Apr 22 with no further debate.
 
 ---
 
+## EIP-3607 Carve-Out for Frame Transactions — May 5, 2026
+
+### PR #11272: Disable EIP-3607 check for frame transactions
+
+**Author**: Thegaram | **Merged**: May 5 (opened Feb 6)
+
+- **Why**: EIP-3607 forbids transactions whose `tx.sender` has non-empty, non-delegation code, since a contract account cannot sign a regular ECDSA transaction. Frame transactions intentionally allow `SENDER` frames to originate calls from contract accounts (the whole point of native AA), so applying the EIP-3607 check unconditionally would have blocked smart-account use cases. The discussion sat dormant from Feb 6 to early May; lightclient dismissed an earlier review on Apr 8 and re-approved the cleaned-up version on May 5.
+- **Spec changes** (+7/-1):
+  - Adds `3607` to the `requires` header (now `1559, 2718, 3607, 4844`)
+  - New "Transaction origination" subsection in mempool policy: "Do not apply the restriction put in place by EIP-3607 to frame transactions. Specifically, `SENDER` frames originate calls where `tx.sender` is a contract account. Validation logic for other transaction types remains unchanged, i.e. the transaction is only valid if the sender account's code is either empty or a valid delegation indicator."
+- **Key review discussion**: The PR was opened Feb 6 with a single comment from Thegaram pointing at the [magicians thread post #26](https://ethereum-magicians.org/t/eip-8141-frame-transaction/27617/26) for context. It went idle through February-April; lightclient's first approval was dismissed on Apr 8 after later spec churn. Thegaram refreshed the diff in late April and lightclient re-approved on May 5.
+- **Significance**: Small in line count (+7/-1) but resolves the longest-pending open spec gap from the original Jan 29 thread. The EIP-8141 ↔ EIP-3607 conflict was the first cross-EIP compatibility issue raised by external reviewers; closing it explicitly (rather than silently) means clients can implement the carve-out without inferring intent. Also makes EIP-3607 the first cross-EIP requirement that EIP-8141 explicitly *opts out* of in its `requires` list, with the carve-out documented in spec text.
+
+---
+
 ## Active/Open PRs
 
-*As of May 5, 2026.* These PRs represent active design proposals that may change the spec in the near future.
-
-### PR #11272: Disable EIP-3607 check for frame transactions (open since Feb 6)
-
-**Author**: Thegaram
-
-- **Why**: EIP-3607 rejects transactions from senders with deployed code, which would block frame transactions for smart accounts.
-- Still open. lightclient's earlier review was dismissed on Apr 8, and the PR remains unresolved.
+*As of May 8, 2026.* These PRs represent active design proposals that may change the spec in the near future.
 
 ### PR #11481: Add signatures list to outer tx (open since Apr 2)
 
@@ -382,14 +390,6 @@ From lightclient's PR description (carried over from #11575):
 
 > Alternative to #11555. I think it is simpler to just allow the payer to approve before the sender instead of adding the full guarantor role.
 
-### PR #11584: Add 2D nonces (open since Apr 30)
-
-**Author**: nerolation (Toni Wahrstätter)
-
-- **Why**: A frame transaction currently consumes one linear sender nonce, which means a delayed transaction blocks every later frame transaction from the same sender. Privacy-protocol designs that share one sender across many independent users hit this as a hard throughput ceiling.
-- **Proposed change**: Replace the single sender nonce with `(nonce_key, nonce_seq)`. `nonce_key < 2**256`; per-key sequences allow parallel nonce domains. `APPROVE_PAYMENT` / `APPROVE_PAYMENT_AND_EXECUTION` increment the per-key nonce. `TXPARAM(0x0B)` returns `nonce_key`. Adds a per-key first-use gas cost (currently sketched as 0/5000/22100, SSTORE-pricing inspired). Mempool admits one pending tx per `(sender, nonce_key)`.
-- **Status**: Draft. Co-evolving with the standalone Keyed Nonces EIP (PR #11598, resubmitted from #11597), which lifts the same idea into a separate EIP.
-
 ### PR #11598: Add EIP — Keyed Nonces for Frame Transactions (open since May 4)
 
 **Authors**: soispoke (Thomas Thiery), nerolation, lightclient, vbuterin
@@ -399,6 +399,22 @@ From lightclient's PR description (carried over from #11575):
 - **Single-use semantics**: enables nullifier-style applications to authenticate `(sender, nonce_key, nonce_seq == 0)` in `VERIFY` and rely on protocol-atomic spent-once. Replay protection scopes to `(sender, nonce_key, nonce_seq)`; different non-zero keys remove only the replay-ordering dependency, not balance or shared-state conflicts.
 - **Mempool guidance**: does not relax EIP-8141's one-pending-tx-per-sender rule, but removes the protocol-level obstacle to a future keyed-aware mempool that admits parallel pending transactions on distinct non-zero keys per sender.
 - **Status**: Draft EIP-8250, awaits an editor reviewer. abcoathup left editor comments on May 4; CI flagged that the initial commit history still contained the unrelated `eip-FOCIL.md` parent, but the PR remains open. Resubmitted from #11597 the same day; the original PR accidentally bundled an unrelated `eip-FOCIL.md` change and was closed.
+
+### PR #11621: Frames cleanup (open since May 7)
+
+**Author**: lightclient
+
+- **Why**: Two months of high-velocity merges (Phase 5 through Phase 9) have left the spec text full of duplicated reasoning, stale section orderings, and inconsistencies between rationale and behavior. lightclient opens the PR explicitly as a readability sweep: "improve the EIP's readability without changing much functionality". A handful of small functional changes ride along where they fall out of the cleanup naturally.
+- **Spec changes** (+185/-345, net -160 lines):
+  - **Restructure**: Spec body reorganized under `### Frame Transaction` with `#### Payload Encoding` and `#### Field Definitions` subsections. Field definitions are now centralized into a single bulleted list per object (outer payload, frame object) instead of scattered prose.
+  - **Skipped status**: Receipt status `0x3` introduced for frames skipped as part of an atomic batch (previously skipped frames had no distinct status).
+  - **FRAMEPARAM operand order**: Order of `FRAMEPARAM` operands explicitly defined (was implicit/inconsistent across rationale).
+  - **Default code**: P256 signature scheme removed from default code (only ECDSA secp256k1 remains in the protocol-shipped default code).
+  - **Default code on SENDER/DEFAULT**: default code does not revert on `SENDER` or `DEFAULT` frames so top-level value transfers to a default-code account work correctly. This is the visible functional change: today's default code reverts unconditionally on those modes, breaking simple ETH transfers to a fresh EOA via a frame transaction.
+  - **Requires header**: adds `7623` (calldata gas pricing) and `7702` (delegation indicators); both were already implicit in the spec text but not declared.
+  - **Abstract and Motivation**: rewritten to lead with the "frames" structural concept and then the post-quantum off-ramp, rather than the other way around. New motivation bullets call out native key rotation, simpler/safer smart accounts via batching, and decentralized fee payment.
+- **Key review discussion**: bot says "✅ All reviewers have approved" the same day the PR opened. No public review comments yet. The "removed P256 from default code" change in particular deserves scrutiny: P256 was the bridge for hardware wallets and passkeys, and the rationale for dropping it is not in the PR description.
+- **Status**: Open as of May 8, awaiting merge. Will be the largest spec-text refactor since PR #11521 (Apr 14 broad spec tightening). Not yet merged at this sync; tracked here so the next sync can fan it out fully if it lands.
 
 ---
 
@@ -439,3 +455,11 @@ From lightclient's PR description (carried over from #11575):
 - Three separate PRs attempting to fix allegedly broken links in the spec (to ERC-7562, EIP-2718, and other references)
 - All rejected by lightclient with variants of "It's not broken" / "Not broken, thanks though"
 - The links use relative paths that work in the EIPs rendering system but may look broken locally
+
+### PR #11584: Add 2D nonces (closed May 8)
+
+**Author**: nerolation (Toni Wahrstätter)
+
+- Sketched `(nonce_key, nonce_seq)` per-sender parallel sequences as a delta against EIP-8141 (28-line draft, opened Apr 30).
+- Closed without merge with a one-line "Closing in favor of the EIP for now." after the standalone Keyed Nonces EIP (PR #11598) gathered the same idea into a separate Standards Track proposal with concrete `NONCE_MANAGER` semantics.
+- Outcome: keyed-nonce design moves entirely to PR #11598; the delta-against-8141 framing is abandoned.

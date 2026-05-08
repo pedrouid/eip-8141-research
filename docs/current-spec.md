@@ -178,6 +178,8 @@ available = balance(paymaster) - reserved_pending_cost - pending_withdrawal_amou
 
 **Non-canonical paymaster**: limited to 1 pending tx per paymaster in the mempool.
 
+**Transaction origination**: EIP-3607's restriction (which forbids transactions whose `tx.sender` has non-empty, non-delegation code) does not apply to frame transactions. `SENDER` frames intentionally originate calls where `tx.sender` is a contract account, so the carve-out is required for native AA. Validation logic for non-frame transaction types is unchanged: a regular transaction is only valid if the sender account's code is empty or a valid delegation indicator (PR #11272, merged May 5).
+
 ## Practical Use Cases
 
 ### 1. Simple EOA Transaction (gas self-paid)
@@ -241,7 +243,7 @@ The sponsor pays ETH gas; frame 2 repays the sponsor in ERC-20 tokens.
 - **ORIGIN returns frame caller**: Changed from traditional tx.origin behavior (precedent set by EIP-7702).
 - **Transient storage cleared between frames**: TSTORE/TLOAD state doesn't persist across frames.
 - **Warm/cold state shared across frames**: Gas accounting for storage access is shared.
-- **Requires**: EIP-1559, EIP-2718, EIP-4844 (PR #11567 merged Apr 30 dropped EIP-7997 from `requires`; it remains the canonical deterministic deployer but is no longer a hard dependency).
+- **Requires**: EIP-1559, EIP-2718, EIP-3607, EIP-4844 (PR #11567 merged Apr 30 dropped EIP-7997 from `requires`; it remains the canonical deterministic deployer but is no longer a hard dependency. PR #11272 merged May 5 added EIP-3607 with an explicit carve-out for frame transactions; see Mempool Policy → Transaction origination).
 
 ## Related Proposals
 
@@ -263,6 +265,6 @@ A frame transaction is a sequence of purpose-labeled sub-calls. The protocol run
 ## Read Next
 
 - [EOA Support](/eoa-support) — what existing codeless accounts get for free, and how default code replaces EIP-7702 delegation for common cases.
-- [Feedback Evolution](/feedback-evolution) — how the spec got to its current shape through nine phases of community review.
+- [Feedback Evolution](/feedback-evolution) — how the spec got to its current shape through ten phases of community review.
 - [Mempool Strategy](/mempool-strategy) — why the validation prefix is the way it is, and how the two-tier mempool handles everything that doesn't fit.
 - [Competing Standards](/competing-standards) — how EIP-8141 compares to EIP-8130, EIP-8175, EIP-8202, and the sibling proposals.

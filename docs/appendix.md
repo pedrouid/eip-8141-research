@@ -40,18 +40,18 @@
 | Apr 29 | [#11577](https://github.com/ethereum/EIPs/pull/11577) | lightclient | Remove RLP call batch from default account (default-code `SENDER` mode now reverts) |
 | Apr 30 | [#11567](https://github.com/ethereum/EIPs/pull/11567) | derekchiang | Relax mempool deploy-frame rule (drops EIP-7997 from requires; any stateless factory qualifies; CREATE/SETDELEGATE join CREATE2 in deploy-frame carve-out) |
 | Apr 30 | [#11537](https://github.com/ethereum/EIPs/pull/11537) | dionysuzx | Add EIP-8141 to CFI in EIP-8081 Hegotá meta EIP (governance) |
+| May 5 | [#11272](https://github.com/ethereum/EIPs/pull/11272) | Thegaram | Disable EIP-3607 origination check for frame transactions (adds 3607 to `requires` with explicit carve-out) |
 
 ### Open
 
 | Date | PR | Author | Description |
 |---|---|---|---|
-| Feb 6 | [#11272](https://github.com/ethereum/EIPs/pull/11272) | Thegaram | Disable EIP-3607 for frame transactions |
 | Apr 2 | [#11481](https://github.com/ethereum/EIPs/pull/11481) | lightclient | Add signatures list to outer tx (PQ aggregation) |
 | Apr 2 | [#11482](https://github.com/ethereum/EIPs/pull/11482) | derekchiang | Allow precompiles for VERIFY frames (all reviewers approved) |
 | Apr 6 | [#11488](https://github.com/ethereum/EIPs/pull/11488) | chiranjeev13 | Fix spec inconsistencies (APPROVE scopes, VERIFY count) |
 | Apr 22 | [#11555](https://github.com/ethereum/EIPs/pull/11555) | derekchiang | Add support for guarantors (payer covers gas even if sender validation fails) |
 | Apr 29 | [#11580](https://github.com/ethereum/EIPs/pull/11580) | lightclient | Allow payer to approve before sender (draft; alternative to #11555 guarantors) |
-| Apr 30 | [#11584](https://github.com/ethereum/EIPs/pull/11584) | nerolation | Add 2D nonces (`(nonce_key, nonce_seq)`, parallel sequences per sender; co-evolving with #11598) |
+| May 7 | [#11621](https://github.com/ethereum/EIPs/pull/11621) | lightclient | Frames cleanup (spec coherence refactor: skipped-batch receipt status, FRAMEPARAM operand order, P256 dropped from default code, default code accepts SENDER/DEFAULT, adds 7623+7702 to requires) |
 
 ### Related
 
@@ -74,6 +74,7 @@
 | Mar 14 | [#11408](https://github.com/ethereum/EIPs/pull/11408) | SirSpudlington | Migrate default code to EIP-7932 | Rejected: authors want to keep custom behavior |
 | Apr 23 | [#11455](https://github.com/ethereum/EIPs/pull/11455) | SirSpudlington | Default code tweaks for EIP-7392 compatibility | Never gathered reviewer approvals; closed after ~4 weeks |
 | May 4 | [#11597](https://github.com/ethereum/EIPs/pull/11597) | soispoke, nerolation, lightclient, vbuterin | Keyed Nonces for Frame Transactions (first attempt) | PR accidentally bundled an unrelated `eip-FOCIL.md` change; closed and resubmitted clean as #11598 the same day |
+| May 8 | [#11584](https://github.com/ethereum/EIPs/pull/11584) | nerolation | Add 2D nonces (delta against EIP-8141) | Closed in favor of the standalone Keyed Nonces EIP (#11598); same author/concept moved to a Standards Track sibling |
 
 ## Key Contributors
 
@@ -91,7 +92,7 @@
 | 0xrcinus (Orca) | @0xrcinus | Active reviewer, mode simplification proposals |
 | Francisco Giordano | @frangio | Active reviewer (OpenZeppelin), naming/semantics |
 | nlordell | @nlordell | Early reviewer, APPROVE propagation analysis |
-| Peter Garamvolgyi | @thegaram33 | Early reviewer, EIP-3607 issue |
+| Peter Garamvolgyi | @thegaram33 | Early reviewer; author of PR #11272 (EIP-3607 carve-out for frame transactions, merged May 5 after sitting open since Feb 6) |
 | Danno Ferrin | @shemnon | Reviewer, scope creep concerns |
 | jochem-brouwer | @jochem-brouwer | Detailed canonical paymaster review |
 | Seungmin Jeon | @sm-stack | PoC implementation, atomic batch bit flag idea |
@@ -105,6 +106,7 @@
 | Nero_eth | Nero_eth | ethresear.ch analyst; "Three Gates to Privacy" post framing mempool/FOCIL/VOPS constraints on privacy-pool flows through frame transactions |
 | Toni Wahrstätter | @nerolation | Author of PR #11584 (2D nonces) and co-author of EIP-8250 Keyed Nonces for Frame Transactions (PR #11598) |
 | Thomas Thiery | @soispoke | Lead author of EIP-8250 Keyed Nonces for Frame Transactions (PR #11598) |
+| German Abal | @ariutokintumi | Co-founder/architect of EVVM (contract-native AA framework); contributed a production-perspective comparison on the magicians thread (post #148, May 7) on per-environment policy, async execution, batch granularity, and reservation primitives |
 
 ## External Resources
 

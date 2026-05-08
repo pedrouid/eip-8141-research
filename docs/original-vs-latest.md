@@ -4,7 +4,7 @@
 
 ## Structural Comparison
 
-| Aspect | Original (Jan 29) | Latest (May 5) |
+| Aspect | Original (Jan 29) | Latest (May 8) |
 |---|---|---|
 | **Opcodes** | `APPROVE`, `TXPARAMLOAD`, `TXPARAMSIZE`, `TXPARAMCOPY` (4) | `APPROVE`, `TXPARAM`, `FRAMEDATALOAD`, `FRAMEDATACOPY`, `FRAMEPARAM` (5) |
 | **APPROVE mechanism** | Return codes 0-4 at top-level frame | Transaction-scoped with scope operand (0x1, 0x2, 0x3), callable at any depth, double-approval prevention |
@@ -20,7 +20,8 @@
 | **EOA support** | None | Full default code: ECDSA (low-`s` enforced) + P256 (domain-separated) verification in VERIFY; SENDER and DEFAULT revert. Multi-call comes from frame batching, not from a default-code payload (PR #11577, Apr 29) |
 | **Signature hash** | VERIFY data NOT elided (bug) | VERIFY data properly elided; direct mode comparison; EIP-2718 type-byte prefix included (PR #11544, merged Apr 22) |
 | **Mempool policy** | Not defined (just "Security Considerations" section) | Comprehensive: validation prefixes, canonical paymaster, banned opcodes, MAX_VERIFY_GAS |
-| **Requires header** | `2718, 4844` | `1559, 2718, 4844` (PR #11567 dropped 7997 on Apr 30) |
+| **Requires header** | `2718, 4844` | `1559, 2718, 3607, 4844` (PR #11567 dropped 7997 on Apr 30; PR #11272 added 3607 on May 5 with an explicit carve-out for frame transactions) |
+| **EIP-3607 origination check** | Inherited unconditionally (would block contract-account senders) | Carved out for frame transactions: `SENDER` frames may originate from contract accounts; non-frame txs unchanged (PR #11272, merged May 5) |
 | **Authors** | 7 co-authors | 8 co-authors (derekchiang added) |
 | **Receipt** | Not specified in detail | Includes `payer` field and per-frame `[status, gas_used, logs]` |
 | **SENDER frame requirements** | Could execute without prior approval | Requires `sender_approved == true` |
@@ -84,7 +85,7 @@ The original spec deliberately had no `value` field in frames, on the principle 
 
 ## Active Proposals That May Change the Comparison
 
-As of May 5, 2026, several open PRs propose changes that would extend this comparison table:
+As of May 8, 2026, several open PRs propose changes that would extend this comparison table:
 
 | Proposal | PR | Impact |
 |---|---|---|
@@ -93,7 +94,7 @@ As of May 5, 2026, several open PRs propose changes that would extend this compa
 | **VERIFY frame count constraint** | [#11488](https://github.com/ethereum/EIPs/pull/11488) | Would add explicit `<= 2` VERIFY frame limit to static constraints (some overlap with merged #11521) |
 | **Guarantors** | [#11555](https://github.com/ethereum/EIPs/pull/11555) | Would introduce a "guarantor" payer that pays even if sender validation fails, letting mempool nodes skip sender simulation and admit shared-state-reading VERIFY frames |
 | **Payer approves before sender** | [#11580](https://github.com/ethereum/EIPs/pull/11580) | Alternative to #11555: relaxes the ordering rule so a payer can approve before the sender, letting a payer commit to gas without simulating sender validation. Briefly auto-merged as #11575 on Apr 28 and reverted by #11579 on Apr 29; reopened as a draft |
-| **2D nonces** | [#11584](https://github.com/ethereum/EIPs/pull/11584) | Would replace the single sender nonce with `(nonce_key, nonce_seq)`, gas-priced per-key first use; opens parallel-sequence transactions per sender. Co-evolving with the standalone Keyed Nonces EIP (PR #11598) |
-| **EIP-8250: Keyed Nonces for Frame Transactions** | [#11598](https://github.com/ethereum/EIPs/pull/11598) | New sibling EIP (soispoke, nerolation, lightclient, vbuterin) layering keyed-nonce state in a `NONCE_MANAGER` system contract on top of EIP-8141, atomic with payment approval and replay-domain-separated for privacy nullifiers and session keys (resubmitted from #11597) |
+| **EIP-8250: Keyed Nonces for Frame Transactions** | [#11598](https://github.com/ethereum/EIPs/pull/11598) | New sibling EIP (soispoke, nerolation, lightclient, vbuterin) layering keyed-nonce state in a `NONCE_MANAGER` system contract on top of EIP-8141, atomic with payment approval and replay-domain-separated for privacy nullifiers and session keys (resubmitted from #11597). PR #11584's delta-against-8141 framing was closed May 8 in favor of this standalone EIP |
+| **Frames cleanup refactor** | [#11621](https://github.com/ethereum/EIPs/pull/11621) | lightclient's coherence sweep over the spec text (+185/-345). Restructures spec body, adds skipped-batch receipt status (`0x3`), defines FRAMEPARAM operand order, removes P256 from default code, lets default code accept SENDER and DEFAULT frames so top-level value transfers work, and adds 7623 and 7702 to `requires`. Bot reports all reviewers approved on the open day (May 7); not yet merged |
 | **Frame returndata opcodes** | Under discussion (post #137) | Proposed `FRAMERETURNDATASIZE`/`FRAMERETURNDATACOPY` to enable multi-step flows, no PR yet |
 

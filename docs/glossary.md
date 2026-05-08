@@ -180,7 +180,7 @@ Proposals EIP-8141 depends on, supersedes, or interacts with. For full context o
 
 **[EIP-3074](https://eips.ethereum.org/EIPS/eip-3074)** — `AUTH`/`AUTHCALL` opcodes giving EOAs the ability to delegate authorization to contracts. Never shipped; its design principles feed into EIP-8141.
 
-**[EIP-3607](https://eips.ethereum.org/EIPS/eip-3607)** — Rejects transactions from senders that have deployed code. Tensions with frame transactions for smart accounts; [PR #11272](https://github.com/ethereum/EIPs/pull/11272) proposes disabling it for frame transactions.
+**[EIP-3607](https://eips.ethereum.org/EIPS/eip-3607)** — Rejects transactions from senders that have deployed code. Conflicted with frame transactions allowing contract-account senders; [PR #11272](https://github.com/ethereum/EIPs/pull/11272) (merged May 5, 2026) added EIP-3607 to the `requires` header with an explicit carve-out: the origination check does not apply to frame transactions, while non-frame transaction validation is unchanged.
 
 **[EIP-4844](https://eips.ethereum.org/EIPS/eip-4844)** — Blob transactions for L2 data availability. EIP-8141 carries blob fields (`max_fee_per_blob_gas`, `blob_versioned_hashes`); listed in `requires`.
 
