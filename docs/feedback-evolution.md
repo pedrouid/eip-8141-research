@@ -445,9 +445,9 @@ The exchange does not change the spec yet but reframes the design space: atomic 
 
 ---
 
-## Phase 10: EIP-3607 Carve-Out and Spec Coherence Cleanup (May 5 – May 8)
+## Phase 10: EIP-3607 Carve-Out and EVVM External Perspective (May 5 – May 7)
 
-*Phase 10 closes a long-pending open issue and opens a coherence-cleanup effort. Thegaram's PR #11272 (open since Feb 6) finally lands, explicitly carving frame transactions out of the EIP-3607 origination check, with EIP-3607 added to `requires` so the carve-out is declared rather than implied. An external production perspective lands on the thread the same week: ariutokintumi, co-founder of EVVM (a contract-native AA framework with ~200 deployments since 2023), reads through and contributes a contract-vs-protocol comparison covering institutional policy, async-execution compatibility, batch success granularity, and reservation primitives. Two days later, lightclient opens PR #11621, a 530-line readability sweep over the spec text that removes net 160 lines while introducing a few small functional tweaks (skipped-status receipt entry, FRAMEPARAM operand order, P256 removed from default code, default code no longer reverts on SENDER/DEFAULT modes). The phase is mostly about consolidation rather than new design lines, but the cleanup PR's "removed P256 from default code" change deserves Phase 11 review attention if it merges as-is.*
+*Phase 10 closes a long-pending open issue and brings an external production data point onto the thread. Thegaram's PR #11272 (open since Feb 6) finally lands, explicitly carving frame transactions out of the EIP-3607 origination check, with EIP-3607 added to `requires` so the carve-out is declared rather than implied. The same week, ariutokintumi, co-founder of EVVM (a contract-native AA framework with ~200 deployments since 2023), reads through the full thread and contributes a contract-vs-protocol comparison covering institutional policy, async-execution compatibility, batch success granularity, and reservation primitives. Both events sit at the consolidation edge of the high-velocity Phase 5-9 churn: a long-overdue compatibility fix on one side and an outside production reference point on the other.*
 
 ### EIP-3607 Carve-Out for Frame Transactions (Merged)
 
@@ -476,6 +476,10 @@ References from the post:
 - EVVM docs: https://www.evvm.info/docs/intro
 - Signature constructor: https://www.evvm.dev
 
+## Phase 11: Spec Coherence Cleanup and Editorial Review (May 7 – May 10)
+
+*Phase 11 opens with lightclient's PR #11621, a 530-line readability sweep over the spec text that removes net 160 lines while introducing a few small functional tweaks (skipped-status receipt entry, FRAMEPARAM operand order, P256 removed from default code, default code no longer reverts on SENDER/DEFAULT modes). samwilsn responds with an editorial review on the spec text (naming consistency, `FRAMEDATACOPY` revert semantics, opcode-budget question), and forshtat extends the protocol-vs-mempool layering pattern from atomic batching to the `SSTORE`-in-`VERIFY` ban. The phase is mostly consolidation rather than new design lines, but the cleanup PR's "removed P256 from default code" change and the unanswered `SSTORE`-in-`VERIFY` layering question are open items to watch into the next phase.*
+
 ### Frames Cleanup Refactor (Open)
 
 *lightclient — PR #11621, opened May 7*
@@ -492,10 +496,33 @@ The structural changes:
 - **Requires header**: `7623` (calldata gas pricing) and `7702` (delegation indicators) added, formalizing dependencies that were already implicit in spec text.
 - **Abstract and Motivation rewritten**: leads with the structural "frames" concept and lists the practical wins (key rotation, simpler smart accounts via batching, decentralized fee payment) before the post-quantum off-ramp framing.
 
-The bot reports "✅ All reviewers have approved" the same day, with no public review comments. Two changes deserve Phase 11 review attention if they land as-is:
+The bot reports "✅ All reviewers have approved" the same day, with no public review comments. Two changes deserve sustained review attention if they land as-is:
 
 1. **Removing P256 from default code** retracts the hardware-wallet / passkey bridge that was the headline EOA-support story since PR #11379 (Mar 10). The PR description does not justify it; readers should watch whether this was a deliberate scope-narrowing or an unintended consequence of the cleanup.
 2. **Default code accepting SENDER and DEFAULT frames** changes the semantics of native ETH transfer to a fresh EOA via a frame transaction; today such a transfer reverts in default code, after this it succeeds. This is small in implementation but visible to users and indexers.
 
-Net spec impact when merged will be the largest single refactor since PR #11521 (Apr 14). Tracked here so that a Phase 11 split can fan it out fully if it lands without further changes.
+Net spec impact when merged will be the largest single refactor since PR #11521 (Apr 14). Tracked here so the next sync can fan it out fully if it lands without further changes.
+
+### Editor Review and Spec Coherence Questions (External)
+
+*samwilsn — EthMagicians post #149, May 8*
+
+Sam Wilson posted an editorial review of the spec text shortly after PR #11621 opened, focused on naming consistency and minor specification gaps rather than the structural redesign. Four concrete observations:
+
+1. **Empty-target representation**: `frame.target is None` should likely be `frame.target = b""` for consistency with how empty byte strings are written elsewhere in the spec.
+2. **`APPROVE_PAYMENT_AND_EXECUTION` naming**: the constant should be renamed to match evaluation order; today's name implies payment precedes execution scope but the scope evaluation reads the bits in the opposite order.
+3. **Undefined "paymaster frame"**: the term appears in rationale text without a prior definition; either define it or rephrase as "the frame at `paymaster_frame_index`".
+4. **Five opcode slots**: questions whether the five new opcodes (`APPROVE`, `VERIFY`, `FRAMEPARAM`, `TXPARAM`, `FRAMEDATACOPY`) all justify their permanent opcode-space cost, acknowledging that the alternatives (one combined opcode with selectors, system-contract precompiles) each carry their own ergonomic and gas-accounting downsides.
+
+The most substantive design question is on `FRAMEDATACOPY` revert behavior: Wilson notes `CALLDATACOPY` does not revert on out-of-bounds reads (it zero-pads instead) and asks why `FRAMEDATACOPY` was chosen to revert. The trade-off is real. Reverting on out-of-bounds catches a class of integer-arithmetic bugs at execution time at the cost of forcing contracts to know exact frame-data sizes ahead of the call. Zero-padding lets contracts copy "up to N bytes" without precomputing the actual length but silently absorbs miscalculations. The question is not formally answered on the thread; in practice the per-frame `FRAMEDATA` regions are typed and well-known to the validating contract, so the revert semantic is closer to a typed-read assertion than to a memory primitive. This is one to track if PR #11488 (open since Apr 6) gets folded into the cleanup.
+
+### Layering Pattern Extends to VERIFY Restrictions (External)
+
+*alex-forshtat-tbk — EthMagicians post #150, May 10*
+
+Forshtat returned to the protocol-vs-mempool layering thread (posts #146-147 in Phase 9 and PR #11580 in Phase 8) and asked whether the same pattern should extend to the `SSTORE` restriction on `VERIFY` frames: "do you think the same can be said about other things where VERIFY frames are treated differently, say, for example the SSTORE not being allowed on the protocol level vs. as a mempool rule?"
+
+The current spec bans `SSTORE` inside `VERIFY` frames at the protocol level on the rationale that storage writes in validation make the mempool's "did this validate?" decision dependent on observed state, which breaks the cheap parallel-validation property the restrictive mempool tier relies on. Forshtat's question accepts the mempool problem but asks whether the restriction belongs in the protocol or in mempool policy. If it lives in mempool policy, an unrestricted execution-layer can still admit such transactions through a permissive tier or out-of-band inclusion (block builders, restrictive-pool extensions), preserving the mempool guarantees only where they are needed.
+
+The pattern is the same one derek articulated for atomic batching in post #147 and lightclient encoded in PR #11580: protocol semantics stay maximally permissive, mempool policy carries the restrictions that the canonical pool needs for safety. The thread has not yet replied, but the question is structurally important enough to flag as the trailing concern of Phase 10. If subsequent PRs migrate the `SSTORE`-in-`VERIFY` ban into mempool policy, the spec text in `current-spec.md` and `mempool-strategy.md` will need a paired update.
 

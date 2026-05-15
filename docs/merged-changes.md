@@ -326,7 +326,7 @@ All reviewers approved by Apr 18; auto-merged on Apr 22 with no further debate.
 
 ## Active/Open PRs
 
-*As of May 8, 2026.* These PRs represent active design proposals that may change the spec in the near future.
+*As of May 11, 2026.* These PRs represent active design proposals that may change the spec in the near future.
 
 ### PR #11481: Add signatures list to outer tx (open since Apr 2)
 
@@ -398,7 +398,7 @@ From lightclient's PR description (carried over from #11575):
 - **Proposed change**: New EIP introducing `(nonce_key, nonce_seq)` replay-protection. `nonce_key == 0` aliases the legacy account nonce; non-zero keys live in storage of a `NONCE_MANAGER` system contract (revert-only runtime code), keyed by `keccak256(left_pad_32(sender) || uint256_to_bytes32(nonce_key))`. `nonce_seq` is `uint64`, with `MAX_NONCE_SEQ = 2**64 - 1` reserved for exhausted state. Nonce consumption is lifted into the payment-approval transition (the unique `APPROVE` whose scope includes `APPROVE_PAYMENT`) so the spent-once guarantee is atomic with payment, surviving later-frame reverts and `SENDER` atomic-batch rollback. `KEYED_NONCE_FIRST_USE_GAS = 20000` (zero-to-nonzero `SSTORE` reference) is charged on first use of a non-zero key. New `TXPARAM(0x0B)` returns `tx.nonce_key`; `TXPARAM(0x0C)` returns the pre-state legacy sender nonce.
 - **Single-use semantics**: enables nullifier-style applications to authenticate `(sender, nonce_key, nonce_seq == 0)` in `VERIFY` and rely on protocol-atomic spent-once. Replay protection scopes to `(sender, nonce_key, nonce_seq)`; different non-zero keys remove only the replay-ordering dependency, not balance or shared-state conflicts.
 - **Mempool guidance**: does not relax EIP-8141's one-pending-tx-per-sender rule, but removes the protocol-level obstacle to a future keyed-aware mempool that admits parallel pending transactions on distinct non-zero keys per sender.
-- **Status**: Draft EIP-8250, awaits an editor reviewer. abcoathup left editor comments on May 4; CI flagged that the initial commit history still contained the unrelated `eip-FOCIL.md` parent, but the PR remains open. Resubmitted from #11597 the same day; the original PR accidentally bundled an unrelated `eip-FOCIL.md` change and was closed.
+- **Status**: Draft EIP-8250, awaits an editor reviewer. abcoathup left an approving non-editor review on May 6 ("Looks good enough for a draft", with a small preference for *transaction pool* over *mempool*) and noted explicitly that an editor still needs to sign off before merge; CI flagged that the initial commit history still contained the unrelated `eip-FOCIL.md` parent, but the PR remains open. Resubmitted from #11597 the same day; the original PR accidentally bundled an unrelated `eip-FOCIL.md` change and was closed.
 
 ### PR #11621: Frames cleanup (open since May 7)
 
@@ -414,7 +414,7 @@ From lightclient's PR description (carried over from #11575):
   - **Requires header**: adds `7623` (calldata gas pricing) and `7702` (delegation indicators); both were already implicit in the spec text but not declared.
   - **Abstract and Motivation**: rewritten to lead with the "frames" structural concept and then the post-quantum off-ramp, rather than the other way around. New motivation bullets call out native key rotation, simpler/safer smart accounts via batching, and decentralized fee payment.
 - **Key review discussion**: bot says "✅ All reviewers have approved" the same day the PR opened. No public review comments yet. The "removed P256 from default code" change in particular deserves scrutiny: P256 was the bridge for hardware wallets and passkeys, and the rationale for dropping it is not in the PR description.
-- **Status**: Open as of May 8, awaiting merge. Will be the largest spec-text refactor since PR #11521 (Apr 14 broad spec tightening). Not yet merged at this sync; tracked here so the next sync can fan it out fully if it lands.
+- **Status**: Open as of May 11, awaiting merge. Will be the largest spec-text refactor since PR #11521 (Apr 14 broad spec tightening). Not yet merged at this sync; tracked here so the next sync can fan it out fully if it lands. samwilsn's May 8 editorial review (post #149) raised a handful of naming and `FRAMEDATACOPY` revert-semantics questions that may surface as follow-up commits before merge.
 
 ---
 

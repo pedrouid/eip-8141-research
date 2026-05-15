@@ -107,6 +107,7 @@
 | Toni Wahrstätter | @nerolation | Author of PR #11584 (2D nonces) and co-author of EIP-8250 Keyed Nonces for Frame Transactions (PR #11598) |
 | Thomas Thiery | @soispoke | Lead author of EIP-8250 Keyed Nonces for Frame Transactions (PR #11598) |
 | German Abal | @ariutokintumi | Co-founder/architect of EVVM (contract-native AA framework); contributed a production-perspective comparison on the magicians thread (post #148, May 7) on per-environment policy, async execution, batch granularity, and reservation primitives |
+| Sam Wilson | @SamWilsn | EIP editor; spec-coherence review (post #149, May 8) on naming, empty-target representation, opcode-budget, and `FRAMEDATACOPY` revert semantics |
 
 ## External Resources
 
