@@ -27,19 +27,20 @@ Every EOA gets the following behavior without opt-in, deployment, or signed auth
 2. Read approval scope from the flags field: `scope = frame.flags & 3`. If `scope == 0`, revert.
 3. Read first byte of `frame.data` as `signature_type`:
    - `0x0` (secp256k1): parse `(v, r, s)`, enforce low-`s`, reject failed `ecrecover`, require `frame.target == ecrecover(sig_hash, v, r, s)`.
-   - `0x1` (P256): parse `(r, s, qx, qy)`, require `frame.target == keccak(0x04 | qx | qy)[12:]` (domain-separated), reject invalid public keys, require `P256VERIFY(sig_hash, r, s, qx, qy) == true`.
    - Anything else: revert.
 4. Call `APPROVE(scope)`.
 
+PR #11621 (merged May 11) removed the P256 (`0x1`) branch from default code. Hardware wallets and passkey-based accounts that previously relied on default-code P256 verification now have to ship that logic themselves (via deployed code or a future extension EIP). secp256k1 ECDSA is the only signature scheme that ships in the protocol-level default code.
+
 ### SENDER mode
 
-Reverts. PR #11577 (merged Apr 29) removed the earlier SENDER-mode logic, which decoded `frame.data` as an RLP-encoded call list and executed each call inline. With native frame batching (PR #11395) and per-frame `value` (PR #11534) both in the spec, wallets now compose multi-call sequences as a sequence of SENDER frames at the transaction level instead of packing calls into a single frame's payload. Atomic semantics come from the [atomic batch flag (bit 2 of `flags`)](https://eips.ethereum.org/EIPS/eip-8141#mode-flags) on consecutive SENDER frames.
+Top-level value transfer succeeds. PR #11621 (merged May 11) changed default code so that `SENDER` frames no longer revert. The frame's value (per [PR #11534](https://github.com/ethereum/EIPs/pull/11534), Apr 16) is transferred to `tx.sender` at the top-level call boundary using ordinary CALL value-transfer semantics, then the frame returns with empty data. The earlier RLP-encoded call-list payload was removed by PR #11577 (Apr 29); multi-call sequences now compose at the frame-list level via batching, not inside a single frame's payload. Atomic semantics come from the [atomic batch flag (bit 2 of `flags`)](https://eips.ethereum.org/EIPS/eip-8141#mode-flags), which PR #11652 (May 12) extended to all frame modes.
 
-**Native ETH transfer**: A simple ETH transfer is one SENDER frame with `target = destination`, `value = amount`, `data = empty`. The protocol transfers ETH at the top-level frame call boundary using ordinary CALL value-transfer semantics; the wallet does not construct any default-code payload.
+**Native ETH transfer**: A simple ETH transfer is one SENDER frame with `target = destination`, `value = amount`, `data = empty`. The protocol transfers ETH at the top-level frame call boundary; the wallet does not construct any default-code payload. After PR #11621, a transfer to a fresh EOA (default-code target) also completes cleanly rather than reverting in default code.
 
 ### DEFAULT mode
 
-Default code reverts. DEFAULT frames are used when targeting deployed contracts: first-frame account deployment (target = deterministic deployer) and last-frame paymaster post-op refunds (target = paymaster contract).
+Default code returns with empty data without performing any other action. PR #11621 also relaxed the previous unconditional revert on `DEFAULT` for default-code targets, which lets a default-code account receive a `DEFAULT`-mode call (e.g. as a value transfer terminator). DEFAULT frames are typically used to target deployed contracts (first-frame account deployment, last-frame paymaster post-op) but the default-code path no longer breaks if a frame lands on a codeless account in that mode.
 
 ---
 
@@ -64,7 +65,7 @@ Default code reverts. DEFAULT frames are used when targeting deployed contracts:
 | Authorization tx | Required `set_code` signing | None |
 | Delegate deployment | Required (deploy + audit) | None (protocol logic) |
 | Per-tx flexibility | Limited to delegate's features | Wallet composes per transaction |
-| Signature schemes | Whatever delegate implements | secp256k1, P256 baked in |
+| Signature schemes | Whatever delegate implements | secp256k1 baked in (P256 removed from default code by PR #11621, May 11; accounts that need P256 must ship code) |
 | Gas sponsorship | Delegate must implement | Any EOA via default VERIFY |
 | Reversal cost | Another `set_code` authorization | Nothing to reverse |
 
@@ -99,7 +100,7 @@ Default code covers the common case but not everything:
 - **Multisig authorization**: more than one signer
 - **Social recovery**: trusted parties rotating the signing key
 - **Session keys**: scoped, time-bounded keys with per-call rules
-- **Custom signature schemes** beyond secp256k1 and P256
+- **Custom signature schemes** beyond secp256k1 (including P256 for hardware wallets and passkeys, after PR #11621 removed it from default code)
 - **State-dependent validation**: rules reading more than `tx.sender`'s storage
 - **Non-trivial paymaster logic**: rate limiting, allowlists, etc.
 

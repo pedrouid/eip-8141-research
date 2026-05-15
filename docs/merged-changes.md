@@ -324,9 +324,78 @@ All reviewers approved by Apr 18; auto-merged on Apr 22 with no further debate.
 
 ---
 
+## Frames Cleanup and Keyed Nonces EIP — May 11, 2026
+
+*Why this mattered: two large merges land together within minutes of each other on May 11. lightclient's PR #11621 is the largest spec-text refactor since PR #11521 (Apr 14), restructuring the spec body and shipping a handful of small functional tweaks. soispoke's PR #11598 lands the standalone Keyed Nonces proposal as EIP-8250, the first EIP to require EIP-8141 as a dependency.*
+
+### PR #11621: Frames cleanup
+
+**Author**: lightclient | **Merged**: May 11 (opened May 7)
+
+- **Why**: Two months of high-velocity merges (Phase 5 through Phase 9) left the spec text full of duplicated reasoning, stale section orderings, and inconsistencies between rationale and behavior. Opened explicitly as a readability sweep: "improve the EIP's readability without changing much functionality." A handful of small functional changes ride along where they fall out of the cleanup naturally.
+- **Spec changes** (+185/-345, net -160 lines):
+  - **Restructure**: Spec body reorganized under `### Frame Transaction` with `#### Payload Encoding` and `#### Field Definitions` subsections. Field definitions are now centralized into a single bulleted list per object (outer payload, frame object) instead of scattered prose.
+  - **Skipped status**: Receipt status `0x3` introduced for frames skipped as part of an atomic batch (previously skipped frames had no distinct status).
+  - **FRAMEPARAM operand order**: Order of `FRAMEPARAM` operands explicitly defined (was implicit and inconsistent across rationale).
+  - **Default code**: P256 signature scheme removed from default code (only ECDSA secp256k1 remains in the protocol-shipped default code).
+  - **Default code on SENDER/DEFAULT**: default code does not revert on `SENDER` or `DEFAULT` frames so top-level value transfers to a default-code account work correctly. This is the visible functional change: the previous default code reverted unconditionally on those modes, breaking simple ETH transfers to a fresh EOA via a frame transaction.
+  - **Requires header**: adds `7623` (calldata gas pricing) and `7702` (delegation indicators); both were already implicit in the spec text but not declared.
+  - **Abstract and Motivation**: rewritten to lead with the "frames" structural concept and then the post-quantum off-ramp, rather than the other way around. New motivation bullets call out native key rotation, simpler/safer smart accounts via batching, and decentralized fee payment.
+- **Key review discussion**: bot reported "✅ All reviewers have approved" the same day the PR opened, no public review comments. samwilsn followed up four days later with an editorial review (EthMagicians post #149) flagging an `APPROVE_PAYMENT_AND_EXECUTION` naming-vs-evaluation-order mismatch, an undefined "paymaster frame" term, a question whether all five new opcodes earn their permanent slot, and a substantive `FRAMEDATACOPY`-reverts-vs-`CALLDATACOPY`-zero-pads design question. None of those gated the merge; auto-merged on May 11 alongside #11598.
+- **Significance**: largest spec-text refactor since PR #11521 (Apr 14 broad spec tightening). The "removed P256 from default code" change retracted the hardware-wallet / passkey bridge that had been part of the EOA-support story since PR #11379 (Mar 10); the rationale for dropping it is not in the PR description. The "default code no longer reverts on SENDER/DEFAULT" change is small in implementation but visible to users and indexers (native ETH transfer to a fresh EOA via a frame transaction now succeeds rather than reverting).
+
+### PR #11598: Add EIP — Keyed Nonces for Frame Transactions
+
+**Authors**: soispoke (Thomas Thiery), nerolation, lightclient, vbuterin | **Merged**: May 11 (opened May 4)
+
+- **Why**: A single linear sender nonce blocks privacy-pool flows, smart-wallet session keys, and shared-sender relayer designs from running concurrent transactions. The keyed-nonce proposal was first sketched as a delta against EIP-8141 in PR #11584 (closed in favor of this EIP) and then packaged as a separate Standards Track EIP that requires EIP-8141 rather than as a delta to it.
+- **Spec changes**: New EIP at `EIPS/eip-8250.md` introducing `(nonce_key, nonce_seq)` replay-protection. `nonce_key == 0` aliases the legacy account nonce; non-zero keys live in storage of a `NONCE_MANAGER` system contract (revert-only runtime code `0x60006000fd`), keyed by `keccak256(left_pad_32(sender) || uint256_to_bytes32(nonce_key))`. `nonce_seq` is `uint64`, with `MAX_NONCE_SEQ = 2**64 - 1` reserved for exhausted state. Nonce consumption is lifted into the payment-approval transition (the unique `APPROVE` whose scope includes `APPROVE_PAYMENT`) so the spent-once guarantee is atomic with payment, surviving later-frame reverts and `SENDER` atomic-batch rollback. `KEYED_NONCE_FIRST_USE_GAS = 20000` (zero-to-nonzero `SSTORE` reference) is charged on first use of a non-zero key. New `TXPARAM(0x0B)` returns `tx.nonce_key`; `TXPARAM(0x0C)` returns the pre-state legacy sender nonce.
+- **Key review discussion**: abcoathup left an approving non-editor review on May 6 ("Looks good enough for a draft", with a small preference for *transaction pool* over *mempool*) and noted explicitly that an editor would still need to sign off; lightclient (as EIP editor) approved on May 11 and auto-merge fired the same minute. The CI flag on commit `4b0dcbfc` (initial commit history contained the unrelated `eip-FOCIL.md` change inherited from #11597's branch) was resolved without forcing a fresh PR.
+- **Significance**: first EIP to require EIP-8141 in its dependency header, making the EIP-8141 + EIP-8250 pair the first compose-by-requires AA stack in the EIP series. Establishes the protocol-vs-mempool layering pattern at the EIP level: the mempool one-pending-per-sender rule lives in EIP-8141, the parallel-sequence primitive lives in EIP-8250, and a future keyed-aware mempool policy can compose them without re-litigating EIP-8141's payload schema.
+
+---
+
+## Atomic Batching Extended to All Frame Modes — May 12, 2026
+
+### PR #11652: Support atomic batching with any frames
+
+**Author**: derekchiang | **Merged**: May 12 (opened same day)
+
+- **Why**: Atomic batching was introduced in PR #11395 (Mar 25) limited to consecutive `SENDER` frames. EthMagicians posts #146-147 (alex-forshtat-tbk, derek, May 5) and #150 (alex-forshtat-tbk, May 10) argued the protocol should not constrain which frame modes can batch; the restriction belongs in mempool policy where validation-prefix safety matters, not in protocol semantics. Credits to forshtat for the suggestion (per derek's PR description).
+- **Spec changes** (+9/-10, net -1 line):
+  - Drops the `frame.mode == SENDER` and `tx.frames[i + 1].mode == SENDER` assertions from atomic-batch validity, allowing the flag on any mode.
+  - Generalizes the atomic-batch definition: "a maximal contiguous sequence of frames `[i, j]` where `j > i`, frames `i` through `j - 1` have `ATOMIC_BATCH_FLAG` set, and frame `j` does not". The previous wording required all frames to be `SENDER`.
+  - Mempool admission rule expanded: "No frame in the validation prefix may have the `ATOMIC_BATCH_FLAG` set." This is the mempool-side carve-out that keeps the restrictive tier safe while the protocol-level restriction lifts.
+  - Atomic-batching rationale rewritten to drop the SENDER-mode language ("multiple frames" rather than "multiple `SENDER` frames").
+- **Key review discussion**: lightclient approved within 30 minutes ("LGTM"), auto-merge fired the same day. EthMagicians post #152 (derek, May 12) explained the VERIFY-frame exclusion logic: `SSTORE` on `VERIFY` is banned so the invariant "removing VERIFY frames doesn't change tx behavior" holds, which lets builders aggregate signature verification. Letting VERIFY frames participate in atomic batches would create a path for a later frame to revert a VERIFY frame's effects, breaking the invariant. Derek's post #153 noted no frame currently reverts a VERIFY frame's effects, and post #154 announced the merge.
+- **Significance**: small in line count but architecturally important. Encodes the protocol-vs-mempool layering pattern (PR #11580, forshtat's posts) at the spec level: atomic batching is now a protocol primitive applicable to all frame modes, with the restrictive-tier mempool policy carving out validation-prefix atomic batches separately. Opens DEFAULT-frame and (under permissive-tier propagation) VERIFY-frame batching patterns for private pools, post-op cleanup, and revert-protected validation sequences.
+
+---
+
+## EXPIRY_VERIFIER Frame Added — May 14, 2026
+
+### PR #11662: Add EXPIRY_VERIFIER frame for tx expiry
+
+**Author**: nerolation (Toni Wahrstätter) | **Merged**: May 14 (opened May 13)
+
+- **Why**: Frame transactions previously had no protocol-level expiration. Senders relied on either (a) externally-managed off-chain dead-mans-switch deadlines or (b) a custom `VERIFY` frame that read `TIMESTAMP`, which the restrictive mempool tier forbids. Without a sanctioned deadline mechanism, transactions can sit in the mempool indefinitely and be inserted out of the sender's intended time window. PR #11662 introduces a single canonical address whose verifier semantics are codepath-pinned, so deadline checks ride alongside any frame transaction without re-introducing the validation-time `TIMESTAMP` hazard.
+- **Spec changes** (+88/-33 lines):
+  - New constants: `EXPIRY_VERIFIER = address(0x8141)` and `EXPIRY_DATA_LENGTH = 8`.
+  - New "Expiry Verifier Frame" section: a `VERIFY` frame whose `frame.target == EXPIRY_VERIFIER` is the expiry-verifier frame. `frame.data` is interpreted as an 8-byte big-endian unix-seconds deadline; the canonical runtime code at `EXPIRY_VERIFIER` reverts unless `block.timestamp <= expiry_timestamp`. Constraints: `frame.flags == 0`, `frame.value == 0`, `len(frame.data) == 8`; at most one expiry-verifier frame per transaction.
+  - Canonical runtime code shipped inline (28-byte sequence `0x60083614600a575f5ffd5b5f3560c01c4211601657005b5f5ffd`); clients may omit explicit EVM execution and perform the deadline check natively provided externally observable behavior is identical.
+  - **Sighash change**: expiry-verifier `frame.data` is *not* elided from the signature hash (every other `VERIFY` frame's data is). The deadline is a sender-authored commitment that must not be malleable in transit.
+  - **VERIFY semantics relaxed**: "If the frame does not successfully call `APPROVE`, the transaction is invalid" softens to "If the frame reverts, the transaction is invalid". A VERIFY frame can now exit cleanly (without `APPROVE`) and be valid; only an expiry-verifier frame uses this path, but the framing change is general. The static-validation rule that required at least one approval bit on every `VERIFY` frame is removed.
+  - **Mempool rules**: validation-prefix dependency list adds "the block timestamp as read by an expiry verifier frame". Public mempool admission MUST drop transactions whose expiry is less than the node's current view of `block.timestamp`. Expiry-verifier frames are exempt from validation trace rules, storage-dependency tracking, and `MAX_VERIFY_GAS`. The `TIMESTAMP` opcode ban gets a single carve-out: permitted in an expiry-verifier frame executing the canonical runtime code at `EXPIRY_VERIFIER`.
+  - **Structural rules table**: new `expiry_verify` shape entry (mode `VERIFY`, "Calls the expiry verifier contract"). Mempool-recognized validation-prefix shapes skip expiry-verifier frames when matching (e.g., `[expiry_verify, self_verify]` is recognized as `[self_verify]`).
+  - Banned-opcode VERIFY rule for `self_verify`/`only_verify`/`pay` rephrased to "a `self_verify`, `only_verify`, or `pay` frame exits without its required `APPROVE`" (drops the broader VERIFY-without-APPROVE rejection, since expiry-verifier frames are now legitimate VERIFY frames without `APPROVE`).
+- **Key review discussion**: lightclient approved on May 14 ("This is great! Thanks Toni!" with a rocket reaction). Toni's PR description flagged one open question: whether the canonical runtime reads `TIMESTAMP` (current draft) or the block header directly. The submitted version reads `TIMESTAMP` and adds the explicit carve-out to the `TIMESTAMP` ban; this choice was not separately debated before merge. Auto-merge fired the same day.
+- **Significance**: first new frame shape since the original Jan 29 design and the first time the restrictive mempool tier admits a controlled dependency on `block.timestamp`. The "pinned target address whose runtime is fixed at activation" pattern (similar to `ENTRY_POINT`, EIP-4788, EIP-2935) becomes the second protocol-codepath inside EIP-8141 after the default code. The sighash-non-elision for expiry-verifier `frame.data` is the first carve-out from "VERIFY frame data is elided" since PR #11205 (Jan 29 day-0 fix); future system-frame designs (paymaster reservation, key delegation, etc.) likely follow the same pattern.
+
+---
+
 ## Active/Open PRs
 
-*As of May 11, 2026.* These PRs represent active design proposals that may change the spec in the near future.
+*As of May 15, 2026.* These PRs represent active design proposals that may change the spec in the near future.
 
 ### PR #11481: Add signatures list to outer tx (open since Apr 2)
 
@@ -353,18 +422,6 @@ From derekchiang's PR description:
 
 > This will allow a contract account to use precompiles for verification, while still having code that serves other purpose (e.g. for execution). As a side benefit, this also enables key rotation, since the precompile reads the public key commitment from storage.
 
-### PR #11488: Fix spec inconsistencies (open since Apr 6)
-
-**Author**: chiranjeev13
-
-- **Proposed changes**:
-  - Add static VERIFY frame count check (`<= 2`) to constraints, since `sender_approved` and `payer_approved` are one-shot flags
-  - Fix stale APPROVE scope values in structural rules: `self_verify` → `APPROVE(0x3)`, `only_verify` → `APPROVE(0x2)`, `pay` → `APPROVE(0x1)`
-  - Remove `frame.target != tx.sender` check from default VERIFY code to allow any EOA as paymaster
-- Inspired by node.cm's observations on the EthMagicians thread (posts #135-136)
-- Some of these fixes overlap with changes already merged in PR #11521
-- No reviews yet from core authors
-
 ### PR #11555: Add support for guarantors (open since Apr 22)
 
 **Author**: derekchiang
@@ -390,31 +447,24 @@ From lightclient's PR description (carried over from #11575):
 
 > Alternative to #11555. I think it is simpler to just allow the payer to approve before the sender instead of adding the full guarantor role.
 
-### PR #11598: Add EIP — Keyed Nonces for Frame Transactions (open since May 4)
+### PR #11643: Extended Feature Set (open since May 11)
 
-**Authors**: soispoke (Thomas Thiery), nerolation, lightclient, vbuterin
+**Author**: pedrouid (Pedro Gomes)
 
-- **Why**: Same motivation as #11584 — a single linear sender nonce blocks privacy-pool flows, smart-wallet session keys, and shared-sender relayer designs from running concurrent transactions. PR #11598 packages the keyed-nonce proposal as a separate Standards Track EIP that requires EIP-8141 rather than as a delta to it.
-- **Proposed change**: New EIP introducing `(nonce_key, nonce_seq)` replay-protection. `nonce_key == 0` aliases the legacy account nonce; non-zero keys live in storage of a `NONCE_MANAGER` system contract (revert-only runtime code), keyed by `keccak256(left_pad_32(sender) || uint256_to_bytes32(nonce_key))`. `nonce_seq` is `uint64`, with `MAX_NONCE_SEQ = 2**64 - 1` reserved for exhausted state. Nonce consumption is lifted into the payment-approval transition (the unique `APPROVE` whose scope includes `APPROVE_PAYMENT`) so the spent-once guarantee is atomic with payment, surviving later-frame reverts and `SENDER` atomic-batch rollback. `KEYED_NONCE_FIRST_USE_GAS = 20000` (zero-to-nonzero `SSTORE` reference) is charged on first use of a non-zero key. New `TXPARAM(0x0B)` returns `tx.nonce_key`; `TXPARAM(0x0C)` returns the pre-state legacy sender nonce.
-- **Single-use semantics**: enables nullifier-style applications to authenticate `(sender, nonce_key, nonce_seq == 0)` in `VERIFY` and rely on protocol-atomic spent-once. Replay protection scopes to `(sender, nonce_key, nonce_seq)`; different non-zero keys remove only the replay-ordering dependency, not balance or shared-state conflicts.
-- **Mempool guidance**: does not relax EIP-8141's one-pending-tx-per-sender rule, but removes the protocol-level obstacle to a future keyed-aware mempool that admits parallel pending transactions on distinct non-zero keys per sender.
-- **Status**: Draft EIP-8250, awaits an editor reviewer. abcoathup left an approving non-editor review on May 6 ("Looks good enough for a draft", with a small preference for *transaction pool* over *mempool*) and noted explicitly that an editor still needs to sign off before merge; CI flagged that the initial commit history still contained the unrelated `eip-FOCIL.md` parent, but the PR remains open. Resubmitted from #11597 the same day; the original PR accidentally bundled an unrelated `eip-FOCIL.md` change and was closed.
+- **Why**: Extend EIP-8141 from a transaction-type proposal into a complete native AA upgrade by folding four downstream additions into the EIP itself: guarantors (currently PR #11555), keyed nonces (currently EIP-8250 / PR #11598, just merged), signer binding (currently EIP-8164), and envelope expiry (intersects with the May 14 EXPIRY_VERIFIER merge in PR #11662, taken via a different design).
+- **Proposed change** (+843/-69):
+  - Two new outer-envelope fields: `signer` (uint64 registered-signer id) and `expiry` (uint64 unix-seconds deadline). `signer == 0` aliases the legacy account nonce; non-zero `signer` requires a registered entry. `expiry == 0` means no bound, otherwise tx is invalid unless `block.timestamp < expiry`.
+  - One new system contract: `AuthManager` at a reserved address, holding registered-pubkey signers and keyed nonce streams. Bytecode-equivalent shape to EIP-4788 / EIP-2935 system contracts. Inline pubkeys rejected; signers are registered and referenced by uint64 id.
+  - Zero new opcodes, zero new precompiles, zero account RLP changes.
+  - Approval-scope bit field expands from two bits to three to accommodate `APPROVE_GUARANTEE`; atomic-batch flag moves from bit 2 to bit 3.
+  - `requires` header changes: adds `2935`, `4788`; drops `3607`, `7623`, `7702` (which were just added in #11272 and #11621).
+  - Coauthorship expanded to include soispoke, GregTheGreek, prestwich, nerolation, pedrouid alongside the existing list.
+- **Status**: Open since May 11; CI initially flagged commit errors which were addressed in subsequent commits. Bot reports 1 more reviewer needed. Sits alongside #11555 (guarantors) and #11598 (now-merged keyed nonces EIP) as a competing packaging of overlapping feature set. #11662's EXPIRY_VERIFIER merge on May 14 represents a different design choice for expiry (a verifier-frame contract rather than an outer-envelope field); whether #11643 rebases on that or retains the envelope-field framing is the immediate open question.
+- **Significance**: largest pending proposal by line count since the original Jan 29 submission. If accepted, supersedes EIP-8250 and EIP-8164 by absorption rather than by requires-chain composition, reversing the layering pattern that EIP-8250 just established.
 
-### PR #11621: Frames cleanup (open since May 7)
+From pedrouid's PR description:
 
-**Author**: lightclient
-
-- **Why**: Two months of high-velocity merges (Phase 5 through Phase 9) have left the spec text full of duplicated reasoning, stale section orderings, and inconsistencies between rationale and behavior. lightclient opens the PR explicitly as a readability sweep: "improve the EIP's readability without changing much functionality". A handful of small functional changes ride along where they fall out of the cleanup naturally.
-- **Spec changes** (+185/-345, net -160 lines):
-  - **Restructure**: Spec body reorganized under `### Frame Transaction` with `#### Payload Encoding` and `#### Field Definitions` subsections. Field definitions are now centralized into a single bulleted list per object (outer payload, frame object) instead of scattered prose.
-  - **Skipped status**: Receipt status `0x3` introduced for frames skipped as part of an atomic batch (previously skipped frames had no distinct status).
-  - **FRAMEPARAM operand order**: Order of `FRAMEPARAM` operands explicitly defined (was implicit/inconsistent across rationale).
-  - **Default code**: P256 signature scheme removed from default code (only ECDSA secp256k1 remains in the protocol-shipped default code).
-  - **Default code on SENDER/DEFAULT**: default code does not revert on `SENDER` or `DEFAULT` frames so top-level value transfers to a default-code account work correctly. This is the visible functional change: today's default code reverts unconditionally on those modes, breaking simple ETH transfers to a fresh EOA via a frame transaction.
-  - **Requires header**: adds `7623` (calldata gas pricing) and `7702` (delegation indicators); both were already implicit in the spec text but not declared.
-  - **Abstract and Motivation**: rewritten to lead with the "frames" structural concept and then the post-quantum off-ramp, rather than the other way around. New motivation bullets call out native key rotation, simpler/safer smart accounts via batching, and decentralized fee payment.
-- **Key review discussion**: bot says "✅ All reviewers have approved" the same day the PR opened. No public review comments yet. The "removed P256 from default code" change in particular deserves scrutiny: P256 was the bridge for hardware wallets and passkeys, and the rationale for dropping it is not in the PR description.
-- **Status**: Open as of May 11, awaiting merge. Will be the largest spec-text refactor since PR #11521 (Apr 14 broad spec tightening). Not yet merged at this sync; tracked here so the next sync can fan it out fully if it lands. samwilsn's May 8 editorial review (post #149) raised a handful of naming and `FRAMEDATACOPY` revert-semantics questions that may surface as follow-up commits before merge.
+> Extend EIP-8141 from just a new transaction type into a complete native AA upgrade by folding in the four downstream additions it needs to deliver on its premise.
 
 ---
 
@@ -463,3 +513,10 @@ From lightclient's PR description (carried over from #11575):
 - Sketched `(nonce_key, nonce_seq)` per-sender parallel sequences as a delta against EIP-8141 (28-line draft, opened Apr 30).
 - Closed without merge with a one-line "Closing in favor of the EIP for now." after the standalone Keyed Nonces EIP (PR #11598) gathered the same idea into a separate Standards Track proposal with concrete `NONCE_MANAGER` semantics.
 - Outcome: keyed-nonce design moves entirely to PR #11598; the delta-against-8141 framing is abandoned.
+
+### PR #11488: Fix spec inconsistencies (closed May 14)
+
+**Author**: chiranjeev13
+
+- Proposed three fixes: a static `VERIFY` frame count check (`<= 2`); stale APPROVE-scope value updates in structural rules (`self_verify` → `APPROVE(0x3)`, `only_verify` → `APPROVE(0x2)`, `pay` → `APPROVE(0x1)`); and removal of the `frame.target != tx.sender` check from default `VERIFY` code to allow any EOA as paymaster. Inspired by node.cm's EthMagicians posts #135-136.
+- Sat open from Apr 6 with no reviewer activity. Closed without merge on May 14, three days after PR #11621 (frames cleanup) landed and absorbed the structurally compatible portions of the proposal. The remaining changes were either covered by #11521 (Apr 14) or no longer applied to the current spec.

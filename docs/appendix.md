@@ -41,6 +41,10 @@
 | Apr 30 | [#11567](https://github.com/ethereum/EIPs/pull/11567) | derekchiang | Relax mempool deploy-frame rule (drops EIP-7997 from requires; any stateless factory qualifies; CREATE/SETDELEGATE join CREATE2 in deploy-frame carve-out) |
 | Apr 30 | [#11537](https://github.com/ethereum/EIPs/pull/11537) | dionysuzx | Add EIP-8141 to CFI in EIP-8081 Hegotá meta EIP (governance) |
 | May 5 | [#11272](https://github.com/ethereum/EIPs/pull/11272) | Thegaram | Disable EIP-3607 origination check for frame transactions (adds 3607 to `requires` with explicit carve-out) |
+| May 11 | [#11598](https://github.com/ethereum/EIPs/pull/11598) | soispoke, nerolation, lightclient, vbuterin | Add EIP-8250: Keyed Nonces for Frame Transactions (standalone EIP layering `(nonce_key, nonce_seq)` and a `NONCE_MANAGER` system contract on EIP-8141; first EIP whose `requires` header includes EIP-8141) |
+| May 11 | [#11621](https://github.com/ethereum/EIPs/pull/11621) | lightclient | Frames cleanup (spec coherence refactor: skipped-batch receipt status, FRAMEPARAM operand order, P256 dropped from default code, default code accepts SENDER/DEFAULT, adds 7623+7702 to requires) |
+| May 12 | [#11652](https://github.com/ethereum/EIPs/pull/11652) | derekchiang | Extend atomic batching from `SENDER`-only to any frame mode; restrictive mempool tier separately forbids the flag inside the validation prefix |
+| May 14 | [#11662](https://github.com/ethereum/EIPs/pull/11662) | nerolation | Add EXPIRY_VERIFIER frame: canonical contract at `address(0x8141)` whose runtime enforces an 8-byte unix-seconds deadline; mempool drops expired txs; `TIMESTAMP` carve-out for canonical runtime |
 
 ### Open
 
@@ -48,10 +52,9 @@
 |---|---|---|---|
 | Apr 2 | [#11481](https://github.com/ethereum/EIPs/pull/11481) | lightclient | Add signatures list to outer tx (PQ aggregation) |
 | Apr 2 | [#11482](https://github.com/ethereum/EIPs/pull/11482) | derekchiang | Allow precompiles for VERIFY frames (all reviewers approved) |
-| Apr 6 | [#11488](https://github.com/ethereum/EIPs/pull/11488) | chiranjeev13 | Fix spec inconsistencies (APPROVE scopes, VERIFY count) |
 | Apr 22 | [#11555](https://github.com/ethereum/EIPs/pull/11555) | derekchiang | Add support for guarantors (payer covers gas even if sender validation fails) |
 | Apr 29 | [#11580](https://github.com/ethereum/EIPs/pull/11580) | lightclient | Allow payer to approve before sender (draft; alternative to #11555 guarantors) |
-| May 7 | [#11621](https://github.com/ethereum/EIPs/pull/11621) | lightclient | Frames cleanup (spec coherence refactor: skipped-batch receipt status, FRAMEPARAM operand order, P256 dropped from default code, default code accepts SENDER/DEFAULT, adds 7623+7702 to requires) |
+| May 11 | [#11643](https://github.com/ethereum/EIPs/pull/11643) | pedrouid | Extended Feature Set: bundle guarantors + keyed nonces + signer binding + envelope expiry into EIP-8141 via two new envelope fields (`signer`, `expiry`) and an `AuthManager` system contract; +843/-69 lines |
 
 ### Related
 
@@ -60,7 +63,6 @@
 | Apr 11 | [#11509](https://github.com/ethereum/EIPs/pull/11509) | benaadams | Add EIP-8223: Contract Payer Transaction (alternative/complementary sponsorship proposal) |
 | Apr 12 | [#11518](https://github.com/ethereum/EIPs/pull/11518) | benaadams | Add EIP-8224: Counterfactual Transaction (shielded gas funding via ZK proofs) |
 | Apr 25 | [#11571](https://github.com/ethereum/EIPs/pull/11571) | SirSpudlington | Update EIP-7932: refactor signature registry to be friendlier to EIP-8141 (rename `sigrecover` → `sigaddress`, add `sigverify`/`sigcosts` precompiles for AA use cases) |
-| May 4 | [#11598](https://github.com/ethereum/EIPs/pull/11598) | soispoke, nerolation, lightclient, vbuterin | Add EIP-8250: Keyed Nonces for Frame Transactions (standalone EIP layering `(nonce_key, nonce_seq)` and a `NONCE_MANAGER` system contract on EIP-8141; spent-once-with-payment guarantee for nullifier-style apps; resubmitted from #11597 same day) |
 
 ### Closed (not merged)
 
@@ -75,6 +77,7 @@
 | Apr 23 | [#11455](https://github.com/ethereum/EIPs/pull/11455) | SirSpudlington | Default code tweaks for EIP-7392 compatibility | Never gathered reviewer approvals; closed after ~4 weeks |
 | May 4 | [#11597](https://github.com/ethereum/EIPs/pull/11597) | soispoke, nerolation, lightclient, vbuterin | Keyed Nonces for Frame Transactions (first attempt) | PR accidentally bundled an unrelated `eip-FOCIL.md` change; closed and resubmitted clean as #11598 the same day |
 | May 8 | [#11584](https://github.com/ethereum/EIPs/pull/11584) | nerolation | Add 2D nonces (delta against EIP-8141) | Closed in favor of the standalone Keyed Nonces EIP (#11598); same author/concept moved to a Standards Track sibling |
+| May 14 | [#11488](https://github.com/ethereum/EIPs/pull/11488) | chiranjeev13 | Fix spec inconsistencies (APPROVE scopes, VERIFY count) | Sat open since Apr 6 with no reviewer activity; closed after PR #11621 (May 11) absorbed the structurally compatible portions and the rest no longer applied |
 
 ## Key Contributors
 
@@ -104,8 +107,9 @@
 | Franco Victorio | @fvictorio | Raised question about validation-frame execution ordering vs non-frame txs |
 | dionysuzx | @dionysuzx | Hegotá meta-EIP maintainer, submitted PR #11537 moving EIP-8141 to CFI (merged Apr 30) |
 | Nero_eth | Nero_eth | ethresear.ch analyst; "Three Gates to Privacy" post framing mempool/FOCIL/VOPS constraints on privacy-pool flows through frame transactions |
-| Toni Wahrstätter | @nerolation | Author of PR #11584 (2D nonces) and co-author of EIP-8250 Keyed Nonces for Frame Transactions (PR #11598) |
-| Thomas Thiery | @soispoke | Lead author of EIP-8250 Keyed Nonces for Frame Transactions (PR #11598) |
+| Toni Wahrstätter | @nerolation | Author of PR #11584 (2D nonces, closed), co-author of EIP-8250 Keyed Nonces (PR #11598, merged May 11), and author of PR #11662 (EXPIRY_VERIFIER frame, merged May 14). Added to EIP-8141's `author` header in PR #11662 |
+| Thomas Thiery | @soispoke | Lead author of EIP-8250 Keyed Nonces for Frame Transactions (PR #11598, merged May 11) |
+| Pedro Gomes | @pedrouid | Author of PR #11643 (Extended Feature Set, opened May 11): proposes bundling guarantors, keyed nonces, signer binding, and envelope expiry into EIP-8141 itself via two new envelope fields and an `AuthManager` system contract |
 | German Abal | @ariutokintumi | Co-founder/architect of EVVM (contract-native AA framework); contributed a production-perspective comparison on the magicians thread (post #148, May 7) on per-environment policy, async execution, batch granularity, and reservation primitives |
 | Sam Wilson | @SamWilsn | EIP editor; spec-coherence review (post #149, May 8) on naming, empty-target representation, opcode-budget, and `FRAMEDATACOPY` revert semantics |
 
@@ -124,6 +128,10 @@
 - [AA-VOPS: A Pragmatic Path Towards Validity-Only Partial Statelessness](https://ethresear.ch/t/a-pragmatic-path-towards-validity-only-partial-statelessness-vops/22236#p-54075-vops-and-native-account-abstraction-aavops-9)
 - [Frame vs Tempo — Two clashing philosophies of native AA](https://x.com/decentrek/status/2031013555898900838)
 - [The case for Frame Transactions: Flexible Foundation with Powerful Defaults](https://x.com/decentrek/status/2036697881512701997)
+- [The Evolution of Self-Custody](https://x.com/pedrouid/status/2031716092112929107)
+- [Ethereum Wallet UX is changing](https://x.com/pedrouid/status/2042682070997033253)
+- [Let us be brave and extend EIP-8141 benefits](https://x.com/pedrouid/status/2051354277520515316)
+- [1 contract, 2 fields, 4 features](https://x.com/pedrouid/status/2054584429981659388)
 - [Frame Transactions and the Three Gates to Privacy](https://ethresear.ch/t/frame-transactions-and-the-three-gates-to-privacy/24666)
 - [Your Ethereum Wallet is About to Change Forever](https://dorisgxyz.substack.com/p/your-ethereum-wallet-is-about-to)
 - [EIP-8141 Frame Transactions (HackMD)](https://hackmd.io/@dicethedev/HyhbyJA3bg)

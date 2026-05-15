@@ -126,7 +126,7 @@ Move validation logic from `validateUserOp` into VERIFY frame code that calls `A
 
 **5.7. Can I give an AI agent or session a scoped key that expires?**
 
-Yes, via account code. Default code covers only secp256k1 and P256 on the primary key; richer policies (expiry, per-call caps, allowlists) live in the account's own VERIFY logic and remain valid on-chain. Whether such a transaction propagates publicly depends on the [mempool tier](/mempool-strategy#two-tiers-in-one-mempool) it fits.
+Yes, via account code. Default code covers only secp256k1 on the primary key (P256 was removed from default code by PR #11621, May 11); richer policies (expiry, per-call caps, allowlists) live in the account's own VERIFY logic and remain valid on-chain. Whether such a transaction propagates publicly depends on the [mempool tier](/mempool-strategy#two-tiers-in-one-mempool) it fits.
 
 ---
 
@@ -159,6 +159,10 @@ Transactions using non-canonical paymasters cannot propagate through the public 
 **7.4. Does this affect censorship resistance?**
 
 Potentially. Mempool health is censorship resistance - if minimal nodes can't validate certain frame transactions, those transactions lose public propagation guarantees. [See open question →](/mempool-strategy#mempool-health-and-censorship-resistance)
+
+**7.5. Can a frame transaction expire?**
+
+Yes. PR #11662 (merged May 14) added an expiry-verifier frame: a `VERIFY` frame targeting `address(0x8141)` whose `frame.data` is an 8-byte unix-seconds deadline. The canonical runtime reverts if the deadline has passed, and the public mempool drops the transaction as soon as the deadline is in the past. At most one such frame per transaction. [Spec details →](/current-spec#expiry-verifier-frame)
 
 ---
 

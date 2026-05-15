@@ -418,11 +418,11 @@ Toni Wahrstätter opened a 28-line sketch as a delta against EIP-8141: replace t
 
 Closed by nerolation on May 8 with a one-line "Closing in favor of the EIP for now." once the standalone Keyed Nonces EIP (PR #11598) gathered the same idea into a separate Standards Track proposal with concrete `NONCE_MANAGER` semantics. The delta-against-8141 framing is abandoned; the design line continues entirely as PR #11598.
 
-### EIP-8250: Keyed Nonces for Frame Transactions (Open)
+### EIP-8250: Keyed Nonces for Frame Transactions (Opened in This Phase, Merged Phase 12)
 
-*soispoke, nerolation, lightclient, vbuterin — PR #11598, May 4 (resubmitted from #11597 the same day)*
+*soispoke, nerolation, lightclient, vbuterin — PR #11598, opened May 4*
 
-Four days after the #11584 sketch, the same idea returned as the standalone Standards Track EIP-8250. The standalone framing keeps the parallel-sequence motivation and adds the implementation detail the sketch deferred:
+Four days after the #11584 sketch, the same idea returned as the standalone Standards Track EIP-8250. PR #11598 opened May 4 and merged May 11 (lightclient editor approval); see Phase 12 for the merge writeup. The standalone framing keeps the parallel-sequence motivation and adds the implementation detail the sketch deferred:
 
 - **State location**: non-zero keys live in storage of a `NONCE_MANAGER` system contract whose runtime code is the four-byte revert-only `0x60006000fd`. Slot derivation is `keccak256(left_pad_32(sender) || uint256_to_bytes32(nonce_key))`. Direct calls to `NONCE_MANAGER` revert; only protocol bookkeeping writes the slots, and the writes do not warm the address or slot under EIP-2929 nor charge under EIP-2200 SSTORE pricing.
 - **Sequence width**: `nonce_seq` is `uint64`, with `MAX_NONCE_SEQ = 2**64 - 1` reserved as exhausted state. `nonce_key` is full `uint256` so privacy protocols can derive keys directly from 32-byte nullifiers, commitments, or hash outputs, rather than packing them into ERC-4337's 24-byte key field.
@@ -476,32 +476,9 @@ References from the post:
 - EVVM docs: https://www.evvm.info/docs/intro
 - Signature constructor: https://www.evvm.dev
 
-## Phase 11: Spec Coherence Cleanup and Editorial Review (May 7 – May 10)
+## Phase 11: Editorial Review and Layering Pattern (May 7 – May 10)
 
-*Phase 11 opens with lightclient's PR #11621, a 530-line readability sweep over the spec text that removes net 160 lines while introducing a few small functional tweaks (skipped-status receipt entry, FRAMEPARAM operand order, P256 removed from default code, default code no longer reverts on SENDER/DEFAULT modes). samwilsn responds with an editorial review on the spec text (naming consistency, `FRAMEDATACOPY` revert semantics, opcode-budget question), and forshtat extends the protocol-vs-mempool layering pattern from atomic batching to the `SSTORE`-in-`VERIFY` ban. The phase is mostly consolidation rather than new design lines, but the cleanup PR's "removed P256 from default code" change and the unanswered `SSTORE`-in-`VERIFY` layering question are open items to watch into the next phase.*
-
-### Frames Cleanup Refactor (Open)
-
-*lightclient — PR #11621, opened May 7*
-
-After two months of high-velocity merges (Phase 5 through Phase 9), the spec text has accumulated duplicated reasoning, stale section orderings, and inconsistencies between rationale and behavior. lightclient opens PR #11621 as an explicit readability sweep: "improve the EIP's readability without changing much functionality." The diff is the largest single touch since PR #11521: +185/-345 lines, net -160 lines.
-
-The structural changes:
-
-- **Restructured spec body** under `### Frame Transaction` with `#### Payload Encoding` and `#### Field Definitions` subsections. Field definitions are centralized into bulleted lists per object (outer payload, frame object) rather than scattered across prose.
-- **Skipped-batch receipt status**: receipt status `0x3` introduced for frames skipped as part of an atomic batch (previously skipped frames had no distinct status code).
-- **FRAMEPARAM operand order**: explicitly defined (was implicit and inconsistent across the rationale section).
-- **P256 removed from default code**: the protocol-shipped default code now only ships ECDSA secp256k1 verification.
-- **Default code on SENDER/DEFAULT**: default code no longer reverts unconditionally on SENDER and DEFAULT modes; this lets top-level value transfers to a default-code account succeed via a frame transaction, which the previous default code blocked.
-- **Requires header**: `7623` (calldata gas pricing) and `7702` (delegation indicators) added, formalizing dependencies that were already implicit in spec text.
-- **Abstract and Motivation rewritten**: leads with the structural "frames" concept and lists the practical wins (key rotation, simpler smart accounts via batching, decentralized fee payment) before the post-quantum off-ramp framing.
-
-The bot reports "✅ All reviewers have approved" the same day, with no public review comments. Two changes deserve sustained review attention if they land as-is:
-
-1. **Removing P256 from default code** retracts the hardware-wallet / passkey bridge that was the headline EOA-support story since PR #11379 (Mar 10). The PR description does not justify it; readers should watch whether this was a deliberate scope-narrowing or an unintended consequence of the cleanup.
-2. **Default code accepting SENDER and DEFAULT frames** changes the semantics of native ETH transfer to a fresh EOA via a frame transaction; today such a transfer reverts in default code, after this it succeeds. This is small in implementation but visible to users and indexers.
-
-Net spec impact when merged will be the largest single refactor since PR #11521 (Apr 14). Tracked here so the next sync can fan it out fully if it lands without further changes.
+*Phase 11 is bracketed by lightclient's PR #11621 (frames cleanup, opened May 7) but its character is editorial. samwilsn weighs in on naming consistency and a substantive `FRAMEDATACOPY` revert-vs-zero-pad design question; forshtat extends the protocol-vs-mempool layering pattern (Phase 7's PR #11580, Phase 9's atomic-batching posts) to the `SSTORE`-in-`VERIFY` ban. The cleanup PR itself opens in this phase but lands in Phase 12 (May 11) along with EIP-8250 and the next wave of merges; see Phase 12 for its merge writeup. The trailing concerns of Phase 11 are the unanswered `SSTORE`-in-`VERIFY` layering question and the `FRAMEDATACOPY` revert-semantics design question.*
 
 ### Editor Review and Spec Coherence Questions (External)
 
@@ -524,5 +501,106 @@ Forshtat returned to the protocol-vs-mempool layering thread (posts #146-147 in 
 
 The current spec bans `SSTORE` inside `VERIFY` frames at the protocol level on the rationale that storage writes in validation make the mempool's "did this validate?" decision dependent on observed state, which breaks the cheap parallel-validation property the restrictive mempool tier relies on. Forshtat's question accepts the mempool problem but asks whether the restriction belongs in the protocol or in mempool policy. If it lives in mempool policy, an unrestricted execution-layer can still admit such transactions through a permissive tier or out-of-band inclusion (block builders, restrictive-pool extensions), preserving the mempool guarantees only where they are needed.
 
-The pattern is the same one derek articulated for atomic batching in post #147 and lightclient encoded in PR #11580: protocol semantics stay maximally permissive, mempool policy carries the restrictions that the canonical pool needs for safety. The thread has not yet replied, but the question is structurally important enough to flag as the trailing concern of Phase 10. If subsequent PRs migrate the `SSTORE`-in-`VERIFY` ban into mempool policy, the spec text in `current-spec.md` and `mempool-strategy.md` will need a paired update.
+The pattern is the same one derek articulated for atomic batching in post #147 and lightclient encoded in PR #11580: protocol semantics stay maximally permissive, mempool policy carries the restrictions that the canonical pool needs for safety. The thread has not yet replied, but the question is structurally important enough to flag as the trailing concern of Phase 11. If subsequent PRs migrate the `SSTORE`-in-`VERIFY` ban into mempool policy, the spec text in `current-spec.md` and `mempool-strategy.md` will need a paired update.
+
+---
+
+## Phase 12: Cleanup, Keyed Nonces, and the Extended Feature Set Bundle (May 11)
+
+*Phase 12 is a single-day cluster on May 11. Two Phase 9-11 design lines merge within minutes of each other: lightclient's PR #11621 (frames cleanup) and soispoke's PR #11598 (EIP-8250 Keyed Nonces). Hours later, Pedro Gomes opens PR #11643, a 843-line "extended feature set" bundle that absorbs guarantors, keyed nonces, signer binding, and envelope expiry into EIP-8141 itself via two new envelope fields and an `AuthManager` system contract, an inverse of the requires-chain layering EIP-8250 had just established. The day's three events sit in tension: the merges encode a compose-by-requires pattern; the open bundle proposes to roll the dependencies back into the base EIP.*
+
+### Frames Cleanup Refactor (Merged)
+
+*lightclient — PR #11621, opened May 7, merged May 11*
+
+The readability sweep that opened Phase 11 merged on May 11 after the bot's same-day "✅ All reviewers have approved" never required additional revisions. samwilsn's editorial review (post #149) was treated as follow-up rather than gating. The +185/-345 net -160-line diff is the largest spec-text refactor since PR #11521 (Apr 14).
+
+The substantive changes that landed:
+
+- **Restructured spec body** under `### Frame Transaction` with `#### Payload Encoding` and `#### Field Definitions` subsections. Field definitions are centralized into bulleted lists per object (outer payload, frame object) rather than scattered across prose.
+- **Skipped-batch receipt status**: receipt status `0x3` introduced for frames skipped as part of an atomic batch (previously skipped frames had no distinct status code).
+- **FRAMEPARAM operand order**: explicitly defined (was implicit and inconsistent across the rationale section).
+- **P256 removed from default code**: the protocol-shipped default code now only ships ECDSA secp256k1 verification.
+- **Default code on SENDER/DEFAULT**: default code no longer reverts unconditionally on `SENDER` and `DEFAULT` modes; this lets top-level value transfers to a default-code account succeed via a frame transaction, which the previous default code blocked.
+- **Requires header**: `7623` (calldata gas pricing) and `7702` (delegation indicators) added, formalizing dependencies that were already implicit.
+- **Abstract and Motivation rewritten**: leads with the structural "frames" concept and lists the practical wins (key rotation, simpler smart accounts via batching, decentralized fee payment) before the post-quantum off-ramp framing.
+
+Two changes deserve continued attention now that they have landed:
+
+1. **Removing P256 from default code** retracts the hardware-wallet / passkey bridge that was the headline EOA-support story since PR #11379 (Mar 10). The PR description does not justify the change; it is not yet clear whether this was a deliberate scope-narrowing (P256 belongs in EIP-7932 / a per-account extension rather than the protocol-shipped default code) or an unintended consequence of the cleanup.
+2. **Default code accepting SENDER and DEFAULT frames** changes the semantics of native ETH transfer to a fresh EOA via a frame transaction: previously such a transfer reverted in default code; after the merge it succeeds. Small in implementation but visible to wallets, indexers, and explorers.
+
+### EIP-8250: Keyed Nonces for Frame Transactions (Merged)
+
+*soispoke, nerolation, lightclient, vbuterin — PR #11598, opened May 4, merged May 11*
+
+The standalone Keyed Nonces EIP merged minutes after PR #11621. abcoathup's May 6 non-editor approval ("Looks good enough for a draft", with a small preference for *transaction pool* over *mempool*) sat for five days awaiting an editor signoff. lightclient (as EIP editor) approved on May 11 and auto-merge fired the same minute. The CI flag on the initial commit history (containing the unrelated `eip-FOCIL.md` parent inherited from #11597's branch) did not gate the merge.
+
+The significance is governance-structural more than spec-textual. EIP-8250 is the first EIP whose `requires` header includes EIP-8141, making the EIP-8141 + EIP-8250 pair the first compose-by-requires AA stack in the EIP series. The mempool one-pending-per-sender rule lives in EIP-8141; the parallel-sequence primitive lives in EIP-8250; and a future keyed-aware mempool policy can compose them without re-litigating EIP-8141's payload schema. The pattern is the same protocol-vs-mempool layering that derek and forshtat articulated in posts #146-147 and #150, lifted from a per-PR convention to an EIP-series convention.
+
+### Extended Feature Set Proposal (Open)
+
+*pedrouid — PR #11643, opened May 11*
+
+Eight hours after PR #11598 merged, Pedro Gomes opened PR #11643 with the inverse packaging: rather than EIP-8141 + EIP-8250 + EIP-8164 + a future guarantors EIP composed via `requires` chains, fold all four into EIP-8141 itself. The PR description calls this "extend EIP-8141 from just a new transaction type into a complete native AA upgrade by folding in the four downstream additions it needs to deliver on its premise". The diff is +843/-69 lines, the largest single-PR diff against EIP-8141 since the original submission.
+
+The four features bundled:
+
+1. **Guarantors**: payer primitive making txs public-mempool admissible even when sender validation may fail. Currently lives in PR #11555 (derekchiang, open).
+2. **Flexible Nonces**: keyed nonce streams per sender. Currently lives in EIP-8250 (just merged).
+3. **Signer Binding**: registry-only `(sender, signer) → (pubkey, type)` lookup spanning secp256k1, lattice, multivariate, hash-based. Currently lives in EIP-8164.
+4. **Envelope Expiry**: protocol-enforced deadline via an `expiry` envelope field; tx invalid when `block.timestamp >= expiry`.
+
+Structurally the PR adds two outer-envelope fields (`signer` uint64, `expiry` uint64), one new `AuthManager` system contract at a reserved address (EIP-4788 / EIP-2935 shape, holding both keyed nonce streams and registered pubkey signers), zero new opcodes, zero new precompiles, and zero account RLP changes. The approval-scope bit field expands from two to three bits to accommodate a new `APPROVE_GUARANTEE` value, moving the atomic-batch flag from bit 2 to bit 3. Coauthorship in the EIP header is expanded to include soispoke, GregTheGreek, prestwich, nerolation, pedrouid alongside the existing list.
+
+The proposal is in tension with both the just-merged EIP-8250 and the May 14 PR #11662 EXPIRY_VERIFIER merge below. EIP-8250 establishes the requires-chain layering pattern that PR #11643 reverses by absorption. PR #11662 ships expiry as a verifier-frame contract; PR #11643 ships expiry as an outer-envelope field. Whether #11643 rebases on the post-EIP-8250, post-#11662 spec (rewiring the four features into the absorbed structure on top of what already merged) or retains the envelope-field framing is the immediate open question. Bot reports 1 more reviewer needed; CI initially flagged commit-graph errors which were addressed in later commits.
+
+---
+
+## Phase 13: Atomic-Batch Expansion and Expiry Verifier Frame (May 12 – May 14)
+
+*Phase 13 follows the May 11 merges with two more spec changes that each resolve threads opened earlier. On May 12, derek's PR #11652 extends atomic batching from `SENDER`-only to any frame mode, encoding the protocol-vs-mempool layering pattern from posts #146-147 (Phase 9) and #150 (Phase 11) at the frame-mode level. On May 14, nerolation's PR #11662 adds an EXPIRY_VERIFIER frame, the first new frame shape since the original Jan 29 design and the first carve-out from the otherwise-uniform `VERIFY`-frame rules (sighash elision, `TIMESTAMP` ban, `APPROVE` requirement, validation-trace constraints). forshtat returns at the end of the phase (post #155) with an open question about `VERIFY`-frame aggregation methodology and whether the state-modification constraints should propagate to `APPROVE` semantics.*
+
+### Atomic Batching Extended to All Frame Modes (Merged)
+
+*derekchiang — PR #11652, opened and merged May 12*
+
+derek's same-day PR extends atomic batching from `SENDER`-only to any frame mode, with the mempool validation-prefix carving out atomic-batch frames separately. The diff is +9/-10 lines. lightclient approved within 30 minutes ("LGTM"), auto-merge fired the same day. Credits to forshtat for the suggestion (per derek's PR description), reflecting forshtat's post #146 question from Phase 9.
+
+The supporting thread discussion is in EthMagicians posts #151-154:
+
+- **Post #151 (dror, May 11)**: clarifies that `VERIFY` frames are implicitly batched with all other frames in the sense that a `VERIFY` revert invalidates the entire transaction; this is the baseline invariant any atomic-batch extension must preserve.
+- **Post #152 (derek, May 12)**: explains the `SSTORE`-in-`VERIFY` ban serves an aggregation invariant: removing `VERIFY` frames from a transaction should not change observable behavior, which lets block builders aggregate signature verification across transactions. Letting `VERIFY` frames participate in atomic batches breaks this invariant, since a later frame's revert could roll back the verification.
+- **Post #153 (derek, May 12)**: notes no frame currently reverts a `VERIFY` frame's effects; admitting `VERIFY` into atomic batches would be the first construct doing so.
+- **Post #154 (derek, May 12)**: announces the merge.
+
+The architectural significance: the spec now encodes the protocol-vs-mempool layering pattern (PR #11580, forshtat's #146-147, #150) at the frame-mode level. Atomic batching is a protocol primitive applicable to all frame modes; the restrictive-tier mempool policy carves out validation-prefix atomic batches separately. This opens `DEFAULT`-frame batching for transaction-level post-op cleanup and (under permissive-tier propagation) `VERIFY`-frame batching for revert-protected validation sequences, without forcing those use cases out of the public mempool entirely.
+
+### EXPIRY_VERIFIER Frame Added (Merged)
+
+*nerolation (Toni Wahrstätter) — PR #11662, opened May 13, merged May 14*
+
+Toni Wahrstätter opened PR #11662 on May 13 with the first new frame shape since the original Jan 29 design: an expiry verifier frame. The diff is +88/-33 lines. lightclient approved on May 14 ("This is great! Thanks Toni!", with a rocket reaction) and auto-merge fired the same day.
+
+The design pins a single canonical address (`EXPIRY_VERIFIER = address(0x8141)`) whose runtime code is fixed at activation. A `VERIFY` frame whose `frame.target` equals this address is an expiry-verifier frame: `frame.data` is interpreted as an 8-byte big-endian unix-seconds deadline, and the runtime reverts unless `block.timestamp <= expiry_timestamp`. Constraints: `frame.flags == 0`, `frame.value == 0`, `len(frame.data) == 8`, at most one expiry-verifier frame per transaction.
+
+The frame breaks three previously-uniform spec rules in narrow, controlled ways:
+
+1. **Signature hash**: expiry-verifier `frame.data` is *not* elided from the signature hash. Every other `VERIFY` frame's `frame.data` is elided (per the Jan 29 day-0 fix in PR #11205). The deadline is a sender-authored commitment that must not be malleable in transit, so it must be covered by the signature.
+2. **`TIMESTAMP` ban**: the `TIMESTAMP` opcode is banned during validation-prefix execution; expiry-verifier frames executing the canonical runtime get a single carve-out. Clients may optimize by skipping explicit EVM execution and performing the deadline check natively.
+3. **`APPROVE` requirement**: `VERIFY` frames previously had to call `APPROVE` to be valid; PR #11662 relaxes this to "if the frame reverts, the transaction is invalid". An expiry-verifier frame succeeds without `APPROVE`. The mempool admission rule is narrowed accordingly: only `self_verify`, `only_verify`, and `pay` frames are required to call `APPROVE`.
+
+Mempool admission for expiry-verifier frames is special-cased: nodes MUST drop a transaction whose expiry is less than the current view of `block.timestamp` at any point. Expiry-verifier frames are exempt from validation trace rules, storage-dependency tracking, and `MAX_VERIFY_GAS`. The validation-prefix shape-matching rules treat expiry-verifier frames as transparent (e.g. `[expiry_verify, self_verify]` is recognized as `[self_verify]`).
+
+The "pinned target address whose runtime is fixed at activation" pattern (similar to `ENTRY_POINT`, EIP-4788, EIP-2935) becomes the second protocol-codepath inside EIP-8141 after the default code. Future system-frame designs (paymaster reservation, key delegation, etc.) likely follow the same pattern: a reserved address, a canonical runtime, and a narrow carve-out from the otherwise-uniform `VERIFY`-frame rules.
+
+One open question that did not gate the merge: whether the canonical runtime reads `TIMESTAMP` (current draft, with the explicit ban-carve-out) or reads the block header directly. Toni flagged the question in the PR description; the submitted version reads `TIMESTAMP`, which is the simpler and more EVM-native choice but requires the explicit ban exception.
+
+### Aggregation and APPROVE Questions Surface (External)
+
+*alex-forshtat-tbk — EthMagicians post #155, May 14*
+
+The day PR #11662 merged, forshtat thanked derek for the atomic-batching extension and asked for more detail on `VERIFY`-frame aggregation methodology, and whether the state-modification constraints (the `SSTORE`-in-`VERIFY` ban, derek's aggregation invariant in post #152) should affect `APPROVE`'s behavior. The question is unanswered as of this sync and is the trailing concern of Phase 12: derek's aggregation invariant ("removing `VERIFY` frames doesn't change behavior") implies anything `VERIFY` frames write to transaction state has to be carefully scoped, and `APPROVE` is the only protocol-defined `VERIFY` write. If aggregation pressure pushes for further restrictions, `APPROVE`'s semantics could need follow-up work.
+
+**What to watch into Phase 14**: whether #11643 (Pedro's extended feature set) gets reviewer engagement and converges with or against the just-merged EIP-8250 + #11662 packaging; whether #11555 (guarantors) or #11580 (payer-before-sender) lands first or both fold into #11643; whether the `SSTORE`-in-`VERIFY` ban migrates to mempool policy as the trailing Phase 11 question asked; whether `APPROVE` semantics get follow-up restrictions from the aggregation thread (#155); and whether samwilsn's editorial-review items (post #149, especially the `FRAMEDATACOPY` revert-vs-zero-pad question) get a follow-up PR.
 

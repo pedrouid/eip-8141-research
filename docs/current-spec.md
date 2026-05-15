@@ -52,7 +52,7 @@ frames = [[mode, flags, target, gas_limit, value, data], ...]
 
 **Flags (separate field, introduced by PR #11521):**
 - Bits 0-1: Approval scope constraint (limits which `APPROVE` scope can be used)
-- Bit 2: Atomic batch flag (groups consecutive SENDER frames into an all-or-nothing batch, SENDER only)
+- Bit 2: Atomic batch flag (groups consecutive frames of any mode into an all-or-nothing batch; the restrictive mempool tier separately forbids the flag inside the validation prefix). PR #11652 (merged May 12) lifted the previous SENDER-only restriction.
 
 ## The APPROVE Mechanism
 
@@ -91,28 +91,27 @@ When `frame.target` has no code, the protocol applies built-in "default code" be
 2. Read the approval scope from the flags: `scope = frame.flags & 3`. If `scope == 0`, revert
 3. Read first byte of `frame.data` as `signature_type`
 4. If `0x0` (SECP256K1): verify ECDSA signature `(v, r, s)` against `compute_sig_hash(tx)`, enforce low-`s`, reject failed `ecrecover`
-5. If `0x1` (P256): verify P256 signature `(r, s, qx, qy)`, check address = `keccak(0x04 | qx | qy)[12:]` (domain-separated), reject invalid public keys
-6. Call `APPROVE(scope)`
+5. Call `APPROVE(scope)`
 
-**SENDER mode:** Reverts. PR #11577 (merged Apr 29) removed the earlier RLP-encoded call-batch payload, now that native frame batching plus per-frame `value` covers the multi-call and ETH-transfer use cases at the frame-list level rather than inside a single frame's payload.
+PR #11621 (merged May 11) removed the P256 (`0x1`) branch from the protocol-shipped default code. Hardware-wallet and passkey support are no longer covered by default; accounts that need P256 must ship verification code themselves or wait for a follow-up extension EIP. The PR description did not give a rationale.
 
-**DEFAULT mode:** Reverts.
+**SENDER and DEFAULT modes:** PR #11621 (merged May 11) changed default code so that `SENDER` and `DEFAULT` frames no longer revert. The previous behavior (revert unconditionally on both modes, plus an RLP-call-batch decoder removed by PR #11577 on Apr 29) blocked simple native ETH transfers to a fresh EOA via a frame transaction. After the merge, a `SENDER` or `DEFAULT` frame whose `resolved_target` has no code completes the value transfer and returns with empty data.
 
 This means **any EOA can use frame transactions today**, no smart contract deployment needed.
 
 ## Atomic Batching
 
-Consecutive SENDER frames with bit 2 of `flags` set form an atomic batch:
+Consecutive frames with bit 2 of `flags` set form an atomic batch. Any frame mode can participate (PR #11652 merged May 12 lifted the previous SENDER-only restriction). The batch is the maximal contiguous run of flagged frames terminated by a frame without the flag:
 
 ```
-Frame 0: SENDER (atomic flag set)   ─┐
-Frame 1: SENDER (flag not set)      ─┘ Batch 1
-Frame 2: SENDER (atomic flag set)   ─┐
-Frame 3: SENDER (atomic flag set)   ─│ Batch 2
-Frame 4: SENDER (flag not set)      ─┘
+Frame 0: (atomic flag set)   ─┐
+Frame 1: (flag not set)      ─┘ Batch 1
+Frame 2: (atomic flag set)   ─┐
+Frame 3: (atomic flag set)   ─│ Batch 2
+Frame 4: (flag not set)      ─┘
 ```
 
-If any frame in a batch reverts, the state is restored to before the batch started, and remaining frames in the batch are skipped. This enables safe patterns like "approve + swap" where both must succeed.
+If any frame in a batch reverts, the state is restored to before the batch started, and remaining frames in the batch are skipped. Skipped frames record receipt status `0x3` (introduced by PR #11621, merged May 11). The restrictive mempool tier separately forbids the atomic-batch flag inside the validation prefix, so this protocol-level expansion does not loosen what the public mempool admits. This enables safe patterns like "approve + swap" where both must succeed.
 
 ## Gas Accounting
 
@@ -132,7 +131,7 @@ tx_fee = tx_gas_limit * effective_gas_price + blob_fees
 ```python
 def compute_sig_hash(tx):
     for frame in tx.frames:
-        if frame.mode == VERIFY:
+        if frame.mode == VERIFY and frame.target != EXPIRY_VERIFIER:
             frame.data = Bytes()  # elide VERIFY data
     return keccak(bytes([FRAME_TX_TYPE]) + rlp(tx))
 ```
@@ -143,6 +142,23 @@ VERIFY frame data is elided because:
 1. It contains the signature (can't be part of what's signed)
 2. Enables future signature aggregation: because VERIFY frames cannot change execution outcomes, a block builder could theoretically strip all VERIFY frames and append a succinct validity proof instead
 3. Allows sponsor data to be added after sender signs (the sponsor's VERIFY frame target is still covered by the hash)
+
+The expiry-verifier frame (introduced by PR #11662, merged May 14) is the single carve-out from this elision: its `frame.data` is the deadline, a sender-authored commitment that must not be malleable in transit, so it is covered by the signature hash. See [Expiry Verifier Frame](#expiry-verifier-frame) below.
+
+## Expiry Verifier Frame
+
+A `VERIFY` frame whose `frame.target` equals `EXPIRY_VERIFIER` (`address(0x8141)`) is an **expiry verifier frame**. It calls the canonical runtime code installed at that address; the calldata is interpreted as an 8-byte big-endian unix-seconds deadline, and the call reverts unless `block.timestamp <= expiry_timestamp`.
+
+Constraints:
+- `frame.flags == 0`
+- `frame.value == 0`
+- `len(frame.data) == EXPIRY_DATA_LENGTH` (`8`)
+- At most one expiry-verifier frame per transaction
+- The frame succeeds without calling `APPROVE`; only `self_verify`, `only_verify`, and `pay` frames are required to call `APPROVE` for transaction validity. PR #11662 relaxed the previously-uniform "every VERIFY frame must call APPROVE" rule to "if the frame reverts, the transaction is invalid".
+
+Mempool admission: nodes MUST drop a transaction from the public mempool whose expiry is less than the node's current view of `block.timestamp` at any point. Expiry-verifier frames are exempt from validation trace rules, storage-dependency tracking, and `MAX_VERIFY_GAS`. The `TIMESTAMP` opcode is permitted only in an expiry-verifier frame executing the canonical runtime code. Clients may omit explicit EVM execution and perform the deadline check natively when the externally observable result is identical.
+
+Validation-prefix shape matching treats expiry-verifier frames as transparent: `[expiry_verify, self_verify]` is recognized as `[self_verify]` for admission-rule purposes.
 
 ## Mempool Policy
 
@@ -243,7 +259,7 @@ The sponsor pays ETH gas; frame 2 repays the sponsor in ERC-20 tokens.
 - **ORIGIN returns frame caller**: Changed from traditional tx.origin behavior (precedent set by EIP-7702).
 - **Transient storage cleared between frames**: TSTORE/TLOAD state doesn't persist across frames.
 - **Warm/cold state shared across frames**: Gas accounting for storage access is shared.
-- **Requires**: EIP-1559, EIP-2718, EIP-3607, EIP-4844 (PR #11567 merged Apr 30 dropped EIP-7997 from `requires`; it remains the canonical deterministic deployer but is no longer a hard dependency. PR #11272 merged May 5 added EIP-3607 with an explicit carve-out for frame transactions; see Mempool Policy → Transaction origination).
+- **Requires**: EIP-1559, EIP-2718, EIP-3607, EIP-4844, EIP-7623, EIP-7702 (PR #11567 merged Apr 30 dropped EIP-7997; PR #11272 merged May 5 added EIP-3607 with an explicit carve-out; PR #11621 merged May 11 added EIP-7623 (calldata gas pricing) and EIP-7702 (delegation indicators), formalizing dependencies that were previously implicit in spec text).
 
 ## Related Proposals
 
@@ -256,7 +272,7 @@ The sponsor pays ETH gas; frame 2 repays the sponsor in ERC-20 tokens.
 | EIP-8130 | Coinbase/Base's alternative: declared verifiers (no wallet code exec), 14 PRs, active development. See [Competing Standards](./competing-standards) |
 | EIP-7997 | Canonical deterministic factory predeploy; recommended for cross-chain-stable factory addresses but no longer a hard dependency after PR #11567 (merged Apr 30) |
 | EIP-7392 | Signature registry; interoperability PR #11455 was closed without merge on Apr 23 |
-| EIP-8250 | Draft keyed-nonces sibling proposal from PR #11598; would layer `(nonce_key, nonce_seq)` replay protection on top of EIP-8141 without changing the current merged spec |
+| EIP-8250 | Keyed-nonces sibling EIP (PR #11598 merged May 11); layers `(nonce_key, nonce_seq)` replay protection on top of EIP-8141 via a `NONCE_MANAGER` system contract. First EIP whose `requires` header includes EIP-8141 |
 
 ## Key Takeaway
 
@@ -265,6 +281,6 @@ A frame transaction is a sequence of purpose-labeled sub-calls. The protocol run
 ## Read Next
 
 - [EOA Support](/eoa-support) — what existing codeless accounts get for free, and how default code replaces EIP-7702 delegation for common cases.
-- [Feedback Evolution](/feedback-evolution) — how the spec got to its current shape through eleven phases of community review.
+- [Feedback Evolution](/feedback-evolution) — how the spec got to its current shape through thirteen phases of community review.
 - [Mempool Strategy](/mempool-strategy) — why the validation prefix is the way it is, and how the two-tier mempool handles everything that doesn't fit.
 - [Competing Standards](/competing-standards) — how EIP-8141 compares to EIP-8130, EIP-8175, EIP-8202, and the sibling proposals.
