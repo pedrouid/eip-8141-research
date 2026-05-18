@@ -395,7 +395,7 @@ All reviewers approved by Apr 18; auto-merged on Apr 22 with no further debate.
 
 ## Active/Open PRs
 
-*As of May 15, 2026.* These PRs represent active design proposals that may change the spec in the near future.
+*As of May 18, 2026.* These PRs represent active design proposals that may change the spec in the near future.
 
 ### PR #11481: Add signatures list to outer tx (open since Apr 2)
 
@@ -447,24 +447,24 @@ From lightclient's PR description (carried over from #11575):
 
 > Alternative to #11555. I think it is simpler to just allow the payer to approve before the sender instead of adding the full guarantor role.
 
-### PR #11643: Extended Feature Set (open since May 11)
+### PR #11681: Extend with Guarantors, Flexible Nonces, and Signer Binding (open since May 16)
 
 **Author**: pedrouid (Pedro Gomes)
 
-- **Why**: Extend EIP-8141 from a transaction-type proposal into a complete native AA upgrade by folding four downstream additions into the EIP itself: guarantors (currently PR #11555), keyed nonces (currently EIP-8250 / PR #11598, just merged), signer binding (currently EIP-8164), and envelope expiry (intersects with the May 14 EXPIRY_VERIFIER merge in PR #11662, taken via a different design).
-- **Proposed change** (+843/-69):
-  - Two new outer-envelope fields: `signer` (uint64 registered-signer id) and `expiry` (uint64 unix-seconds deadline). `signer == 0` aliases the legacy account nonce; non-zero `signer` requires a registered entry. `expiry == 0` means no bound, otherwise tx is invalid unless `block.timestamp < expiry`.
-  - One new system contract: `AuthManager` at a reserved address, holding registered-pubkey signers and keyed nonce streams. Bytecode-equivalent shape to EIP-4788 / EIP-2935 system contracts. Inline pubkeys rejected; signers are registered and referenced by uint64 id.
-  - Zero new opcodes, zero new precompiles, zero account RLP changes.
-  - Approval-scope bit field expands from two bits to three to accommodate `APPROVE_GUARANTEE`; atomic-batch flag moves from bit 2 to bit 3.
-  - `requires` header changes: adds `2935`, `4788`; drops `3607`, `7623`, `7702` (which were just added in #11272 and #11621).
-  - Coauthorship expanded to include soispoke, GregTheGreek, prestwich, nerolation, pedrouid alongside the existing list.
-- **Status**: Open since May 11; CI initially flagged commit errors which were addressed in subsequent commits. Bot reports 1 more reviewer needed. Sits alongside #11555 (guarantors) and #11598 (now-merged keyed nonces EIP) as a competing packaging of overlapping feature set. #11662's EXPIRY_VERIFIER merge on May 14 represents a different design choice for expiry (a verifier-frame contract rather than an outer-envelope field); whether #11643 rebases on that or retains the envelope-field framing is the immediate open question.
-- **Significance**: largest pending proposal by line count since the original Jan 29 submission. If accepted, supersedes EIP-8250 and EIP-8164 by absorption rather than by requires-chain composition, reversing the layering pattern that EIP-8250 just established.
+- **Why**: Replaces the closed PR #11643 (Extended Feature Set, May 11 – May 18) after PR #11662 landed EXPIRY_VERIFIER on May 14. With protocol-level expiry now shipped as a verifier-frame contract, the envelope-expiry field in #11643 became redundant. PR #11681 drops the `expiry` envelope field and retains the three remaining features: guarantors, keyed nonces, and signer binding, packaged as a single EIP-8141 amendment rather than a requires-chain of sibling EIPs.
+- **Proposed change** (+810/-74, 3 files):
+  - **Guarantors**: adopts PR #11555 verbatim. New approval scope `APPROVE_GUARANTEE = 0x4`, a `compute_frame_sig_hash` helper, a `guarantor_approved` transaction-scoped flag, and a canonical-paymaster guarantor mode with a `bumpNonce` entry point. The mempool tier that today drops shared-state-reading sender validation can admit those transactions when a guarantor signature carries the risk.
+  - **Keyed Nonces**: mirrors EIP-8250 semantics with one shape change — a single `uint64 signer` envelope field instead of `(nonce_key, nonce_seq)`, so the same identifier indexes both the keyed nonce stream and the registered pubkey. `signer == 0` aliases the legacy account nonce. The position taken in the PR description is that keyed nonces belong inside EIP-8141 rather than as a sibling EIP, because the upgrade path is more efficient when guarantors, keyed nonces, and signer binding ship together and share one system contract.
+  - **Signer Binding**: a transaction-scoped `verified_signers` table populated by non-secp256k1 `VERIFY` frames that prove `(digest, address)` against a registered pubkey. `ECRECOVER` consults the table on the hit path; the miss path is byte-identical to upstream, so unrelated contracts behave the same.
+  - **Envelope changes**: one new outer field, `signer` (uint64). No `expiry` field — protocol-level expiry is delegated to PR #11662's `EXPIRY_VERIFIER` frame.
+  - **System contract**: one `AUTH_MANAGER` at a reserved address (EIP-4788 / EIP-2935 pattern), holding both keyed nonce streams and registered pubkey signers under one storage layout.
+  - **Surface area kept small**: zero new opcodes, zero new precompiles, zero account-RLP changes.
+- **Relationship to EIP-8250**: if PR #11681 lands, it supersedes EIP-8250 by absorption. The PR description argues explicitly against the requires-chain layering EIP-8250 introduced, on the grounds that a bundled upgrade is more efficient than three sibling EIPs with overlapping system contracts. This is the open architectural question on the table: compose-by-requires (EIP-8250's pattern) vs absorb-into-base (PR #11681's pattern).
+- **Status**: Open since May 16. CI initially flagged commit-graph errors which were addressed in subsequent commits. Bot reports 1 more reviewer needed. Sits alongside #11555 (guarantors) as the active packaging question; #11555 may fold into #11681 if the absorption framing converges.
 
 From pedrouid's PR description:
 
-> Extend EIP-8141 from just a new transaction type into a complete native AA upgrade by folding in the four downstream additions it needs to deliver on its premise.
+> Guarantors: a payer primitive that admits a transaction to the public mempool even when the sender's `VERIFY` frame is unsafe to simulate. Adopts PR #11555 verbatim. Keyed Nonces: independent replay-protection sequences per `(sender, signer)`. Mirrors EIP-8250 semantics. Diverges only in shape: one `uint64 signer` envelope field instead of `(nonce_key, nonce_seq)`. Signer Binding: tx-scoped `verified_signers` table populated by non-secp256k1 `VERIFY` frames.
 
 ---
 
@@ -513,6 +513,14 @@ From pedrouid's PR description:
 - Sketched `(nonce_key, nonce_seq)` per-sender parallel sequences as a delta against EIP-8141 (28-line draft, opened Apr 30).
 - Closed without merge with a one-line "Closing in favor of the EIP for now." after the standalone Keyed Nonces EIP (PR #11598) gathered the same idea into a separate Standards Track proposal with concrete `NONCE_MANAGER` semantics.
 - Outcome: keyed-nonce design moves entirely to PR #11598; the delta-against-8141 framing is abandoned.
+
+### PR #11643: Extended Feature Set (closed May 18)
+
+**Author**: pedrouid
+
+- Opened May 11 (+843/-69) bundling guarantors, keyed nonces, signer binding, and envelope expiry into EIP-8141 via two new envelope fields (`signer`, `expiry`) and an `AuthManager` system contract.
+- Closed by the author on May 18 in favor of PR #11681. The deciding factor was PR #11662 (EXPIRY_VERIFIER frame, merged May 14): with protocol-level expiry now shipped as a verifier-frame contract, the `expiry` envelope field in #11643 was redundant. PR #11681 drops the expiry field and retains the other three features.
+- Net spec impact: zero. The substantive proposal lives in [PR #11681](#pr-11681-extend-with-guarantors-flexible-nonces-and-signer-binding-open-since-may-16).
 
 ### PR #11488: Fix spec inconsistencies (closed May 14)
 

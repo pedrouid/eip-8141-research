@@ -507,7 +507,7 @@ The pattern is the same one derek articulated for atomic batching in post #147 a
 
 ## Phase 12: Cleanup, Keyed Nonces, and the Extended Feature Set Bundle (May 11)
 
-*Phase 12 is a single-day cluster on May 11. Two Phase 9-11 design lines merge within minutes of each other: lightclient's PR #11621 (frames cleanup) and soispoke's PR #11598 (EIP-8250 Keyed Nonces). Hours later, Pedro Gomes opens PR #11643, a 843-line "extended feature set" bundle that absorbs guarantors, keyed nonces, signer binding, and envelope expiry into EIP-8141 itself via two new envelope fields and an `AuthManager` system contract, an inverse of the requires-chain layering EIP-8250 had just established. The day's three events sit in tension: the merges encode a compose-by-requires pattern; the open bundle proposes to roll the dependencies back into the base EIP.*
+*Phase 12 is a single-day cluster on May 11. Two Phase 9-11 design lines merge within minutes of each other: lightclient's PR #11621 (frames cleanup) and soispoke's PR #11598 (EIP-8250 Keyed Nonces). Hours later, Pedro Gomes opens PR #11643, an "extended feature set" bundle absorbing guarantors, keyed nonces, signer binding, and envelope expiry into EIP-8141 itself, an inverse of the requires-chain layering EIP-8250 just established. #11643 was later closed in favor of PR #11681 (see [Phase 14](#phase-14-extended-feature-set-supersession-may-16-may-18)); the open architectural question, compose-by-requires vs absorb-into-base, is what carries forward.*
 
 ### Frames Cleanup Refactor (Merged)
 
@@ -538,22 +538,13 @@ The standalone Keyed Nonces EIP merged minutes after PR #11621. abcoathup's May 
 
 The significance is governance-structural more than spec-textual. EIP-8250 is the first EIP whose `requires` header includes EIP-8141, making the EIP-8141 + EIP-8250 pair the first compose-by-requires AA stack in the EIP series. The mempool one-pending-per-sender rule lives in EIP-8141; the parallel-sequence primitive lives in EIP-8250; and a future keyed-aware mempool policy can compose them without re-litigating EIP-8141's payload schema. The pattern is the same protocol-vs-mempool layering that derek and forshtat articulated in posts #146-147 and #150, lifted from a per-PR convention to an EIP-series convention.
 
-### Extended Feature Set Proposal (Open)
+### Extended Feature Set Proposal (Opened, Later Superseded)
 
-*pedrouid — PR #11643, opened May 11*
+*pedrouid — PR #11643, opened May 11 (closed May 18 in favor of [PR #11681](#extended-feature-set-supersession-may-16-may-18))*
 
-Eight hours after PR #11598 merged, Pedro Gomes opened PR #11643 with the inverse packaging: rather than EIP-8141 + EIP-8250 + EIP-8164 + a future guarantors EIP composed via `requires` chains, fold all four into EIP-8141 itself. The PR description calls this "extend EIP-8141 from just a new transaction type into a complete native AA upgrade by folding in the four downstream additions it needs to deliver on its premise". The diff is +843/-69 lines, the largest single-PR diff against EIP-8141 since the original submission.
+Eight hours after PR #11598 merged, Pedro Gomes opened PR #11643 with the inverse packaging of EIP-8250's requires-chain approach: fold guarantors, flexible nonces, signer binding, and envelope expiry into EIP-8141 itself rather than chain them as sibling EIPs. The diff was +843/-69 lines, the largest single-PR diff against EIP-8141 since the original submission.
 
-The four features bundled:
-
-1. **Guarantors**: payer primitive making txs public-mempool admissible even when sender validation may fail. Currently lives in PR #11555 (derekchiang, open).
-2. **Flexible Nonces**: keyed nonce streams per sender. Currently lives in EIP-8250 (just merged).
-3. **Signer Binding**: registry-only `(sender, signer) → (pubkey, type)` lookup spanning secp256k1, lattice, multivariate, hash-based. Currently lives in EIP-8164.
-4. **Envelope Expiry**: protocol-enforced deadline via an `expiry` envelope field; tx invalid when `block.timestamp >= expiry`.
-
-Structurally the PR adds two outer-envelope fields (`signer` uint64, `expiry` uint64), one new `AuthManager` system contract at a reserved address (EIP-4788 / EIP-2935 shape, holding both keyed nonce streams and registered pubkey signers), zero new opcodes, zero new precompiles, and zero account RLP changes. The approval-scope bit field expands from two to three bits to accommodate a new `APPROVE_GUARANTEE` value, moving the atomic-batch flag from bit 2 to bit 3. Coauthorship in the EIP header is expanded to include soispoke, GregTheGreek, prestwich, nerolation, pedrouid alongside the existing list.
-
-The proposal is in tension with both the just-merged EIP-8250 and the May 14 PR #11662 EXPIRY_VERIFIER merge below. EIP-8250 establishes the requires-chain layering pattern that PR #11643 reverses by absorption. PR #11662 ships expiry as a verifier-frame contract; PR #11643 ships expiry as an outer-envelope field. Whether #11643 rebases on the post-EIP-8250, post-#11662 spec (rewiring the four features into the absorbed structure on top of what already merged) or retains the envelope-field framing is the immediate open question. Bot reports 1 more reviewer needed; CI initially flagged commit-graph errors which were addressed in later commits.
+The architectural position taken was that a bundled upgrade is more efficient than three or four sibling EIPs with overlapping system contracts. The envelope-expiry portion overlapped directly with PR #11662 (EXPIRY_VERIFIER frame), which merged May 14 and shipped protocol-level expiry as a verifier-frame contract rather than an outer-envelope field. With the expiry design question settled by #11662's merge, the envelope-expiry component of #11643 became redundant, and Pedro closed the PR on May 18 in favor of [PR #11681](#extended-feature-set-supersession-may-16-may-18), which retains the three remaining features without the envelope-expiry field. Phase 14 covers the supersession.
 
 ---
 
@@ -602,5 +593,35 @@ One open question that did not gate the merge: whether the canonical runtime rea
 
 The day PR #11662 merged, forshtat thanked derek for the atomic-batching extension and asked for more detail on `VERIFY`-frame aggregation methodology, and whether the state-modification constraints (the `SSTORE`-in-`VERIFY` ban, derek's aggregation invariant in post #152) should affect `APPROVE`'s behavior. The question is unanswered as of this sync and is the trailing concern of Phase 12: derek's aggregation invariant ("removing `VERIFY` frames doesn't change behavior") implies anything `VERIFY` frames write to transaction state has to be carefully scoped, and `APPROVE` is the only protocol-defined `VERIFY` write. If aggregation pressure pushes for further restrictions, `APPROVE`'s semantics could need follow-up work.
 
-**What to watch into Phase 14**: whether #11643 (Pedro's extended feature set) gets reviewer engagement and converges with or against the just-merged EIP-8250 + #11662 packaging; whether #11555 (guarantors) or #11580 (payer-before-sender) lands first or both fold into #11643; whether the `SSTORE`-in-`VERIFY` ban migrates to mempool policy as the trailing Phase 11 question asked; whether `APPROVE` semantics get follow-up restrictions from the aggregation thread (#155); and whether samwilsn's editorial-review items (post #149, especially the `FRAMEDATACOPY` revert-vs-zero-pad question) get a follow-up PR.
+**What carried into Phase 14**: Pedro's bundle did get reviewer engagement, but in the form of a self-issued rewrite: after PR #11662 settled the expiry design as a verifier-frame contract, #11643 was closed and replaced by PR #11681, which keeps guarantors, keyed nonces, and signer binding but drops the envelope-expiry field. The compose-by-requires vs absorb-into-base question remains open. Open into Phase 15: whether #11555 (guarantors) or #11580 (payer-before-sender) lands separately or folds into #11681; whether the `SSTORE`-in-`VERIFY` ban migrates to mempool policy as the trailing Phase 11 question asked; whether `APPROVE` semantics get follow-up restrictions from the aggregation thread (#155); and whether samwilsn's editorial-review items (post #149, especially the `FRAMEDATACOPY` revert-vs-zero-pad question) get a follow-up PR.
+
+---
+
+## Phase 14: Extended Feature Set Supersession (May 16 – May 18)
+
+*Phase 14 captures the resolution of the open architectural question Phase 12 left dangling. Pedro's May 11 PR #11643 bundled four features into EIP-8141 itself, an inverse of the requires-chain layering EIP-8250 established. Within five days, PR #11662 (EXPIRY_VERIFIER frame, merged May 14) settled the envelope-expiry component independently, by shipping protocol-level expiry as a verifier-frame contract rather than an outer-envelope field. On May 16 Pedro opened a successor PR, #11681, that retains guarantors, keyed nonces, and signer binding but drops the now-redundant envelope-expiry field. On May 18 he closed #11643 in favor of #11681. The substantive architectural position carried forward (keyed nonces and guarantors should ship together inside EIP-8141 rather than as sibling EIPs) is unchanged; only the envelope-expiry component dropped out.*
+
+### Extended Feature Set Successor Opened (Open)
+
+*pedrouid — PR #11681, opened May 16*
+
+Five days after PR #11662 shipped EXPIRY_VERIFIER as the protocol-level expiry mechanism, Pedro opened PR #11681 as the successor to #11643. The diff is +810/-74 lines across three files. The PR description retains the same architectural position as #11643 (keyed nonces and guarantors should ship together inside EIP-8141, sharing one system contract, rather than as a requires-chain of sibling EIPs), but drops the envelope-expiry field that PR #11662 made redundant.
+
+The three features bundled in #11681:
+
+1. **Guarantors**: adopted from PR #11555 (derekchiang) verbatim. New approval scope `APPROVE_GUARANTEE = 0x4`, a `compute_frame_sig_hash` helper, a `guarantor_approved` transaction-scoped flag, and a canonical-paymaster guarantor mode with a `bumpNonce` entry. The mempool tier that today rejects shared-state-reading sender validation can admit those transactions when a guarantor signature carries the risk.
+2. **Keyed Nonces**: mirrors EIP-8250's `(nonce_key, nonce_seq)` semantics with one shape change. A single `uint64 signer` envelope field replaces the `(nonce_key, nonce_seq)` pair, so the same identifier indexes both the keyed nonce stream and the registered pubkey for signer binding. `signer == 0` aliases the legacy account nonce. The position taken: keyed nonces belong inside EIP-8141 because the upgrade path is more efficient when keyed nonces share the same system contract as guarantors and signer binding rather than living in a separate sibling EIP.
+3. **Signer Binding**: a transaction-scoped `verified_signers` table populated by non-secp256k1 `VERIFY` frames that prove `(digest, address)` against a registered pubkey. `ECRECOVER` consults the table on the hit path; the miss path is byte-identical to upstream.
+
+The envelope-expiry field present in #11643 is dropped; the `signer` envelope field is the only new outer-envelope addition. One new system contract (`AUTH_MANAGER` at a reserved address, EIP-4788 / EIP-2935 pattern) holds both the keyed nonce streams and the registered pubkey signers under one storage layout. Zero new opcodes, zero new precompiles, zero account-RLP changes.
+
+The architectural tension with EIP-8250 is unchanged from #11643. EIP-8250's `requires` header established the compose-by-requires layering pattern at the EIP-series level; PR #11681 (and #11643 before it) take the absorb-into-base position that one bundled EIP with a shared system contract is a more efficient upgrade path than a chain of sibling EIPs with overlapping responsibilities. If #11681 lands, it supersedes EIP-8250 by absorption. The question of which packaging EIP-series convention wins is the open architectural question for Phase 15.
+
+### PR #11643 Closed in Favor of #11681 (Closed)
+
+*pedrouid — PR #11643, closed May 18*
+
+Two days after opening PR #11681, Pedro closed #11643 with a one-line comment: "Closed in favor of #11681". Net spec impact of #11643 is zero; the substantive proposal carries forward in #11681 minus the envelope-expiry field. The supersession is a small but informative governance signal: in-flight PRs do rebase against the post-merge spec when external events (here, PR #11662) settle one of their components independently. The four-feature bundle becomes a three-feature bundle without re-litigating the bundle vs requires-chain question.
+
+**What to watch into Phase 15**: whether PR #11681 gathers the reviewer signoffs #11643 never did (Bot reports 1 more reviewer needed; the editor signoff that gated EIP-8250 may be the gating factor here too); whether #11555 (guarantors, open) folds into #11681 or stays separate; whether EIP-8250 stays in the spec as a sibling after #11681 lands, or is retracted by absorption; and whether forshtat's #155 aggregation question or samwilsn's #149 editorial items get follow-up PRs in the meantime.
 
