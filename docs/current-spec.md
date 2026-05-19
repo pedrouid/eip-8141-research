@@ -273,6 +273,7 @@ The sponsor pays ETH gas; frame 2 repays the sponsor in ERC-20 tokens.
 | EIP-7997 | Canonical deterministic factory predeploy; recommended for cross-chain-stable factory addresses but no longer a hard dependency after PR #11567 (merged Apr 30) |
 | EIP-7392 | Signature registry; interoperability PR #11455 was closed without merge on Apr 23 |
 | EIP-8250 | Keyed-nonces sibling EIP (PR #11598 merged May 11); layers `(nonce_key, nonce_seq)` replay protection on top of EIP-8141 via a `NONCE_MANAGER` system contract. First EIP whose `requires` header includes EIP-8141 |
+| Expiring Nonces (pending) | Second compose-by-requires sibling EIP (PR #11692, opened May 19 by nerolation and lightclient). Sentinel-mode (`tx.nonce == 2**64 - 1`) plus a `NONCE_RING` system contract and fixed-capacity ring buffer for short-lived replay protection; deadline enforced by reusing the `EXPIRY_VERIFIER` frame. Composes with EIP-8250 |
 
 ## Key Takeaway
 
@@ -281,6 +282,6 @@ A frame transaction is a sequence of purpose-labeled sub-calls. The protocol run
 ## Read Next
 
 - [EOA Support](/eoa-support) — what existing codeless accounts get for free, and how default code replaces EIP-7702 delegation for common cases.
-- [Feedback Evolution](/feedback-evolution) — how the spec got to its current shape through fourteen phases of community review.
+- [Feedback Evolution](/feedback-evolution) — how the spec got to its current shape through fifteen phases of community review.
 - [Mempool Strategy](/mempool-strategy) — why the validation prefix is the way it is, and how the two-tier mempool handles everything that doesn't fit.
 - [Competing Standards](/competing-standards) — how EIP-8141 compares to EIP-8130, EIP-8175, EIP-8202, and the sibling proposals.

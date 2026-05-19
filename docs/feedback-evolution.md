@@ -625,3 +625,31 @@ Two days after opening PR #11681, Pedro closed #11643 with a one-line comment: "
 
 **What to watch into Phase 15**: whether PR #11681 gathers the reviewer signoffs #11643 never did (Bot reports 1 more reviewer needed; the editor signoff that gated EIP-8250 may be the gating factor here too); whether #11555 (guarantors, open) folds into #11681 or stays separate; whether EIP-8250 stays in the spec as a sibling after #11681 lands, or is retracted by absorption; and whether forshtat's #155 aggregation question or samwilsn's #149 editorial items get follow-up PRs in the meantime.
 
+---
+
+## Phase 15: Second Sibling EIP and the Compose-by-Requires Pattern (May 19)
+
+*Phase 15 opens one day after Phase 14 closes, with the architectural question Phase 14 framed (compose-by-requires vs absorb-into-base) getting a fresh data point from the opposite direction. PR #11681 (Phase 14) takes the absorb-into-base position, folding keyed nonces, guarantors, and signer binding into EIP-8141 itself. On May 19 nerolation and lightclient open PR #11692, a second sibling EIP requiring EIP-8141: "Expiring Nonces for Frame Transactions". The two open PRs now stake the same question from opposite ends, and the EIP-8250 + Expiring Nonces pair forms the first two-EIP requires-chain stack on top of EIP-8141.*
+
+### Expiring Nonces Sibling EIP Opened (Open)
+
+*nerolation (Toni Wahrstätter), lightclient — PR #11692, opened May 19*
+
+PR #11692 adds a new Standards Track EIP (placeholder `eip-9999.md`, +161 lines) layering an "expiring-nonce" mode on EIP-8141. The proposal trades unbounded per-tx state growth for a fixed-capacity ring buffer, and reuses two existing primitives rather than introducing new envelope fields.
+
+The mechanism in three parts:
+
+1. **Sentinel-mode selection**: a transaction is in expiring-nonce mode if `tx.nonce == 2**64 - 1`. Reusing the existing `nonce` field keeps the payload schema unchanged and lets the canonical signature hash continue to commit to the mode marker through the existing field. Other nonce values follow EIP-8141 untouched.
+2. **Ring-buffer state**: a `NONCE_RING` system contract (runtime `0x60006000fd`, revert-only) holds a fixed `RING_CAPACITY = 2**18` slot ring. Consumption happens atomically on the unique payment-approving `APPROVE`, scoped as an approval effect (journaled outside the current frame's revert journal and outside any `SENDER` atomic-batch snapshot). The zero-to-nonzero `SSTORE_SET` premium is intentionally omitted because the ring's leaf count is invariant in steady state: every fresh `slot_seen(h_new)` write is paired with a `slot_seen(h_old) = 0` clear within the same transition. A flat `EXPIRING_NONCE_GAS = 13000` covers the read/write set.
+3. **Deadline enforcement**: the deadline is enforced by reusing PR #11662's `EXPIRY_VERIFIER` frame rather than a parallel envelope field. The 8-byte big-endian unix-seconds deadline is capped at `MAX_EXPIRY_SECS = 60`, keeping the sizing invariant `MAX_EXPIRY_SECS × peak_tps ≤ RING_CAPACITY` (the ring tolerates ~4369 sustained TPS before eviction races a live deadline). A `BufferFull` halt acts as defense-in-depth if the invariant ever breaks.
+
+The architectural significance: PR #11692 stakes the opposite position from PR #11681 in the open Phase 14 question. PR #11681 argues that keyed nonces, guarantors, and signer binding belong inside EIP-8141 as a bundled upgrade. PR #11692 takes another candidate (expiring nonces, a nonce-mechanism alternative that overlaps with EIP-8250) and ships it as a second sibling EIP requiring EIP-8141, extending the compose-by-requires layering EIP-8250 established. The two open PRs now encode the same question from opposite ends.
+
+The composition with EIP-8250 is explicitly addressed: if both ship, the expiring-nonce sentinel collapses into EIP-8250's keyed-nonce framing as a reserved `nonce_key == 2**256 - 1`, and `NONCE_RING`'s storage moves under a distinct slot prefix inside `NONCE_MANAGER`. This composition is non-normative but signals that the compose-by-requires camp expects sibling EIPs to compose with each other, not just with the base EIP.
+
+Mempool implications are the visible policy break with EIP-8141's defaults: nodes MAY admit multiple pending expiring-nonce transactions per sender, reserving `TXPARAM(0x06)` against the payer's available balance for each, rather than enforcing EIP-8141's one-pending-frame-transaction-per-sender guidance. This is consistent with EIP-8250's treatment (parallel sequences per `(sender, nonce_key)`) and reinforces the layering pattern: the one-pending-per-sender rule is EIP-8141's, not a property of frame transactions in general, and sibling EIPs can relax it for their own scoped sequences.
+
+The PR opened May 19 with CI initially flagging commit-graph errors. The bot reports 1 more reviewer needed (`@g11tech`, `@jochem-brouwer`, `@lightclient`, `@samwilsn`). No public review comments yet.
+
+**What to watch into Phase 16**: whether PR #11692 gathers an editor signoff on its own (lightclient is a listed co-author, so the editor signoff is a separate question); whether PR #11681's absorb-into-base packaging is rebased to either retract keyed nonces (and let EIP-8250 + PR #11692 cover that surface) or to argue the case against #11692's framing; whether a third sibling EIP appears in the same window, which would settle the architectural question by empirical pressure; and whether PR #11555 (guarantors) reorganizes its packaging to fit one camp or the other.
+

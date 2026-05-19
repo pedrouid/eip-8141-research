@@ -55,6 +55,7 @@
 | Apr 22 | [#11555](https://github.com/ethereum/EIPs/pull/11555) | derekchiang | Add support for guarantors (payer covers gas even if sender validation fails) |
 | Apr 29 | [#11580](https://github.com/ethereum/EIPs/pull/11580) | lightclient | Allow payer to approve before sender (draft; alternative to #11555 guarantors) |
 | May 16 | [#11681](https://github.com/ethereum/EIPs/pull/11681) | pedrouid | Extend EIP-8141 with guarantors, keyed nonces, and signer binding via a `signer` envelope field and an `AUTH_MANAGER` system contract; +810/-74 lines. Successor to closed #11643 after PR #11662 settled the expiry design |
+| May 19 | [#11692](https://github.com/ethereum/EIPs/pull/11692) | nerolation, lightclient | Add EIP: Expiring Nonces for Frame Transactions. New sibling EIP (placeholder eip-9999.md, +161 lines) requiring EIP-8141. Sentinel-mode (`tx.nonce == 2**64 - 1`) plus a `NONCE_RING` system contract and fixed-capacity ring buffer; deadline enforced by reusing PR #11662's `EXPIRY_VERIFIER` frame. Second compose-by-requires sibling after EIP-8250 |
 
 ### Related
 
@@ -108,7 +109,7 @@
 | Franco Victorio | @fvictorio | Raised question about validation-frame execution ordering vs non-frame txs |
 | dionysuzx | @dionysuzx | Hegotá meta-EIP maintainer, submitted PR #11537 moving EIP-8141 to CFI (merged Apr 30) |
 | Nero_eth | Nero_eth | ethresear.ch analyst; "Three Gates to Privacy" post framing mempool/FOCIL/VOPS constraints on privacy-pool flows through frame transactions |
-| Toni Wahrstätter | @nerolation | Author of PR #11584 (2D nonces, closed), co-author of EIP-8250 Keyed Nonces (PR #11598, merged May 11), and author of PR #11662 (EXPIRY_VERIFIER frame, merged May 14). Added to EIP-8141's `author` header in PR #11662 |
+| Toni Wahrstätter | @nerolation | Author of PR #11584 (2D nonces, closed), co-author of EIP-8250 Keyed Nonces (PR #11598, merged May 11), author of PR #11662 (EXPIRY_VERIFIER frame, merged May 14), and co-author with lightclient of PR #11692 (Expiring Nonces sibling EIP, opened May 19). Added to EIP-8141's `author` header in PR #11662 |
 | Thomas Thiery | @soispoke | Lead author of EIP-8250 Keyed Nonces for Frame Transactions (PR #11598, merged May 11) |
 | Pedro Gomes | @pedrouid | Author of PR #11681 (opened May 16), the successor to closed PR #11643 (Extended Feature Set, May 11 – May 18): proposes bundling guarantors, keyed nonces, and signer binding into EIP-8141 itself via a `signer` envelope field and an `AUTH_MANAGER` system contract, dropping the envelope-expiry component now that PR #11662 (EXPIRY_VERIFIER) ships protocol-level expiry as a verifier-frame contract |
 | German Abal | @ariutokintumi | Co-founder/architect of EVVM (contract-native AA framework); contributed a production-perspective comparison on the magicians thread (post #148, May 7) on per-environment policy, async execution, batch granularity, and reservation primitives |

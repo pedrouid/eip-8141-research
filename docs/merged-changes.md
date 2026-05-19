@@ -395,7 +395,7 @@ All reviewers approved by Apr 18; auto-merged on Apr 22 with no further debate.
 
 ## Active/Open PRs
 
-*As of May 18, 2026.* These PRs represent active design proposals that may change the spec in the near future.
+*As of May 19, 2026.* These PRs represent active design proposals that may change the spec in the near future.
 
 ### PR #11481: Add signatures list to outer tx (open since Apr 2)
 
@@ -465,6 +465,20 @@ From lightclient's PR description (carried over from #11575):
 From pedrouid's PR description:
 
 > Guarantors: a payer primitive that admits a transaction to the public mempool even when the sender's `VERIFY` frame is unsafe to simulate. Adopts PR #11555 verbatim. Keyed Nonces: independent replay-protection sequences per `(sender, signer)`. Mirrors EIP-8250 semantics. Diverges only in shape: one `uint64 signer` envelope field instead of `(nonce_key, nonce_seq)`. Signer Binding: tx-scoped `verified_signers` table populated by non-secp256k1 `VERIFY` frames.
+
+### PR #11692: Add EIP — Expiring Nonces for Frame Transactions (open since May 19)
+
+**Authors**: nerolation (Toni Wahrstätter), lightclient
+
+- **Why**: A linear sender nonce forces ordering, blocks multiple pending transactions, and ties inclusion order to nonce order. For short-lived intents (atomic swaps, time-boxed sponsorships) the only replay risk worth defending against is rebroadcast inside the deadline window. Expiring nonces replace per-tx state growth with a fixed-capacity ring buffer.
+- **Proposed change**: New sibling EIP (placeholder `eip-9999.md`, +161 lines) layering an "expiring-nonce" mode on EIP-8141. Triggered by the sentinel `tx.nonce == 2**64 - 1`. A `NONCE_RING` system contract (runtime `0x60006000fd`) holds a fixed `RING_CAPACITY = 2**18` slot ring; consumption happens atomically on the unique payment-approving `APPROVE`. The deadline is enforced by reusing PR #11662's `EXPIRY_VERIFIER` frame (8-byte big-endian unix-seconds, capped at `MAX_EXPIRY_SECS = 60`). A flat `EXPIRING_NONCE_GAS = 13000` charge covers the ring's read/write set; the zero-to-nonzero `SSTORE_SET` premium is intentionally omitted because the ring's leaf count is invariant in steady state. Mempool nodes MAY admit multiple pending expiring-nonce transactions per sender, reserving `TXPARAM(0x06)` against the payer's available balance for each.
+- **Composition with EIP-8250**: explicitly non-normative. If both ship, the sentinel collapses into EIP-8250's keyed-nonce framing as a reserved `nonce_key == 2**256 - 1`; `NONCE_RING` storage moves under a distinct prefix inside `NONCE_MANAGER`.
+- **Relationship to PR #11681**: stakes the opposite architectural position to PR #11681's absorb-into-base bundle. PR #11681 folds keyed nonces into EIP-8141; PR #11692 introduces another sibling EIP that requires EIP-8141, extending the compose-by-requires layering EIP-8250 established. The two open PRs encode the same question from opposite ends.
+- **Status**: Open since May 19. CI initially flagged commit-graph errors. Bot reports 1 more reviewer needed (`@g11tech`, `@jochem-brouwer`, `@lightclient`, `@samwilsn`).
+
+From nerolation's PR description:
+
+> Proposal to add expiring nonces to Frame Transactions
 
 ---
 
