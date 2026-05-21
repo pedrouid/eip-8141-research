@@ -273,7 +273,7 @@ The sponsor pays ETH gas; frame 2 repays the sponsor in ERC-20 tokens.
 | EIP-7997 | Canonical deterministic factory predeploy; recommended for cross-chain-stable factory addresses but no longer a hard dependency after PR #11567 (merged Apr 30) |
 | EIP-7392 | Signature registry; interoperability PR #11455 was closed without merge on Apr 23 |
 | EIP-8250 | Keyed-nonces sibling EIP (PR #11598 merged May 11); layers `(nonce_key, nonce_seq)` replay protection on top of EIP-8141 via a `NONCE_MANAGER` system contract. First EIP whose `requires` header includes EIP-8141 |
-| Expiring Nonces (pending) | Second compose-by-requires sibling EIP (PR #11692, opened May 19 by nerolation and lightclient). Sentinel-mode (`tx.nonce == 2**64 - 1`) plus a `NONCE_RING` system contract and fixed-capacity ring buffer for short-lived replay protection; deadline enforced by reusing the `EXPIRY_VERIFIER` frame. Composes with EIP-8250 |
+| EIP-8266 (pending) | Second compose-by-requires sibling EIP (PR #11692, opened May 19 by nerolation and lightclient; number assigned May 20). Sentinel-mode (`tx.nonce == 2**64 - 1`) plus a `NONCE_RING` system contract and fixed-capacity ring buffer for short-lived replay protection; deadline enforced by reusing the `EXPIRY_VERIFIER` frame. Composes with EIP-8250 |
 
 ## Key Takeaway
 

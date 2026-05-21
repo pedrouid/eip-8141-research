@@ -627,9 +627,9 @@ Two days after opening PR #11681, Pedro closed #11643 with a one-line comment: "
 
 ---
 
-## Phase 15: Second Sibling EIP and the Compose-by-Requires Pattern (May 19)
+## Phase 15: Second Sibling EIP and the Compose-by-Requires Pattern (May 19 – May 21)
 
-*Phase 15 opens one day after Phase 14 closes, with the architectural question Phase 14 framed (compose-by-requires vs absorb-into-base) getting a fresh data point from the opposite direction. PR #11681 (Phase 14) takes the absorb-into-base position, folding keyed nonces, guarantors, and signer binding into EIP-8141 itself. On May 19 nerolation and lightclient open PR #11692, a second sibling EIP requiring EIP-8141: "Expiring Nonces for Frame Transactions". The two open PRs now stake the same question from opposite ends, and the EIP-8250 + Expiring Nonces pair forms the first two-EIP requires-chain stack on top of EIP-8141.*
+*Phase 15 opens one day after Phase 14 closes, with the architectural question Phase 14 framed (compose-by-requires vs absorb-into-base) getting a fresh data point from the opposite direction. PR #11681 (Phase 14) takes the absorb-into-base position, folding keyed nonces, guarantors, and signer binding into EIP-8141 itself. On May 19 nerolation and lightclient open PR #11692, a second sibling EIP requiring EIP-8141: "Expiring Nonces for Frame Transactions". Within hours soispoke (the EIP-8250 lead author) leaves a substantive inline review that catches two correctness bugs and walks back the privacy framing; on May 20 abcoathup assigns EIP number 8266 and the discussions topic moves to its own EthMagicians thread. The two open PRs now stake the same architectural question from opposite ends, and the EIP-8250 + EIP-8266 pair forms the first two-EIP requires-chain stack on top of EIP-8141.*
 
 ### Expiring Nonces Sibling EIP Opened (Open)
 
@@ -649,7 +649,30 @@ The composition with EIP-8250 is explicitly addressed: if both ship, the expirin
 
 Mempool implications are the visible policy break with EIP-8141's defaults: nodes MAY admit multiple pending expiring-nonce transactions per sender, reserving `TXPARAM(0x06)` against the payer's available balance for each, rather than enforcing EIP-8141's one-pending-frame-transaction-per-sender guidance. This is consistent with EIP-8250's treatment (parallel sequences per `(sender, nonce_key)`) and reinforces the layering pattern: the one-pending-per-sender rule is EIP-8141's, not a property of frame transactions in general, and sibling EIPs can relax it for their own scoped sequences.
 
-The PR opened May 19 with CI initially flagging commit-graph errors. The bot reports 1 more reviewer needed (`@g11tech`, `@jochem-brouwer`, `@lightclient`, `@samwilsn`). No public review comments yet.
+The PR opened May 19 with CI initially flagging commit-graph errors.
 
-**What to watch into Phase 16**: whether PR #11692 gathers an editor signoff on its own (lightclient is a listed co-author, so the editor signoff is a separate question); whether PR #11681's absorb-into-base packaging is rebased to either retract keyed nonces (and let EIP-8250 + PR #11692 cover that surface) or to argue the case against #11692's framing; whether a third sibling EIP appears in the same window, which would settle the architectural question by empirical pressure; and whether PR #11555 (guarantors) reorganizes its packaging to fit one camp or the other.
+### Soispoke Review and Same-Block Replay Fix (Review)
+
+*soispoke, nerolation — PR #11692 inline review, May 19*
+
+Within six hours of submission, soispoke (Thomas Thiery, the lead author of EIP-8250) left a five-comment inline review on the PR. The review caught two correctness issues, pushed back on the privacy framing, and raised a mempool-policy question that nerolation answered on the spot. The review is a direct test of the compose-by-requires pattern in practice: the author of the first sibling EIP reviewing the second sibling EIP, on the day it lands.
+
+The substantive items:
+
+1. **Same-block replay window**. The stateful-validity check `state[NONCE_RING].storage[slot_seen(h)] < now` is a strict inequality. soispoke observed that after a first inclusion stores `slot_seen(h) = now`, a second inclusion in the same block also passes the check (because `now < now` is false, but the EXPIRY_VERIFIER deadline check `block.timestamp <= d` still passes at `d == block.timestamp`). The fix soispoke proposed: `stored == 0 || stored < now` for stateful validity, and `oldDeadline >= now` (not `>=` with a tighter bound) for ring-buffer eviction. nerolation acknowledged ("Ah now I see it yeah, you're right! Will commit a fix").
+2. **Pricing reframe**. soispoke argued the 13000 charge undersells `slot_seen(h)` writes plus first-time `slot_ring(idx)` writes, since each new transaction writes a fresh storage key. nerolation reframed the justification: "the 13,000 charge is justified by paired set+clear keeping trie leaves invariant, not by 'overwriting existing slots.'" The gas number stayed; the justification now points at the invariant rather than the slot-reuse intuition.
+3. **Privacy framing walked back**. soispoke noted the replay key is `compute_sig_hash(tx)`, which only prevents same-hash replay and does not stop two different envelopes from spending the same private note. Privacy-pool spends still need a nullifier or keyed-nonce check; expiring nonces are "duplicate-hash replay protection, not single-use spend protection." nerolation agreed: "I later realized that it might not be useful for privacy at all (at least always when there is a nullifier involved). Otherwise, when the ring buffer expired, the transaction could be slightly changed (changing the hash) which would allow to double-spend the nullifier." The retracted use case is one of the originally-claimed motivations.
+4. **Mempool one-pending-per-sender rule**. soispoke asked whether there should still be a bound on pending expiring-nonce transactions per sender. nerolation confirmed the rule is intentionally dropped for expiring-nonce mode because mass-invalidation is not a problem in this regime, but the "payer has enough funds for multiple pending txs" reservation rule stays in place. This is the visible policy break with EIP-8141's defaults and is consistent with EIP-8250's per-key relaxation, but goes one step further: no per-key bookkeeping, just payer-balance reservation.
+
+The review pattern is itself informative. The author of EIP-8250 catches bugs in EIP-8266 and walks back its privacy claim, but does not push back on the architectural question of whether expiring nonces should be a sibling EIP at all. soispoke engages with EIP-8266 as a peer sibling, not a competitor, which is exactly what the compose-by-requires pattern presupposes: sibling EIPs share a review surface, expect to compose, and don't relitigate base-EIP-8141 framing during their own reviews.
+
+### Number Assignment and Discussions Topic (Procedural)
+
+*abcoathup — PR #11692 comment, May 20*
+
+abcoathup (EIP editor associate) assigned EIP number **8266** on May 20 with the standard editor note: "Assigning next sequential EIP/ERC/RIP number. Numbers are assigned by editors & associates. Please also update the filename." The filename moves from the placeholder `EIPS/eip-9999.md` to `EIPS/eip-8266.md` and the additions count ticks 161 → 162. abcoathup also requested a separate discussions topic on EthMagicians, which nerolation created the same day at [ethereum-magicians.org/t/28575](https://ethereum-magicians.org/t/eip-8266-expiring-nonces-for-frame-transactions/28575) (1 post so far, the initial announcement).
+
+The procedural step is small but the implication is not. EIP-8266 now sits in the formally-numbered Standards Track slot adjacent to EIP-8250, with its own discussion thread separated from the original Frame Transaction thread. The "frame-transaction thread carries everything" pattern is over; from Phase 15 onward, sibling-EIP discussion fragments across per-EIP threads, and the original 27617 thread becomes one of several venues for EIP-8141-adjacent design discussion.
+
+**What to watch into Phase 16**: whether PR #11692 gathers an editor signoff on its own (lightclient is a listed co-author, so the editor signoff is a separate question); whether PR #11681's absorb-into-base packaging is rebased to either retract keyed nonces (and let EIP-8250 + EIP-8266 cover that surface) or to argue the case against the compose-by-requires framing; whether a third sibling EIP appears in the same window, which would settle the architectural question by empirical pressure; whether PR #11555 (guarantors) reorganizes its packaging to fit one camp or the other; and whether the EIP-8266 fixes (same-block replay strict-inequality, BufferFull condition) get committed cleanly before further review.
 
